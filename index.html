@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typewriter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================================
+   MECHANICAL CONSTANTS — the single source of truth.
+   JavaScript reads these values and the measured paper width; the paper's
+   visual size, the margins, the scale, and the column logic all derive
+   from the same --char-w measurement, so they cannot drift apart.
+   ========================================================================== */
+:root{
+  --paper-cols: 85;        /* 8.5in sheet at pica pitch (10 characters / inch) */
+  --margin-left: 10;       /* 1in left margin stop  */
+  --margin-right: 10;      /* 1in right margin stop */
+  --top-lines: 6;          /* 1in top margin at 6 lines / inch */
+  --sheet-lines: 66;       /* 11in sheet */
+  --platen-extra: 16;      /* platen overhang beyond the sheet, each side, in columns */
+  --bell-warn: 7;          /* bell rings this many columns before the right margin */
+  --tab-every: 5;          /* tab stops */
+
+  --font-size: 20px;       /* set by JS from viewport */
+  --char-w: 12px;          /* measured glyph advance, set by JS */
+  --line-h: calc(var(--char-w) * 5 / 3);            /* 6 lpi relative to 10 cpi */
+  --paper-w: calc(var(--char-w) * var(--paper-cols));
+  --platen-x: calc(var(--char-w) * var(--platen-extra) * -1);
+  --platen-w: calc(var(--char-w) * (var(--paper-cols) + 2 * var(--platen-extra)));
+  --knob-w: calc(var(--line-h) * 2.3);
+  --flange-w: calc(var(--line-h) * 0.38);
+  --paper-lines: 66;
+
+  /* vertical geometry — px values written by JS from viewport height */
+  --yp: 700px; --platen-top: 670px; --platen-h: 80px; --platen-bottom: 750px;
+  --bail-top: 650px; --table-top: 400px;
+
+  --ink: 26,22,28;
+  --chrome: linear-gradient(180deg,#34363a 0%,#8f9398 14%,#eef0f2 28%,#c2c6ca 40%,#6b6f74 58%,#2a2c2f 76%,#7a7e84 90%,#b6babf 100%);
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b0806}
+body{user-select:none;-webkit-user-select:none;cursor:default;-webkit-font-smoothing:antialiased}
+
+/* ---------- desk & room ---------- */
+#desk{position:fixed;inset:0;z-index:0;
+  background:
+    radial-gradient(120% 90% at 26% -12%, #4d3826 0%, #2a1c11 36%, #140d08 66%, #080504 100%);
+}
+#desk::after{content:"";position:absolute;inset:0;background-image:var(--desk-grain);opacity:.55;mix-blend-mode:overlay}
+
+#machine{position:fixed;inset:0;z-index:1}
+
+/* ---------- carriage (moves as one rigid body) ---------- */
+#carriage{position:absolute;left:0;top:0;width:var(--paper-w);height:100%;will-change:transform}
+
+.table{position:absolute;left:var(--platen-x);width:var(--platen-w);top:var(--table-top);
+  height:calc(var(--platen-top) - var(--table-top) + 8px);border-radius:10px 10px 0 0;
+  background:
+    linear-gradient(90deg, rgba(255,230,200,.05), transparent 30%, transparent 70%, rgba(0,0,0,.25)),
+    linear-gradient(180deg,#26221f 0%,#171513 30%,#0e0d0c 75%,#070606 100%);
+  box-shadow:0 -1px 0 rgba(255,240,220,.08) inset, 0 -8px 30px rgba(0,0,0,.45)}
+.table::before{content:"";position:absolute;left:6px;right:6px;top:0;height:3px;border-radius:3px;background:var(--chrome);opacity:.85}
+.guide{position:absolute;left:calc(var(--platen-x) * -1 - 7px);bottom:calc(var(--line-h) * 1.2);width:7px;height:calc(var(--line-h) * 2.6);
+  border-radius:2px;background:linear-gradient(90deg,#55585c,#e9ebed 45%,#6b6e73);box-shadow:1px 2px 4px rgba(0,0,0,.6)}
+
+.tail-clip{position:absolute;left:-28px;top:0;width:calc(var(--paper-w) + 56px);height:calc(var(--platen-top) + var(--line-h) * .3);overflow:hidden;pointer-events:none}
+#tail{position:absolute;left:28px;top:0;width:var(--paper-w);height:calc(var(--line-h) * var(--sheet-lines));background-color:#ddd4c4;will-change:transform;
+  box-shadow:0 0 0 .5px rgba(60,45,30,.2), 0 -6px 22px rgba(0,0,0,.35)}
+#tail::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,rgba(60,45,28,.16),transparent 4%,transparent 96%,rgba(40,30,20,.2)),
+             linear-gradient(0deg,rgba(0,0,0,.55) 0,rgba(0,0,0,.18) calc(var(--line-h) * 1.2),rgba(0,0,0,0) calc(var(--line-h) * 4)),
+             linear-gradient(180deg,rgba(70,55,35,.18) 0,transparent 6px)}
+.platen{position:absolute;left:var(--platen-x);width:var(--platen-w);top:var(--platen-top);height:var(--platen-h);
+  background-image:var(--rubber-grain), linear-gradient(180deg,#060606 0%,#1c1c1d 12%,#303032 22%,#1d1d1e 36%,#121213 60%,#070707 84%,#020202 100%);
+  background-size:180px 180px, 100% 100%}
+
+.paper-clip{position:absolute;left:-28px;top:0;width:calc(var(--paper-w) + 56px);height:var(--platen-bottom);overflow:hidden}
+#paper{position:absolute;left:28px;top:0;width:var(--paper-w);height:calc(var(--line-h) * var(--paper-lines));will-change:transform}
+.sheet{position:absolute;inset:0;background-color:#efe8da;
+  box-shadow:0 0 0 .5px rgba(60,45,30,.18), 0 2px 3px rgba(0,0,0,.28), 0 10px 28px rgba(0,0,0,.42)}
+.sheet::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg, rgba(90,70,45,.13) 0, rgba(90,70,45,.04) 1.2%, transparent 3.5%, transparent 96.5%, rgba(90,70,45,.05) 98.8%, rgba(60,45,30,.16) 100%),
+    linear-gradient(180deg, rgba(80,62,40,.14) 0, transparent 5px)}
+.sheet::after{content:"";position:absolute;right:0;top:0;width:18%;height:calc(var(--line-h)*3);pointer-events:none;
+  background:radial-gradient(120% 100% at 100% 0%, rgba(70,52,30,.10), transparent 70%)}
+
+#ink{position:absolute;inset:0;font-family:"Courier Prime","Courier New",Courier,monospace;font-size:var(--font-size);font-weight:400}
+.line{position:absolute;left:0;right:0;height:var(--line-h)}
+.g{position:absolute;top:calc(var(--line-h) * -.25);padding-top:calc(var(--line-h) * .25);
+  width:calc(var(--char-w) * 1.6);height:calc(var(--line-h) * 1.5);line-height:var(--line-h);
+  text-align:center;white-space:pre;color:transparent;-webkit-text-fill-color:transparent;
+  -webkit-background-clip:text;background-clip:text}
+
+.shade{position:absolute;left:var(--platen-x);width:var(--platen-w);top:var(--platen-top);height:var(--platen-h);pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.24) 8%,rgba(0,0,0,0) 22%,rgba(0,0,0,0) 45%,rgba(0,0,0,.12) 60%,rgba(0,0,0,.44) 80%,rgba(0,0,0,.85) 100%)}
+.gloss{position:absolute;left:var(--platen-x);width:var(--platen-w);top:var(--platen-top);height:var(--platen-h);pointer-events:none;mix-blend-mode:screen;
+  background:linear-gradient(180deg,transparent 7%,rgba(255,244,225,.10) 15%,rgba(255,244,225,.03) 25%,transparent 32%)}
+.curl{position:absolute;left:0;width:var(--paper-w);top:calc(var(--platen-top) - var(--line-h) * 1.5);height:calc(var(--line-h) * 1.62);pointer-events:none;
+  background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(50,35,18,.07) 45%,rgba(0,0,0,.20) 78%,rgba(255,248,235,.20) 91%,rgba(0,0,0,.30) 100%)}
+
+.bail{position:absolute;left:calc(var(--platen-x) + var(--line-h) * 1.1);width:calc(var(--platen-w) - var(--line-h) * 2.2);
+  top:var(--bail-top);height:calc(var(--line-h) * .62);border-radius:999px;background:var(--chrome);
+  box-shadow:0 calc(var(--line-h) * .18) calc(var(--line-h) * .28) rgba(0,0,0,.45), 0 1px 0 rgba(0,0,0,.6)}
+.scale{position:absolute;left:0;width:var(--paper-w);top:var(--bail-top);height:calc(var(--line-h) * .62);pointer-events:none}
+.scale::before{content:"";position:absolute;left:0;right:0;bottom:12%;height:30%;
+  background:repeating-linear-gradient(90deg,transparent 0,transparent calc(var(--char-w) / 2 - .5px),rgba(20,20,22,.55) calc(var(--char-w) / 2 - .5px),rgba(20,20,22,.55) calc(var(--char-w) / 2 + .5px),transparent calc(var(--char-w) / 2 + .5px),transparent var(--char-w))}
+.scale span{position:absolute;top:4%;transform:translateX(-50%);font:700 calc(var(--line-h) * .3)/1 "Courier Prime","Courier New",monospace;color:rgba(25,24,24,.78);letter-spacing:-.02em}
+.mstop{position:absolute;top:calc(var(--bail-top) - var(--line-h) * .3);width:calc(var(--line-h) * .42);height:calc(var(--line-h) * .34);
+  transform:translateX(-50%);background:linear-gradient(180deg,#b3322a,#5e1410);clip-path:polygon(0 0,100% 0,50% 100%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.6))}
+.mstop.l{left:calc(var(--margin-left) * var(--char-w))}
+.mstop.r{left:calc((var(--paper-cols) - var(--margin-right)) * var(--char-w))}
+
+.roller{position:absolute;top:calc(var(--bail-top) - var(--line-h) * .2);height:calc(var(--line-h) * 1.02);width:calc(var(--line-h) * 1.9);
+  border-radius:38% / 50%;margin-left:calc(var(--line-h) * -.95);
+  background:linear-gradient(180deg,#0a0a0a 0%,#3b3937 26%,#242221 45%,#101010 70%,#030303 100%);
+  box-shadow:0 calc(var(--line-h) * .15) calc(var(--line-h) * .25) rgba(0,0,0,.5)}
+.roller.r1{left:calc(var(--paper-w) * .2)} .roller.r2{left:calc(var(--paper-w) * .8)}
+
+.flange{position:absolute;top:calc(var(--platen-top) - var(--platen-h) * .01);height:calc(var(--platen-h) * 1.02);width:var(--flange-w);
+  background:linear-gradient(180deg,#2c2e31 0%,#a9adb2 18%,#f3f4f5 30%,#8d9196 52%,#2e3033 80%,#5e6166 100%);border-radius:2px}
+.flange.fl{left:calc(var(--platen-x) - var(--flange-w))}
+.flange.fr{left:calc(var(--platen-x) + var(--platen-w))}
+.knob{position:absolute;top:calc(var(--platen-top) - var(--platen-h) * .06);height:calc(var(--platen-h) * 1.12);width:var(--knob-w);border-radius:26% / 10%;overflow:hidden;
+  background:repeating-linear-gradient(180deg,#0b0b0b 0,#0b0b0b 2px,#34322f 2px,#34322f 3px,#161515 3px,#161515 5px);background-size:100% 5px}
+.knob::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.2) 22%,rgba(255,240,220,.12) 32%,rgba(0,0,0,.05) 48%,rgba(0,0,0,.55) 75%,rgba(0,0,0,.95) 100%),
+             linear-gradient(90deg,rgba(0,0,0,.5),transparent 20%,transparent 80%,rgba(0,0,0,.5))}
+.knob.kl{left:calc(var(--platen-x) - var(--flange-w) - var(--knob-w))}
+.knob.kr{left:calc(var(--platen-x) + var(--platen-w) + var(--flange-w))}
+
+.lever{position:absolute;left:calc(var(--platen-x) + var(--line-h) * .9 - var(--line-h) * 7.5);top:calc(var(--platen-top) - var(--line-h) * .78);
+  width:calc(var(--line-h) * 7.5);height:calc(var(--line-h) * .42);transform-origin:100% 50%;transform:rotate(-24deg);
+  border-radius:calc(var(--line-h) * .2);background:var(--chrome);box-shadow:0 calc(var(--line-h) * .35) calc(var(--line-h) * .4) rgba(0,0,0,.55)}
+.lever::before{content:"";position:absolute;left:calc(var(--line-h) * -.6);top:calc(var(--line-h) * -.32);width:calc(var(--line-h) * 1.9);height:calc(var(--line-h) * 1.06);
+  border-radius:45%;background:linear-gradient(180deg,#3a3c40,#dfe2e5 30%,#9ea2a7 55%,#35373b 100%);box-shadow:0 2px 5px rgba(0,0,0,.6)}
+
+#mech{position:absolute;left:0;pointer-events:none}
+
+/* ---------- lighting ---------- */
+#vignette{position:fixed;inset:0;z-index:2;pointer-events:none;
+  background:radial-gradient(ellipse 85% 75% at 40% 32%, rgba(0,0,0,0) 45%, rgba(0,0,0,.5) 100%),
+             linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,0) 28%)}
+#lamp{position:fixed;inset:0;z-index:3;pointer-events:none;mix-blend-mode:soft-light;
+  background:radial-gradient(ellipse 70% 62% at 24% 8%, rgba(255,210,150,.6), rgba(255,210,150,0) 72%)}
+
+/* ---------- UI ---------- */
+#hint{position:fixed;z-index:10;top:22px;left:50%;transform:translateX(-50%);font:400 11px/1 "Courier Prime","Courier New",monospace;
+  letter-spacing:.28em;text-transform:uppercase;color:rgba(236,224,204,.42);transition:opacity 1.4s ease;white-space:nowrap}
+#hint.gone{opacity:0}
+#menuBtn{position:fixed;z-index:11;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,240,220,.1);
+  background:rgba(255,255,255,.03);color:rgba(236,224,204,.8);opacity:.28;cursor:pointer;display:grid;place-items:center;padding:0;transition:opacity .25s, background .25s}
+#menuBtn:hover,#menuBtn.on{opacity:1;background:rgba(255,255,255,.07)}
+#menuBtn:focus-visible{outline:1px solid rgba(236,224,204,.5);outline-offset:2px}
+#menu{position:fixed;z-index:11;top:56px;right:14px;width:258px;padding:6px;border-radius:10px;
+  background:rgba(20,16,13,.93);border:1px solid rgba(255,240,220,.08);box-shadow:0 18px 40px rgba(0,0,0,.55);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-family:"Courier Prime","Courier New",monospace;color:#ebe2d2;
+  opacity:0;transform:translateY(-6px);pointer-events:none;transition:opacity .18s ease, transform .18s ease}
+#menu.open{opacity:1;transform:none;pointer-events:auto}
+#menu .item{display:block;width:100%;text-align:left;background:none;border:0;color:inherit;font:inherit;padding:10px 12px;border-radius:7px;cursor:pointer}
+#menu .item:hover,#menu .item:focus-visible{background:rgba(255,255,255,.06);outline:none}
+#menu .lbl{display:block;font-size:14px;letter-spacing:.04em}
+#menu .sub{display:block;font-size:11px;color:rgba(235,226,210,.45);margin-top:3px}
+#menu .item.warn .lbl{color:#e7a48f}
+#menu hr{border:0;border-top:1px solid rgba(255,240,220,.07);margin:4px 6px}
+#menu .keys{font-size:10.5px;line-height:1.65;color:rgba(235,226,210,.38);padding:6px 12px 8px}
+#toast{position:fixed;z-index:12;bottom:22px;left:50%;transform:translateX(-50%);font:400 12px/1 "Courier Prime","Courier New",monospace;
+  letter-spacing:.12em;color:rgba(236,224,204,.75);background:rgba(20,16,13,.85);padding:9px 14px;border-radius:6px;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+#probe{position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:pre;font-family:"Courier Prime","Courier New",Courier,monospace}
+#lhProbe{position:absolute;left:-9999px;top:-9999px;visibility:hidden;width:1px;height:var(--line-h)}
+</style>
+</head>
+<body>
+<svg id="filters" width="0" height="0" style="position:absolute" aria-hidden="true"></svg>
+
+<div id="desk"></div>
+<div id="machine">
+  <div id="carriage">
+    <div class="table"><div class="guide"></div></div>
+    <div class="tail-clip"><div id="tail"></div></div>
+    <div class="platen" id="platen"></div>
+    <div class="paper-clip"><div id="paper"><div class="sheet" id="sheet"></div><div id="ink"></div></div></div>
+    <div class="shade"></div><div class="gloss"></div><div class="curl"></div>
+    <div class="bail"></div><div class="scale" id="scale"></div>
+    <div class="mstop l"></div><div class="mstop r"></div>
+    <div class="roller r1"></div><div class="roller r2"></div>
+    <div class="flange fl"></div><div class="flange fr"></div>
+    <div class="knob kl" id="knobL"></div><div class="knob kr" id="knobR"></div>
+    <div class="lever" id="lever"></div>
+  </div>
+  <canvas id="mech"></canvas>
+</div>
+<div id="vignette"></div><div id="lamp"></div>
+
+<div id="hint">Begin typing &nbsp;·&nbsp; Esc for menu</div>
+<button id="menuBtn" aria-label="Menu" title="Menu (Esc)">
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><path d="M2 4h10M2 7h10M2 10h10"/></svg>
+</button>
+<div id="menu" role="menu" aria-hidden="true">
+  <button class="item" data-act="new"><span class="lbl">New Sheet</span><span class="sub">Pull this page, feed a fresh one</span></button>
+  <button class="item" data-act="export"><span class="lbl">Export Document</span><span class="sub">Download as plain .txt</span></button>
+  <hr>
+  <button class="item" data-act="sound"><span class="lbl" id="soundLbl">Sound: On</span><span class="sub">Synthesized in real time</span></button>
+  <div class="keys">Enter — carriage return<br>Backspace — back-space (overstrike)<br>Tab — tabulator · ← → carriage<br>↑ ↓ roll platen · Home / End<br>Esc — close</div>
+</div>
+<div id="toast"></div>
+<span id="probe"></span><div id="lhProbe"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================================
+   Utilities
+   ========================================================================= */
+const root = document.documentElement;
+const $ = (s) => document.querySelector(s);
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const rand = (a, b) => a + Math.random() * (b - a);
+const vary = (x, p = 0.03) => x * (1 + (Math.random() * 2 - 1) * p);   // ±3% default
+const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
+const now = () => performance.now();
+const r2 = (v) => Math.round(v * 100) / 100;
+const r4 = (v) => Math.round(v * 10000) / 10000;
+const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+const ease = {
+  linear: (p) => p,
+  outCubic: (p) => 1 - Math.pow(1 - p, 3),
+  inCubic: (p) => p * p * p,
+  inOutCubic: (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2),
+  outBack: (p) => { const c1 = 0.9, c3 = c1 + 1; return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2); },
+  // "Slam": quick linear velocity ramp, then constant speed straight into a hard stop.
+  slam: (a) => (p) => { const n = 1 - a / 2; return p < a ? (p * p / (2 * a)) / n : (a / 2 + p - a) / n; },
+};
+const RETURN_EASE = ease.slam(0.16);
+const TAB_EASE = ease.slam(0.3);
+function invert(fn, y) { let lo = 0, hi = 1; for (let i = 0; i < 24; i++) { const m = (lo + hi) / 2; if (fn(m) < y) lo = m; else hi = m; } return (lo + hi) / 2; }
+
+/* =========================================================================
+   Geometry (all derived from CSS constants + measured glyph advance)
+   ========================================================================= */
+const G = { W: 0, H: 0, cw: 12, lh: 20, cols: 85, ml: 10, mr: 10, LM: 10, RM: 75, bellCol: 68, topLines: 6, sheetLines: 66, tabEvery: 5, Xc: 0, Yp: 0, platenTop: 0, platenH: 0, platenBottom: 0 };
+const state = { line: 0, col: 10 };
+let strikes = [];      // [line, col, char, dx(em), dy(em), rot(deg), a1, a2, angle]
+let maxLine = 0;
+let busy = false;
+
+const carriageEl = $('#carriage'), paperEl = $('#paper'), inkEl = $('#ink'), sheetEl = $('#sheet');
+const tailEl = $('#tail'), platenEl = $('#platen'), knobL = $('#knobL'), knobR = $('#knobR'), leverEl = $('#lever');
+const machineEl = $('#machine'), probe = $('#probe'), lhProbe = $('#lhProbe'), scaleEl = $('#scale');
+
+function cssNum(name, fallback) { const v = parseFloat(getComputedStyle(root).getPropertyValue(name)); return isFinite(v) ? v : fallback; }
+
+/* =========================================================================
+   Procedural textures (paper grain, fibres, rubber, desk)
+   ========================================================================= */
+function canvasTex(size, paint) { const c = document.createElement('canvas'); c.width = c.height = size; paint(c.getContext('2d'), size); return c.toDataURL('image/png'); }
+function speckle(x, s, dark, light, dA, lA) {
+  const im = x.createImageData(s, s), d = im.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (Math.random() < 0.5) { d[i] = dark[0]; d[i + 1] = dark[1]; d[i + 2] = dark[2]; d[i + 3] = Math.random() * dA; }
+    else { d[i] = light[0]; d[i + 1] = light[1]; d[i + 2] = light[2]; d[i + 3] = Math.random() * lA; }
+  }
+  x.putImageData(im, 0, 0);
+}
+function genTextures() {
+  const grain = canvasTex(256, (x, s) => {
+    speckle(x, s, [95, 78, 55], [255, 253, 246], 26, 30);
+    // fibres, drawn with wrap-around so the tile is seamless
+    for (let i = 0; i < 170; i++) {
+      const x0 = Math.random() * s, y0 = Math.random() * s, len = rand(4, 16), a = Math.random() * Math.PI, bend = rand(-3, 3);
+      const light = Math.random() < 0.35;
+      x.strokeStyle = light ? 'rgba(255,255,250,.22)' : `rgba(125,100,70,${rand(0.05, 0.12).toFixed(3)})`;
+      x.lineWidth = rand(0.35, 0.8);
+      for (const ox of [-s, 0, s]) for (const oy of [-s, 0, s]) {
+        x.beginPath(); x.moveTo(x0 + ox, y0 + oy);
+        x.quadraticCurveTo(x0 + ox + Math.cos(a) * len / 2 + bend, y0 + oy + Math.sin(a) * len / 2 - bend, x0 + ox + Math.cos(a) * len, y0 + oy + Math.sin(a) * len);
+        x.stroke();
+      }
+    }
+  });
+  // soft cloudy variation in the paper's formation (seamless: 17x17 grid with wrapped last row/col)
+  const small = document.createElement('canvas'); small.width = small.height = 17;
+  const sx = small.getContext('2d'), im = sx.createImageData(17, 17);
+  const vals = []; for (let i = 0; i < 16 * 16; i++) vals.push(Math.random());
+  for (let y = 0; y < 17; y++) for (let x = 0; x < 17; x++) {
+    const v = vals[(y % 16) * 16 + (x % 16)], k = (y * 17 + x) * 4;
+    im.data[k] = 140; im.data[k + 1] = 112; im.data[k + 2] = 72; im.data[k + 3] = v * 26;
+  }
+  sx.putImageData(im, 0, 0);
+  const cloud = canvasTex(512, (x) => { x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(small, 0.5, 0.5, 16, 16, 0, 0, 512, 512); });
+  sheetEl.style.backgroundImage = `url(${grain}), url(${cloud})`;
+  sheetEl.style.backgroundSize = '256px 256px, 512px 512px';
+  tailEl.style.backgroundImage = sheetEl.style.backgroundImage; tailEl.style.backgroundSize = sheetEl.style.backgroundSize;
+
+  const rubber = canvasTex(180, (x, s) => speckle(x, s, [0, 0, 0], [120, 120, 120], 60, 22));
+  root.style.setProperty('--rubber-grain', `url(${rubber})`);
+  const desk = canvasTex(200, (x, s) => speckle(x, s, [0, 0, 0], [180, 150, 120], 40, 26));
+  root.style.setProperty('--desk-grain', `url(${desk})`);
+}
+
+/* =========================================================================
+   Ink filters — ragged ribbon edges, voids in the ink, slight bleed.
+   Four seed variants so neighbouring lines don't share a noise pattern.
+   ========================================================================= */
+function buildFilters() {
+  const f = (3.2 / G.cw * 3.4).toFixed(3);    // noise frequency scales with type size
+  const sc = (G.cw * 0.095).toFixed(2);
+  const blur = (G.cw * 0.022).toFixed(3);
+  let s = '';
+  for (let i = 0; i < 4; i++) {
+    s += `<filter id="ink${i}" x="-4%" y="-70%" width="108%" height="240%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="${f}" numOctaves="2" seed="${7 + i * 13}" result="warp"/>
+      <feDisplacementMap in="SourceGraphic" in2="warp" scale="${sc}" xChannelSelector="R" yChannelSelector="G" result="rough"/>
+      <feTurbulence type="fractalNoise" baseFrequency="${(f * 2.1).toFixed(3)}" numOctaves="1" seed="${29 + i * 17}" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.5 0 0 0 2.25" result="mask"/>
+      <feComposite in="rough" in2="mask" operator="in" result="speckled"/>
+      <feGaussianBlur in="speckled" stdDeviation="${blur}" result="bleed"/>
+      <feMerge><feMergeNode in="bleed"/><feMergeNode in="speckled"/></feMerge>
+    </filter>`;
+  }
+  $('#filters').innerHTML = s;
+}
+
+/* =========================================================================
+   Tween engine (single rAF loop shared with the mechanism canvas)
+   ========================================================================= */
+const tweens = new Map();
+let rafOn = false;
+function tween(key, from, to, dur, fn, apply, done) { tweens.set(key, { from, to, t0: now(), dur, fn, apply, done }); kick(); }
+function kick() { if (!rafOn) { rafOn = true; requestAnimationFrame(frame); } }
+function frame(t) {
+  for (const [k, tw] of tweens) {
+    const p = tw.dur <= 0 ? 1 : clamp((t - tw.t0) / tw.dur, 0, 1);
+    tw.apply(tw.from + (tw.to - tw.from) * tw.fn(p), p);
+    if (p >= 1) { tweens.delete(k); if (tw.done) tw.done(); }
+  }
+  const mechBusy = Mech.update(t);
+  if (tweens.size || mechBusy) requestAnimationFrame(frame); else rafOn = false;
+}
+
+/* =========================================================================
+   Carriage & paper motion
+   ========================================================================= */
+const car = { x: 0, y: 0 };
+let paperY = 0, carEpoch = 0;
+const X = (col) => G.Xc - (col + 0.5) * G.cw;                          // carriage translate for a column at the strike point
+const PY = (line) => G.Yp - (G.topLines + line + 0.5) * G.lh;         // paper translate for a line at the print line
+function applyCar() { carriageEl.style.transform = `translate3d(${car.x.toFixed(2)}px,${car.y.toFixed(2)}px,0)`; }
+function applyPaper() {
+  paperEl.style.transform = `translate3d(0,${paperY.toFixed(2)}px,0)`;
+  // The unused part of the sheet stands up behind the platen and feeds down as the front rises.
+  const tailY = G.platenTop - G.sheetLines * G.lh + (G.Yp - paperY) + 3 * G.lh;
+  tailEl.style.transform = `translate3d(0,${tailY.toFixed(2)}px,0)`;
+  // the knobs and platen rotate with the paper — ridges/texture roll with it
+  const k = (paperY * 0.55).toFixed(1) + 'px';
+  knobL.style.backgroundPosition = knobR.style.backgroundPosition = `0 ${k}`;
+  platenEl.style.backgroundPosition = `0 ${(paperY * 0.9).toFixed(1)}px, 0 0`;
+}
+const setCarX = (v) => { car.x = v; applyCar(); };
+const setPaperY = (v) => { paperY = v; applyPaper(); };
+function stepCarriage(dur = 56, fn = ease.outBack) { tween('carX', car.x, X(state.col), dur, fn, setCarX); }
+function scheduleStep(delay, dur, fn) { const ep = carEpoch; setTimeout(() => { if (ep === carEpoch) stepCarriage(dur, fn); }, delay); }
+function recoil(f) {
+  tween('recoil', 0, 1, 70, ease.linear, (v, p) => { car.y = Math.sin(p * Math.PI) * 0.55 * f * (1 - p * 0.5); applyCar(); }, () => { car.y = 0; applyCar(); });
+}
+function rebound(to, amp, dur = 200) {
+  tween('carX', 0, 1, dur, ease.linear, (v, p) => { car.x = to - amp * Math.sin(p * Math.PI * 3) * Math.exp(-p * 5); applyCar(); }, () => { car.x = to; applyCar(); });
+}
+function shudder(k) {
+  if (reduceMotion || !machineEl.animate) return;
+  const a = 2.4 * k;
+  machineEl.animate([
+    { transform: 'translate(0,0)' },
+    { transform: `translate(${-a}px,${a * 0.25}px)` },
+    { transform: `translate(${a * 0.7}px,${-a * 0.18}px)` },
+    { transform: `translate(${-a * 0.38}px,${a * 0.1}px)` },
+    { transform: `translate(${a * 0.16}px,0)` },
+    { transform: 'translate(0,0)' },
+  ], { duration: 240, easing: 'ease-out' });
+}
+function updatePaperLen() { root.style.setProperty('--paper-lines', Math.max(G.sheetLines, G.topLines + maxLine + 40)); }
+
+/* =========================================================================
+   Type rendering
+   ========================================================================= */
+const lineEls = new Map();
+function lineEl(l) {
+  let e = lineEls.get(l);
+  if (!e) {
+    e = document.createElement('div'); e.className = 'line';
+    e.style.top = `calc((var(--top-lines) + ${l}) * var(--line-h))`;
+    e.style.filter = `url(#ink${((l % 4) + 4) % 4})`;
+    inkEl.appendChild(e); lineEls.set(l, e);
+  }
+  return e;
+}
+function renderStrike(s) {
+  const [l, c, ch, dx, dy, rot, a1, a2, an] = s;
+  const e = document.createElement('span');
+  e.className = 'g'; e.textContent = ch;
+  e.style.left = `calc(${c - 0.3} * var(--char-w))`;
+  e.style.transform = `translate(${dx}em,${dy}em) rotate(${rot}deg)`;
+  e.style.backgroundImage = `linear-gradient(${an}deg,rgba(var(--ink),${a1}),rgba(var(--ink),${a2}))`;
+  lineEl(l).appendChild(e);
+}
+const SHIFTED = { '!': '1', '@': '2', '#': '3', '$': '4', '%': '5', '^': '6', '&': '7', '*': '8', '(': '9', ')': '0', '_': '-', '+': '=', '{': '[', '}': ']', '|': '\\', ':': ';', '"': "'", '<': ',', '>': '.', '?': '/', '~': '`' };
+const isShifted = (ch) => ch !== ch.toLowerCase() || ch in SHIFTED;
+// Each typebar is slightly out of true on a worn machine — a fixed per-character bias.
+const BIAS = {};
+function biasFor(ch) {
+  if (!BIAS[ch]) {
+    let h = 2166136261; for (const c of ch) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619); }
+    h >>>= 0;
+    BIAS[ch] = { dy: ((h % 1000) / 1000 - 0.5) * 0.05, rot: (((h >>> 10) % 1000) / 1000 - 0.5) * 1.1, dx: (((h >>> 20) % 1000) / 1000 - 0.5) * 0.035 };
+  }
+  return BIAS[ch];
+}
+let wear = 0;   // ribbon ink varies slowly as the ribbon advances
+function makeStrike(l, c, ch, f) {
+  const b = biasFor(ch);
+  wear = clamp(wear + rand(-0.018, 0.018), -0.09, 0.04);
+  let base = 0.74 + 0.2 * clamp((f - 0.72) / 0.5, 0, 1) + wear;
+  if (/[.,:;'`"_\-]/.test(ch)) base += 0.05;            // small faces punch harder
+  if (Math.random() < 0.05) base -= rand(0.12, 0.22);    // the occasional light key hit
+  const a1 = clamp(base + rand(-0.1, 0.06), 0.35, 0.98), a2 = clamp(base + rand(-0.2, 0.04), 0.28, 0.98);
+  return [l, c, ch, r4(b.dx + gauss() * 0.016), r4(b.dy + gauss() * 0.02 - (isShifted(ch) ? 0.016 : 0)), r2(b.rot + gauss() * 0.6), r2(a1), r2(a2), Math.round(rand(0, 360))];
+}
+
+/* =========================================================================
+   Typebars
+   ========================================================================= */
+const BAR_ORDER = "1qaz2wsx3edc4rfv5tgb6yhn7ujm8ik,9ol.0p;/-['=]`\\";
+function barIndex(ch) {
+  let k = ch.toLowerCase(); k = SHIFTED[k] || k;
+  const i = BAR_ORDER.indexOf(k);
+  if (i >= 0) return i;
+  let h = 0; for (const c of ch) h = (h * 31 + c.codePointAt(0)) >>> 0;
+  return h % BAR_ORDER.length;
+}
+const barPan = (i) => (i / (BAR_ORDER.length - 1) - 0.5) * 0.5;
+const barBias = (i) => 0.965 + 0.07 * Math.abs(i / (BAR_ORDER.length - 1) - 0.5) * 2 + ((i * 7919) % 13) / 13 * 0.02;
+
+/* =========================================================================
+   Audio engine — procedural synthesis, Web Audio API only
+   ========================================================================= */
+const Sound = (() => {
+  let ctx = null, master, bus, bodyIn, verbIn, noiseBuf, brownBuf;
+  let enabled = true;
+  try { enabled = localStorage.getItem('typewriter.sound') !== 'off'; } catch (e) {}
+  // Modal resonances of the frame/chassis: every impact rings these a little.
+  const MODES = [[112, 5, 1.2], [187, 7, 1.0], [311, 9, 0.85], [523, 11, 0.65], [861, 13, 0.5], [1402, 15, 0.34], [2310, 18, 0.22], [3480, 22, 0.12]];
+  const live = () => !!(ctx && enabled);
+
+  function init() {
+    if (ctx) { if (ctx.state === 'suspended') ctx.resume().catch(() => {}); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      ctx = new AC({ latencyHint: 'interactive' });
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -12; comp.knee.value = 10; comp.ratio.value = 3.5; comp.attack.value = 0.002; comp.release.value = 0.12;
+      master = ctx.createGain(); master.gain.value = enabled ? 0.85 : 0;
+      master.connect(comp); comp.connect(ctx.destination);
+      bus = ctx.createGain(); bus.connect(master);
+      // small-room reverb (desk, walls)
+      const conv = ctx.createConvolver(); conv.buffer = makeIR();
+      verbIn = ctx.createGain(); const vr = ctx.createGain(); vr.gain.value = 0.55;
+      verbIn.connect(conv); conv.connect(vr); vr.connect(master);
+      // chassis body resonator bank
+      bodyIn = ctx.createGain(); const bodyOut = ctx.createGain(); bodyOut.gain.value = 2.4; bodyOut.connect(bus);
+      for (const [f, q, g] of MODES) { const b = bq('bandpass', f, q); const gg = ctx.createGain(); gg.gain.value = g; bodyIn.connect(b); b.connect(gg); gg.connect(bodyOut); }
+      noiseBuf = makeNoise(3, false); brownBuf = makeNoise(4, true);
+      startAmbience();
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch (e) { ctx = null; }
+  }
+  function makeNoise(sec, brown) {
+    const len = Math.floor(ctx.sampleRate * sec), b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; if (brown) { last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; } else d[i] = w; }
+    return b;
+  }
+  function makeIR() {
+    const sr = ctx.sampleRate, len = Math.floor(sr * 0.6), b = ctx.createBuffer(2, len, sr);
+    const refl = [[0.0037, 0.5], [0.0071, 0.36], [0.0113, 0.28], [0.0169, 0.2], [0.0233, 0.14], [0.031, 0.1]];
+    for (let ch = 0; ch < 2; ch++) {
+      const d = b.getChannelData(ch); let lp = 0;
+      for (let i = 0; i < len; i++) {
+        const t = i / sr; lp += ((Math.random() * 2 - 1) - lp) * 0.32;
+        d[i] = lp * Math.exp(-t / 0.085) * (t < 0.005 ? t / 0.005 : 1) * 0.6;
+      }
+      for (const [t, g] of refl) { const i = Math.floor(vary(t, 0.12) * sr); if (i < len) d[i] += g * (ch ? -1 : 1) * rand(0.7, 1); }
+    }
+    return b;
+  }
+  function bq(type, f, Q, gain) { const b = ctx.createBiquadFilter(); b.type = type; b.frequency.value = f; if (Q != null) b.Q.value = Q; if (gain != null) b.gain.value = gain; return b; }
+  function voice(pan = 0, body = 0, verb = 0.12, level = 1) {
+    const g = ctx.createGain(); g.gain.value = level;
+    let out = g;
+    if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = clamp(pan, -1, 1); g.connect(p); out = p; }
+    out.connect(bus);
+    if (body) { const s = ctx.createGain(); s.gain.value = body; out.connect(s); s.connect(bodyIn); }
+    if (verb) { const s = ctx.createGain(); s.gain.value = verb; out.connect(s); s.connect(verbIn); }
+    return g;
+  }
+  function env(param, t, peak, a, tau) { param.setValueAtTime(0, t); param.linearRampToValueAtTime(peak, t + a); param.setTargetAtTime(0, t + a, tau); }
+  // filtered noise burst
+  function nz(t, dest, o) {
+    const a = o.a != null ? o.a : 0.0006, tau = o.tau != null ? o.tau : 0.01, end = t + a + tau * 8 + 0.01;
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+    let n = src;
+    if (o.f) for (const [ty, fr, q] of o.f) { const b = bq(ty, fr, q); n.connect(b); n = b; }
+    const g = ctx.createGain(); env(g.gain, t, o.g, a, tau); n.connect(g); g.connect(dest);
+    src.start(t, Math.random() * (noiseBuf.duration - 1)); src.stop(end);
+  }
+  // decaying (optionally gliding) partial
+  function tn(t, dest, o) {
+    const a = o.a != null ? o.a : 0.001, tau = o.tau != null ? o.tau : 0.02, end = t + a + tau * 8 + 0.01;
+    const osc = ctx.createOscillator(); osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.f, t);
+    if (o.f2) osc.frequency.exponentialRampToValueAtTime(o.f2, t + (o.glide || 0.03));
+    const g = ctx.createGain(); env(g.gain, t, o.g, a, tau); osc.connect(g); g.connect(dest);
+    osc.start(t); osc.stop(end);
+  }
+  // Pre-rendered ratchet: individual escapement ticks + slide friction, sample-accurate.
+  function ratchet(ticks, total, velFn, o) {
+    const sr = ctx.sampleRate, len = Math.ceil((total + 0.03) * sr), b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0);
+    const tl = Math.floor(0.008 * sr), t1 = 0.00055 * sr, t2 = 0.0011 * sr;
+    for (const tk of ticks) {
+      const i0 = Math.floor(tk * sr), amp = (o.tick || 0.5) * rand(0.5, 1);
+      const w1 = vary(o.f1 || 4200, 0.07) * 2 * Math.PI / sr, w2 = vary(o.f2 || 2500, 0.07) * 2 * Math.PI / sr;
+      for (let k = 0; k < tl; k++) {
+        const i = i0 + k; if (i >= len) break;
+        d[i] += amp * ((Math.random() * 2 - 1) * Math.exp(-k / t1) * 0.8 + Math.sin(w1 * k) * Math.exp(-k / t2) * 0.5 + Math.sin(w2 * k) * Math.exp(-k / (t2 * 1.6)) * 0.3);
+      }
+    }
+    if (o.fric) { let lp = 0; for (let i = 0; i < len; i++) { const v = velFn(i / sr / total); lp += ((Math.random() * 2 - 1) - lp) * 0.5; d[i] += lp * o.fric * v; } }
+    return b;
+  }
+  function playBuf(buf, t, filters, level, panFrom, panTo, dur, verb = 0.14) {
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    let n = src; for (const [ty, f, q, g] of filters) { const b = bq(ty, f, q, g); n.connect(b); n = b; }
+    const g = ctx.createGain(); g.gain.value = level; n.connect(g);
+    let out = g;
+    if (ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.setValueAtTime(panFrom, t); p.pan.linearRampToValueAtTime(panTo, t + dur); g.connect(p); out = p; }
+    out.connect(bus); const vs = ctx.createGain(); vs.gain.value = verb; out.connect(vs); vs.connect(verbIn);
+    src.start(t);
+  }
+  function velOf(fn) { return (p) => (p < 0 || p >= 1 ? 0 : clamp((fn(Math.min(1, p + 0.01)) - fn(p)) / 0.01 * 0.9, 0, 1.2)); }
+
+  function escapement(t, k = 1) {
+    const v = voice(0.05, 0.25, 0.08);
+    nz(t, v, { g: 0.24 * k, a: 0.0002, tau: 0.0032, f: [['bandpass', vary(3950), 3.5]] });
+    nz(t + vary(0.0065), v, { g: 0.12 * k, a: 0.0002, tau: 0.0028, f: [['bandpass', vary(2650), 3]] });
+    tn(t + 0.002, v, { f: vary(235), f2: vary(172), glide: 0.018, g: 0.09 * k, a: 0.001, tau: 0.011 });
+  }
+  function impact(t, k) {
+    const v = voice(0.3, 1.1, 0.22);
+    tn(t, v, { f: vary(80), f2: vary(46), glide: 0.06, g: 0.72 * k, a: 0.001, tau: 0.06 });
+    nz(t, v, { g: 0.8 * k, a: 0.0006, tau: 0.026, f: [['lowpass', 950]] });
+    nz(t, v, { g: 0.5 * k, a: 0.0003, tau: 0.0095, f: [['bandpass', vary(1500), 1.2]] });
+    nz(t, v, { g: 0.38 * k, a: 0.0002, tau: 0.0011, f: [['highpass', 2300]] });
+    for (const [fr, g, tau] of [[642, 0.05, 0.09], [1508, 0.04, 0.058], [2393, 0.028, 0.034], [3721, 0.018, 0.02]]) tn(t, v, { f: vary(fr, 0.02), g: g * k, a: 0.0005, tau });
+    nz(t + vary(0.048), v, { g: 0.16 * k, a: 0.0003, tau: 0.006, f: [['bandpass', vary(1900), 1.5]] });   // rebound off the stop
+    tn(t + 0.048, v, { f: vary(120), f2: 90, glide: 0.03, g: 0.12 * k, tau: 0.02 });
+  }
+
+  return {
+    init,
+    get enabled() { return enabled; },
+    setEnabled(on) {
+      enabled = on;
+      try { localStorage.setItem('typewriter.sound', on ? 'on' : 'off'); } catch (e) {}
+      if (ctx) master.gain.setTargetAtTime(on ? 0.85 : 0, ctx.currentTime, 0.03);
+    },
+
+    // Letter strike: typebar clack + chassis thud + escapement release
+    key(f, pan, bias, delay) {
+      if (!live()) return;
+      const t = ctx.currentTime + delay + 0.002;
+      const br = 0.9 + 0.3 * clamp((f - 0.72) / 0.5, 0, 1);            // harder typing = brighter
+      const v = voice(pan, 0.35, 0.12, 0.9);
+      nz(t, v, { g: 0.5 * f, a: 0.0002, tau: 0.0007, f: [['highpass', 2600 * br, 0.7]] });                         // contact transient
+      nz(t, v, { g: 0.95 * f, a: 0.0004, tau: vary(0.0105), f: [['bandpass', vary(2350 * bias * br), 1.25]] });     // slug on platen
+      nz(t, v, { g: 0.4 * f, a: 0.0003, tau: vary(0.0065), f: [['bandpass', vary(4800 * bias * br), 2.4]] });       // metallic sheen
+      nz(t, v, { g: 0.45 * f, a: 0.0006, tau: vary(0.011), f: [['bandpass', vary(840), 0.9]] });                    // rubber platen thock
+      for (const [fr, g, tau] of [[1870, 0.045, 0.017], [3015, 0.035, 0.011], [4630, 0.026, 0.0075], [6470, 0.016, 0.005]])
+        tn(t, v, { f: vary(fr * bias, 0.03), g: g * f * br, a: 0.0003, tau: vary(tau) });                              // inharmonic ring of the typebar
+      const vb = voice(pan * 0.4, 1.0, 0.1, 0.7);
+      tn(t + vary(0.0012), vb, { f: vary(168), f2: vary(96), glide: 0.032, g: 0.36 * f, a: 0.0012, tau: 0.022 });    // body thud
+      nz(t, vb, { g: 0.45 * f, a: 0.001, tau: 0.017, f: [['lowpass', 400]] });
+      escapement(t + vary(0.036));                                                                                  // escapement lets the carriage step
+      nz(t + vary(0.095), vb, { g: 0.11 * f, a: 0.002, tau: 0.014, f: [['lowpass', 620]] });                        // bar lands on the felt rest
+    },
+    space(f) {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.01;
+      const v = voice(0, 0.9, 0.16);
+      nz(t, v, { g: 0.2, a: 0.0002, tau: 0.001, f: [['highpass', 1800]] });
+      nz(t, v, { g: 0.55 * f, a: 0.0015, tau: vary(0.03), f: [['lowpass', 1100]] });
+      nz(t, v, { g: 0.5 * f, a: 0.001, tau: vary(0.035), f: [['bandpass', vary(470), 1.4]] });
+      tn(t, v, { f: vary(98), f2: vary(57), glide: 0.07, g: 0.55 * f, a: 0.0015, tau: vary(0.05) });
+      nz(t, v, { g: 0.07, a: 0.002, tau: 0.04, f: [['bandpass', vary(1350), 7]] });   // long bar rattles in its guides
+      escapement(t + vary(0.028), 1.15);
+      nz(t + vary(0.1), v, { g: 0.22 * f, a: 0.003, tau: 0.025, f: [['lowpass', 320]] });
+    },
+    bell(delay) {
+      if (!live()) return;
+      const t = ctx.currentTime + delay;
+      const v = voice(-0.3, 0.05, 0.45);
+      nz(t, v, { g: 0.18, a: 0.0002, tau: 0.0025, f: [['bandpass', 3200, 1.5]] });   // clapper contact
+      const f0 = vary(2500, 0.015);
+      tn(t, v, { f: f0, g: 0.13, a: 0.0015, tau: 0.55 });
+      tn(t, v, { f: f0 + rand(4, 7), g: 0.12, a: 0.0015, tau: 0.6 });                  // detuned pair → natural beating
+      tn(t, v, { f: f0 * 2.76, g: 0.035, a: 0.001, tau: 0.14 });
+      tn(t, v, { f: f0 * 5.4, g: 0.015, a: 0.001, tau: 0.05 });
+      tn(t, v, { f: f0 * 0.5 + 3, g: 0.018, a: 0.003, tau: 0.35 });
+    },
+    carriageReturn(n, dur, delay, fn) {
+      if (!live()) return;
+      const t0 = ctx.currentTime + 0.004;
+      const v = voice(-0.3, 0.45, 0.15);
+      nz(t0, v, { g: 0.22, tau: 0.003, f: [['bandpass', 2300, 2]] });                       // lever
+      nz(t0 + vary(0.013), v, { g: 0.28, tau: 0.0034, f: [['bandpass', vary(3300), 4]] });  // line-space pawl
+      nz(t0 + vary(0.036), v, { g: 0.2, tau: 0.003, f: [['bandpass', vary(2100), 3]] });
+      nz(t0 + vary(0.06), v, { g: 0.38, a: 0.0006, tau: 0.008, f: [['bandpass', vary(1150), 1.6]] });  // detent seats
+      tn(t0 + 0.06, v, { f: vary(190), f2: vary(140), glide: 0.02, g: 0.16, tau: 0.014 });
+      if (n <= 0) { impact(t0 + 0.07, 0.35); return; }
+      const ts = t0 + delay, ticks = [];
+      for (let k = 1; k < n; k++) ticks.push(dur * invert(fn, k / n) * vary(1, 0.01));
+      const buf = ratchet(ticks, dur, velOf(fn), { tick: 0.55, fric: 0.09, f1: 4300, f2: 2500 });
+      playBuf(buf, ts, [['highpass', 450, 0.7], ['peaking', 3400, 1.1, 4]], 0.9, -0.3, 0.3, dur);
+      impact(ts + dur, clamp(0.45 + n / 45, 0.45, 1.1));
+    },
+    tab(n, dur, delay, fn) {
+      if (!live()) return;
+      const t0 = ctx.currentTime + 0.004, v = voice(0.1, 0.3, 0.12);
+      nz(t0, v, { g: 0.3, tau: 0.01, f: [['bandpass', vary(900), 1.1]] });
+      nz(t0 + 0.01, v, { g: 0.18, tau: 0.003, f: [['bandpass', 3100, 3]] });
+      if (n <= 0) return;
+      const ts = t0 + delay, ticks = [];
+      for (let k = 1; k < n; k++) ticks.push(dur * invert(fn, k / n));
+      playBuf(ratchet(ticks, dur, velOf(fn), { tick: 0.2, fric: 0.12, f1: 5200, f2: 3100 }), ts, [['highpass', 600, 0.7]], 0.8, 0.25, -0.1, dur);
+      const te = ts + dur, s = voice(-0.1, 0.8, 0.18);
+      nz(te, s, { g: 0.45, a: 0.0003, tau: 0.008, f: [['bandpass', vary(1700), 1.4]] });
+      nz(te, s, { g: 0.35, a: 0.0006, tau: 0.02, f: [['lowpass', 700]] });
+      tn(te, s, { f: vary(160), f2: 120, glide: 0.03, g: 0.2, tau: 0.02 });
+      tn(te, s, { f: vary(2210), g: 0.03, tau: 0.03 });
+    },
+    backspace() {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.004, v = voice(0.12, 0.5, 0.12);
+      nz(t, v, { g: 0.4, tau: vary(0.012), f: [['bandpass', vary(760), 1.1]] });
+      nz(t + vary(0.016), v, { g: 0.3, a: 0.0002, tau: 0.0035, f: [['bandpass', vary(3500), 3.5]] });
+      tn(t + 0.02, v, { f: vary(210), f2: vary(150), glide: 0.02, g: 0.14, tau: 0.014 });
+      nz(t + vary(0.07), v, { g: 0.1, tau: 0.012, f: [['lowpass', 500]] });
+    },
+    nudge() {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.003, v = voice(0, 0.3, 0.1);
+      nz(t, v, { g: 0.07, a: 0.01, tau: 0.02, f: [['bandpass', 2400, 0.7]] });
+      nz(t + vary(0.035), v, { g: 0.16, a: 0.0002, tau: 0.003, f: [['bandpass', vary(3700), 3]] });
+    },
+    knob() {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.003, v = voice(-0.45, 0.3, 0.1);
+      nz(t, v, { g: 0.24, a: 0.0002, tau: 0.003, f: [['bandpass', vary(2900), 5]] });
+      nz(t + vary(0.006), v, { g: 0.14, a: 0.0002, tau: 0.004, f: [['bandpass', vary(1500), 3]] });
+      tn(t + 0.004, v, { f: vary(300), f2: 220, glide: 0.015, g: 0.06, tau: 0.01 });
+    },
+    slide(n, dur) {
+      if (!live()) return;
+      const t0 = ctx.currentTime + 0.003, v = voice(0, 0.4, 0.12);
+      nz(t0, v, { g: 0.2, a: 0.0002, tau: 0.003, f: [['bandpass', 2600, 3]] });   // carriage release lever
+      playBuf(ratchet([], dur, (p) => (p < 0 || p > 1 ? 0 : Math.sin(Math.PI * p)), { fric: 0.16 }), t0 + 0.01, [['bandpass', 2200, 0.6]], 0.8, -0.1, 0.1, dur);
+      const te = t0 + 0.01 + dur;
+      nz(te, v, { g: 0.22, a: 0.0003, tau: 0.006, f: [['bandpass', vary(1400), 1.3]] });
+      tn(te, v, { f: vary(150), f2: 110, glide: 0.03, g: 0.12, tau: 0.02 });
+    },
+    locked() {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.004, v = voice(0, 0.8, 0.1);
+      nz(t, v, { g: 0.35, tau: 0.014, f: [['bandpass', vary(520), 0.8]] });
+      tn(t, v, { f: vary(130), f2: 100, glide: 0.02, g: 0.2, tau: 0.02 });
+    },
+    shift(down) {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.004, v = voice(-0.2, 0.9, 0.1), k = down ? 1 : 0.7;
+      nz(t, v, { g: 0.28 * k, tau: 0.02, f: [['lowpass', 700]] });
+      tn(t, v, { f: vary(115), f2: 88, glide: 0.03, g: 0.22 * k, tau: 0.03 });
+      nz(t + 0.012, v, { g: 0.15 * k, a: 0.0003, tau: 0.006, f: [['bandpass', vary(1300), 1.5]] });
+    },
+    paperOut(dur) {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.003, v = voice(-0.2, 0.6, 0.15);
+      nz(t, v, { g: 0.3, a: 0.0003, tau: 0.006, f: [['bandpass', 1800, 1.5]] });          // paper release lever
+      tn(t, v, { f: 140, f2: 100, glide: 0.03, g: 0.15, tau: 0.02 });
+      playBuf(ratchet([], dur, (p) => (p < 0 || p > 1 ? 0 : Math.pow(Math.sin(Math.PI * Math.min(1, p * 1.1)), 0.6)), { fric: 0.28 }), t + 0.06, [['highpass', 1200, 0.7], ['bandpass', 3000, 0.6]], 0.9, 0, 0, dur);
+    },
+    paperIn(dur) {
+      if (!live()) return;
+      const t = ctx.currentTime + 0.01, ticks = [];
+      let x = 0.02; while (x < dur - 0.02) { ticks.push(x); x += rand(0.028, 0.055) + (Math.random() < 0.18 ? 0.08 : 0); }
+      playBuf(ratchet(ticks, dur, (p) => (p < 0 || p > 1 ? 0 : 0.6), { tick: 0.35, fric: 0.1, f1: 2900, f2: 1500 }), t, [['highpass', 700, 0.7]], 0.8, -0.4, -0.3, dur);
+      const v = voice(-0.3, 0.5, 0.12);
+      nz(t + dur, v, { g: 0.3, a: 0.0003, tau: 0.006, f: [['bandpass', 1800, 1.5]] });    // release lever closes
+    },
+  };
+
+  function startAmbience() {
+    // Barely audible room tone plus the faint singing of a tensioned mainspring.
+    const src = ctx.createBufferSource(); src.buffer = brownBuf; src.loop = true;
+    const lp = bq('lowpass', 170, 0.5), g = ctx.createGain(); g.gain.value = 0;
+    g.gain.setTargetAtTime(0.025, ctx.currentTime + 0.5, 2);
+    src.connect(lp); lp.connect(g); g.connect(master); src.start();
+    const s2 = ctx.createBufferSource(); s2.buffer = noiseBuf; s2.loop = true;
+    const bp = bq('bandpass', 1760, 60), g2 = ctx.createGain(); g2.gain.value = 0.0022;
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.07; const lg = ctx.createGain(); lg.gain.value = 0.0016;
+    lfo.connect(lg); lg.connect(g2.gain); s2.connect(bp); bp.connect(g2); g2.connect(master); s2.start(); lfo.start();
+  }
+})();
+
+/* =========================================================================
+   Mechanism canvas: typebar basket, segment, ribbon & vibrator, card guide,
+   ribbon covers and spools. Redrawn only while something moves.
+   ========================================================================= */
+const Mech = (() => {
+  const cv = $('#mech'), cx = cv.getContext('2d');
+  const N = BAR_ORDER.length, A0 = 154 * Math.PI / 180, A1 = 26 * Math.PI / 180;
+  const ang = (i) => A0 + (A1 - A0) * i / (N - 1);
+  let dpr = 1, top = 0, Hc = 0, L = 0, RY = 0, LZ = 0, xl = 0, xr = 0, cTop = 0, yA = 0, lipY = 0;
+  const active = [], glints = [];
+  let lift = 0, shift = 0, shiftFrom = 0, shiftTo = 0, shiftT0 = -1, spoolRot = 0, dirty = true, weave = null;
+
+  function layout() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    top = Math.floor(G.platenTop - 1.4 * G.lh); Hc = G.H - top;
+    cv.style.top = top + 'px'; cv.style.width = G.W + 'px'; cv.style.height = Hc + 'px';
+    cv.width = Math.round(G.W * dpr); cv.height = Math.round(Hc * dpr);
+    L = Math.min(G.W * 0.36, G.cw * 44);
+    RY = (G.H - G.Yp) * 0.66; LZ = L * 0.07;
+    xl = G.Xc - G.W * 0.285; xr = G.Xc + G.W * 0.285;
+    cTop = G.Yp + 0.6 * G.lh;
+    yA = cTop + (G.H - cTop) * 0.35;
+    lipY = G.H - Math.max(12, 0.03 * G.H);
+    const w = document.createElement('canvas'); w.width = w.height = 6; const wx = w.getContext('2d');
+    wx.strokeStyle = 'rgba(255,255,255,.07)'; wx.lineWidth = 1;
+    wx.beginPath(); wx.moveTo(0, 6); wx.lineTo(6, 0); wx.moveTo(-3, 3); wx.lineTo(3, -3); wx.moveTo(3, 9); wx.lineTo(9, 3); wx.stroke();
+    wx.strokeStyle = 'rgba(0,0,0,.35)'; wx.beginPath(); wx.moveTo(0, 0); wx.lineTo(6, 6); wx.stroke();
+    weave = cx.createPattern(w, 'repeat');
+    dirty = true; draw(now());
+  }
+  const upTime = (f) => 27 * Math.pow(f, -0.45);
+  function fire(i, f, up, onImpact) { active.push({ i, f, up, t0: now(), hit: false, onImpact, th: 0 }); spoolRot += 0.045; kick(); }
+  function setShift(v) { if (v === shiftTo) return; shiftFrom = shift; shiftTo = v; shiftT0 = now(); kick(); }
+  // Typebar swing angle over time: accelerate up into the platen, brief recoil, fall back and settle on the rest.
+  function theta(b, t) {
+    const up = b.up, dw = 9, ret = 92;
+    if (t < up) return Math.PI * Math.pow(Math.max(0, t) / up, 1.7);
+    if (t < up + dw) return Math.PI - 0.07 * Math.sin(Math.PI * (t - up) / dw);
+    const q = (t - up - dw) / ret;
+    if (q < 1) return Math.PI * (1 - Math.pow(q, 1.6));
+    const r = (t - up - dw - ret) / 34;
+    return r < 1 ? 0.06 * Math.sin(Math.PI * r) : -1;
+  }
+  function liftFor(b, t) {
+    const up = b.up;
+    if (t < up) return Math.pow(Math.max(0, t) / up, 0.8);
+    if (t < up + 22) return 1;
+    const q = (t - up - 22) / 48;
+    return q < 1 ? 1 - q * q * (3 - 2 * q) : 0;
+  }
+  function update(t) {
+    const busyBefore = active.length || glints.length || shiftT0 >= 0;
+    lift = 0;
+    for (let k = active.length - 1; k >= 0; k--) {
+      const b = active[k], dt = t - b.t0;
+      if (!b.hit && dt >= b.up) { b.hit = true; glints.push(t); if (b.onImpact) b.onImpact(); }
+      b.th = theta(b, dt);
+      lift = Math.max(lift, liftFor(b, dt));
+      if (b.th === -1) active.splice(k, 1);
+    }
+    for (let k = glints.length - 1; k >= 0; k--) if (t - glints[k] > 90) glints.splice(k, 1);
+    if (shiftT0 >= 0) {
+      const p = clamp((t - shiftT0) / 55, 0, 1);
+      shift = shiftFrom + (shiftTo - shiftFrom) * ease.outBack(p);
+      if (p >= 1) { shift = shiftTo; shiftT0 = -1; }
+    }
+    const busyNow = active.length || glints.length || shiftT0 >= 0;
+    if (busyBefore || busyNow || dirty) { draw(t); dirty = false; }
+    return !!busyNow;
+  }
+
+  /* ---- drawing helpers ---- */
+  function rr(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    cx.beginPath(); cx.moveTo(x + r, y); cx.arcTo(x + w, y, x + w, y + h, r); cx.arcTo(x + w, y + h, x, y + h, r);
+    cx.arcTo(x, y + h, x, y, r); cx.arcTo(x, y, x + w, y, r); cx.closePath();
+  }
+  function chromeV(y0, y1) {
+    const g = cx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, '#3a3c40'); g.addColorStop(0.18, '#a4a8ad'); g.addColorStop(0.32, '#f1f3f4'); g.addColorStop(0.46, '#b9bdc2');
+    g.addColorStop(0.64, '#5d6166'); g.addColorStop(0.82, '#2c2e31'); g.addColorStop(1, '#8a8e93'); return g;
+  }
+  function chromeH(x0, x1) {
+    const g = cx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, '#45484c'); g.addColorStop(0.25, '#d8dbde'); g.addColorStop(0.45, '#f6f7f8'); g.addColorStop(0.7, '#7c8086'); g.addColorStop(1, '#2f3134'); return g;
+  }
+
+  function pivot(i, sy) { const a = ang(i); return { a, ca: Math.cos(a), sa: Math.sin(a), px: G.Xc + L * Math.cos(a), py: G.Yp + RY * Math.sin(a) + sy }; }
+  function drawBar(i, th, sy, act) {
+    const { ca, sa, px, py } = pivot(i, sy), lh = G.lh;
+    const c = Math.cos(th), s = Math.max(0, Math.sin(th));
+    const hx = px + L * ca * c, hy = py + RY * sa * c - LZ * s;
+    const w = lh * 0.15 * (1 + 0.8 * s);
+    cx.lineCap = 'round';
+    if (act && s > 0.05) {   // shadow of the raised bar on the basket below
+      cx.save(); cx.strokeStyle = `rgba(0,0,0,${0.4 * s})`; cx.lineWidth = w * 1.3; cx.shadowColor = 'rgba(0,0,0,.6)'; cx.shadowBlur = lh * 0.5;
+      cx.beginPath(); cx.moveTo(px, py); cx.lineTo(px + L * ca * c + s * lh * 0.7, py + RY * sa * c + s * lh * 0.5); cx.stroke(); cx.restore();
+    }
+    cx.strokeStyle = act ? '#2a2b2e' : '#141517'; cx.lineWidth = w;
+    cx.beginPath(); cx.moveTo(px, py); cx.lineTo(hx, hy); cx.stroke();
+    const dx = hx - px, dy = hy - py, len = Math.hypot(dx, dy) || 1;
+    let nx = -dy / len, ny = dx / len; if (ny > 0) { nx = -nx; ny = -ny; }
+    const o = w * 0.22;
+    cx.strokeStyle = act ? `rgba(200,204,210,${0.3 + 0.45 * s})` : 'rgba(120,124,130,.2)'; cx.lineWidth = Math.max(0.6, w * 0.3);
+    cx.beginPath(); cx.moveTo(px + nx * o, py + ny * o); cx.lineTo(hx + nx * o, hy + ny * o); cx.stroke();
+    if (hy < G.H + lh && hx > -lh && hx < G.W + lh) {     // the type slug
+      cx.save(); cx.translate(hx, hy); cx.rotate(Math.atan2(dy, dx));
+      const sl = lh * 0.8, sw = lh * 0.46 * (1 + 0.3 * s);
+      rr(-sl * 0.6, -sw / 2, sl, sw, lh * 0.08);
+      const g = cx.createLinearGradient(0, -sw / 2, 0, sw / 2);
+      g.addColorStop(0, act ? '#e9ebed' : '#6a6d72'); g.addColorStop(0.5, act ? '#8e9297' : '#3a3c40'); g.addColorStop(1, act ? '#3e4044' : '#1b1c1e');
+      cx.fillStyle = g; cx.fill(); cx.strokeStyle = 'rgba(0,0,0,.5)'; cx.lineWidth = 0.8; cx.stroke();
+      cx.restore();
+    }
+  }
+  function drawSegment(sy) {
+    const cyS = G.Yp + sy, a0 = 0.2, a1 = Math.PI - 0.2;
+    cx.beginPath();
+    cx.ellipse(G.Xc, cyS, L * 1.06, RY * 1.06, 0, a0, a1, false);
+    cx.ellipse(G.Xc, cyS, L * 0.95, RY * 0.95, 0, a1, a0, true);
+    cx.closePath();
+    cx.fillStyle = chromeV(cyS, cyS + RY * 1.08); cx.fill();
+    cx.save(); cx.clip();
+    cx.strokeStyle = 'rgba(0,0,0,.6)'; cx.lineWidth = Math.max(1, G.lh * 0.07);
+    for (let i = 0; i < N; i++) { const a = ang(i); cx.beginPath(); cx.moveTo(G.Xc + L * 0.955 * Math.cos(a), cyS + RY * 0.955 * Math.sin(a)); cx.lineTo(G.Xc + L * 1.05 * Math.cos(a), cyS + RY * 1.05 * Math.sin(a)); cx.stroke(); }
+    cx.restore();
+    cx.beginPath(); cx.ellipse(G.Xc, cyS, L * 0.95, RY * 0.95, 0, a0, a1, false); cx.strokeStyle = 'rgba(0,0,0,.55)'; cx.lineWidth = 1.2; cx.stroke();
+    cx.beginPath(); cx.ellipse(G.Xc, cyS, L * 1.06, RY * 1.06, 0, a0, a1, false); cx.strokeStyle = 'rgba(255,255,255,.25)'; cx.lineWidth = 1; cx.stroke();
+  }
+  function coverPath(inner) {
+    const r = G.lh * 1.1;
+    cx.beginPath();
+    if (!inner) { cx.moveTo(-4, cTop); cx.lineTo(xl - r, cTop); } else cx.moveTo(xl - r, cTop);
+    cx.quadraticCurveTo(xl, cTop, xl, cTop + r);
+    cx.lineTo(xl, yA);
+    cx.bezierCurveTo(xl, lipY, G.Xc - (G.Xc - xl) * 0.5, lipY, G.Xc, lipY);
+    cx.bezierCurveTo(G.Xc + (xr - G.Xc) * 0.5, lipY, xr, lipY, xr, yA);
+    cx.lineTo(xr, cTop + r);
+    cx.quadraticCurveTo(xr, cTop, xr + r, cTop);
+    if (!inner) { cx.lineTo(G.W + 4, cTop); cx.lineTo(G.W + 4, G.H + 4); cx.lineTo(-4, G.H + 4); cx.closePath(); }
+  }
+  function drawSpool(x, y, rx, ry) {
+    cx.beginPath(); cx.ellipse(x, y, rx * 1.14, ry * 1.14, 0, 0, Math.PI * 2); cx.fillStyle = '#040404'; cx.fill();
+    cx.beginPath(); cx.ellipse(x, y + ry * 0.08, rx * 1.04, ry * 1.04, 0, 0, Math.PI * 2); cx.fillStyle = '#1b1415'; cx.fill();
+    cx.save(); cx.clip(); cx.fillStyle = weave; cx.fillRect(x - rx * 1.1, y - ry * 1.1, rx * 2.2, ry * 2.3); cx.restore();
+    cx.beginPath(); cx.ellipse(x, y, rx * 0.82, ry * 0.82, 0, 0, Math.PI * 2);
+    const g = cx.createLinearGradient(x, y - ry, x, y + ry);
+    g.addColorStop(0, '#f2f3f4'); g.addColorStop(0.3, '#aeb2b7'); g.addColorStop(0.55, '#55585d'); g.addColorStop(0.8, '#c9ccd0'); g.addColorStop(1, '#6f7378');
+    cx.fillStyle = g; cx.fill(); cx.strokeStyle = 'rgba(0,0,0,.55)'; cx.lineWidth = 1; cx.stroke();
+    cx.beginPath(); cx.ellipse(x, y, rx * 0.56, ry * 0.56, 0, 0, Math.PI * 2); cx.strokeStyle = 'rgba(255,255,255,.35)'; cx.stroke();
+    cx.beginPath(); cx.ellipse(x, y + 1, rx * 0.56, ry * 0.56, 0, 0, Math.PI * 2); cx.strokeStyle = 'rgba(0,0,0,.3)'; cx.stroke();
+    for (let k = 0; k < 3; k++) {
+      const p = spoolRot + k * Math.PI * 2 / 3;
+      cx.beginPath(); cx.ellipse(x + Math.cos(p) * rx * 0.38, y + Math.sin(p) * ry * 0.38, rx * 0.1, ry * 0.1, 0, 0, Math.PI * 2); cx.fillStyle = '#0b0b0c'; cx.fill();
+    }
+    cx.beginPath(); cx.ellipse(x, y, rx * 0.15, ry * 0.15, 0, 0, Math.PI * 2); cx.fillStyle = chromeV(y - ry * 0.15, y + ry * 0.15); cx.fill(); cx.strokeStyle = 'rgba(0,0,0,.5)'; cx.stroke();
+  }
+  function drawCovers() {
+    const lh = G.lh;
+    cx.save(); coverPath(true); cx.strokeStyle = 'rgba(0,0,0,.9)'; cx.lineWidth = lh * 0.5; cx.shadowColor = 'rgba(0,0,0,.85)'; cx.shadowBlur = lh * 1.2; cx.stroke(); cx.restore();
+    coverPath(false);
+    const g = cx.createLinearGradient(0, cTop, 0, G.H);
+    g.addColorStop(0, '#24211f'); g.addColorStop(0.22, '#131211'); g.addColorStop(0.6, '#0b0a0a'); g.addColorStop(1, '#161413');
+    cx.fillStyle = g; cx.fill();
+    cx.save(); coverPath(false); cx.clip();
+    const hy = cTop + (G.H - cTop) * 0.25;
+    for (const [hx, R] of [[xl * 0.45, xl * 0.75], [xr + (G.W - xr) * 0.35, (G.W - xr) * 0.6]]) {
+      const rg = cx.createRadialGradient(hx, hy, 0, hx, hy, Math.max(10, R));
+      rg.addColorStop(0, 'rgba(255,226,190,.11)'); rg.addColorStop(1, 'rgba(255,226,190,0)'); cx.fillStyle = rg; cx.fillRect(0, cTop, G.W, G.H - cTop);
+    }
+    const tg = cx.createLinearGradient(0, cTop, 0, cTop + lh * 1.4);
+    tg.addColorStop(0, 'rgba(255,240,220,.16)'); tg.addColorStop(1, 'rgba(255,240,220,0)'); cx.fillStyle = tg; cx.fillRect(0, cTop, G.W, lh * 1.4);
+    cx.restore();
+    coverPath(true); cx.lineWidth = Math.max(1.5, lh * 0.12); cx.strokeStyle = chromeH(xl, xr); cx.stroke();
+    cx.beginPath(); cx.moveTo(0, cTop + 0.5); cx.lineTo(xl - lh * 1.1, cTop + 0.5); cx.moveTo(xr + lh * 1.1, cTop + 0.5); cx.lineTo(G.W, cTop + 0.5);
+    cx.strokeStyle = 'rgba(255,245,230,.22)'; cx.lineWidth = 1; cx.stroke();
+    const rx = Math.min(G.W * 0.055, xl * 0.3), sy = cTop + (G.H - cTop) * 0.48;
+    if (rx > 8) { drawSpool(xl * 0.5, sy, rx, rx * 0.42); drawSpool(xr + (G.W - xr) * 0.5, sy, rx, rx * 0.42); }
+  }
+  function drawCardHolder() {
+    const { Xc, Yp, lh, cw } = G;
+    const x0 = Xc - 3.3 * lh, x1 = Xc + 3.3 * lh, y0 = Yp - 0.62 * lh, y1 = Yp + 1.0 * lh;
+    rr(x0, y0, x1 - x0, y1 - y0, lh * 0.18);
+    cx.fillStyle = 'rgba(225,232,240,.06)'; cx.fill(); cx.strokeStyle = 'rgba(255,255,255,.14)'; cx.lineWidth = 1; cx.stroke();
+    cx.beginPath(); cx.moveTo(x0 + lh * 0.2, y0 + 0.5); cx.lineTo(x1 - lh * 0.2, y0 + 0.5); cx.strokeStyle = 'rgba(255,255,255,.42)'; cx.stroke();
+    const kmax = Math.floor((x1 - x0) / 2 / cw) - 1;
+    for (let k = -kmax; k <= kmax; k++) {
+      const x = Math.round(Xc + k * cw) + 0.5, h = (k === 0 ? 0.34 : k % 5 === 0 ? 0.22 : 0.12) * lh;
+      cx.beginPath(); cx.moveTo(x, y0 + 1); cx.lineTo(x, y0 + 1 + h);
+      cx.strokeStyle = k === 0 ? 'rgba(190,32,24,.92)' : 'rgba(25,25,30,.5)'; cx.lineWidth = k === 0 ? 1.4 : 1; cx.stroke();
+    }
+    for (const fx of [x0 - lh * 0.42, x1 - lh * 0.02]) {
+      rr(fx, Yp + 0.12 * lh, lh * 0.44, lh * 1.1, lh * 0.2); cx.fillStyle = chromeH(fx, fx + lh * 0.44); cx.fill();
+      cx.strokeStyle = 'rgba(0,0,0,.45)'; cx.lineWidth = 1; cx.stroke();
+    }
+  }
+  function drawRibbon() {
+    const { Xc, Yp, lh } = G, Lf = lift * lh * 1.02;
+    const y0 = Yp + 0.6 * lh, h = 0.72 * lh;
+    const c0 = Xc - 1.55 * lh, c1 = Xc + 1.55 * lh, s0 = Xc - 4.4 * lh, s1 = Xc + 4.4 * lh;
+    const pb = y0 - Lf + h;
+    cx.fillStyle = chromeH(Xc - lh * 0.13, Xc + lh * 0.13);           // vibrator stem
+    cx.fillRect(Xc - lh * 0.13, pb, lh * 0.26, Math.max(0, G.platenBottom + lh * 0.5 - pb));
+    rr(c0 - 0.4 * lh, pb - 0.12 * lh, (c1 - c0) + 0.8 * lh, 0.42 * lh, 0.12 * lh);
+    cx.fillStyle = chromeV(pb - 0.12 * lh, pb + 0.3 * lh); cx.fill();
+    const pts = [[xl, y0], [s0, y0], [c0, y0 - Lf], [c1, y0 - Lf], [s1, y0], [xr, y0]];
+    const band = (o0, o1) => { cx.beginPath(); pts.forEach(([x, y], i) => (i ? cx.lineTo(x, y + o0) : cx.moveTo(x, y + o0))); for (let i = pts.length - 1; i >= 0; i--) cx.lineTo(pts[i][0], pts[i][1] + o1); cx.closePath(); };
+    cx.save(); cx.shadowColor = 'rgba(0,0,0,.55)'; cx.shadowBlur = lh * 0.5; cx.shadowOffsetY = lh * 0.12; band(0, h); cx.fillStyle = '#0d0b0c'; cx.fill(); cx.restore();
+    band(h * 0.52, h); cx.fillStyle = '#4a1012'; cx.fill();
+    band(0, h * 0.52); cx.fillStyle = '#100e0f'; cx.fill();
+    cx.save(); band(0, h); cx.clip(); cx.fillStyle = weave; cx.globalAlpha = 0.6; cx.fillRect(xl, y0 - Lf - 2, xr - xl, h + Lf + 4); cx.restore();
+    cx.beginPath(); pts.forEach(([x, y], i) => (i ? cx.lineTo(x, y + 0.5) : cx.moveTo(x, y + 0.5))); cx.strokeStyle = 'rgba(255,255,255,.1)'; cx.lineWidth = 1; cx.stroke();
+    for (const hx of [c0 - 0.05 * lh, c1 - 0.25 * lh]) {
+      rr(hx, y0 - Lf - 0.16 * lh, 0.3 * lh, 0.34 * lh, 0.08 * lh); cx.fillStyle = chromeH(hx, hx + 0.3 * lh); cx.fill();
+      rr(hx, y0 - Lf + h - 0.16 * lh, 0.3 * lh, 0.32 * lh, 0.08 * lh); cx.fill();
+    }
+  }
+  function draw(t) {
+    cx.setTransform(dpr, 0, 0, dpr, 0, -top * dpr);
+    cx.clearRect(0, top, G.W, Hc);
+    const sy = shift * 0.26 * G.lh;
+    const iy = G.platenBottom - 1;
+    const g = cx.createLinearGradient(0, iy, 0, G.H);
+    g.addColorStop(0, '#020202'); g.addColorStop(0.25, '#0b0a09'); g.addColorStop(1, '#16130f');
+    cx.fillStyle = g; cx.fillRect(0, iy, G.W, G.H - iy);
+    const act = new Map(); for (const b of active) act.set(b.i, b);
+    for (let i = 0; i < N; i++) if (!act.has(i)) drawBar(i, 0, sy, false);
+    for (const b of act.values()) if (b.th < 1.1) drawBar(b.i, b.th, sy, true);
+    drawSegment(sy);
+    drawCovers();
+    drawCardHolder();
+    drawRibbon();
+    for (const b of act.values()) if (b.th >= 1.1) drawBar(b.i, b.th, sy, true);
+    for (const g0 of glints) {
+      const p = (t - g0) / 90; if (p < 0 || p > 1) continue;
+      const r = G.lh * (0.5 + 0.45 * p), y = G.Yp + sy;
+      const gr = cx.createRadialGradient(G.Xc, y, 0, G.Xc, y, r);
+      gr.addColorStop(0, `rgba(255,246,225,${(1 - p) * 0.5})`); gr.addColorStop(1, 'rgba(255,246,225,0)');
+      cx.fillStyle = gr; cx.fillRect(G.Xc - r, y - r, 2 * r, 2 * r);
+    }
+  }
+  return { layout, fire, update, setShift, upTime, markDirty() { dirty = true; kick(); } };
+})();
+
+/* =========================================================================
+   Layout — measure the type, derive everything from it
+   ========================================================================= */
+function layout() {
+  G.W = window.innerWidth; G.H = window.innerHeight;
+  G.ml = cssNum('--margin-left', 10); G.mr = cssNum('--margin-right', 10);
+  G.topLines = cssNum('--top-lines', 6); G.sheetLines = cssNum('--sheet-lines', 66);
+  G.bellWarn = cssNum('--bell-warn', 7); G.tabEvery = cssNum('--tab-every', 5);
+  const target = clamp(Math.min(G.W * 0.0088, G.H * 0.0138), 7.5, 15.5);
+  const fs = target / 0.6;
+  root.style.setProperty('--font-size', fs + 'px');
+  probe.style.fontSize = fs + 'px';
+  if (!probe.textContent) probe.textContent = 'M'.repeat(100);
+  const adv = probe.getBoundingClientRect().width / 100;
+  G.cw = adv > 1 ? adv : target;
+  root.style.setProperty('--char-w', G.cw + 'px');
+  G.lh = lhProbe.getBoundingClientRect().height || G.cw * 5 / 3;
+  // Column count is read back from the paper's actual rendered width.
+  G.cols = Math.round(paperEl.getBoundingClientRect().width / G.cw) || cssNum('--paper-cols', 85);
+  G.LM = G.ml; G.RM = G.cols - G.mr; G.bellCol = G.RM - G.bellWarn;
+  G.Xc = Math.round(G.W / 2);
+  G.Yp = Math.round(G.H * 0.79);
+  G.platenTop = G.Yp - 1.6 * G.lh; G.platenH = 4.1 * G.lh; G.platenBottom = G.platenTop + G.platenH;
+  const px = (v) => v.toFixed(2) + 'px';
+  root.style.setProperty('--yp', px(G.Yp));
+  root.style.setProperty('--platen-top', px(G.platenTop));
+  root.style.setProperty('--platen-h', px(G.platenH));
+  root.style.setProperty('--platen-bottom', px(G.platenBottom));
+  root.style.setProperty('--bail-top', px(G.platenTop - 1.02 * G.lh));
+  root.style.setProperty('--table-top', px(G.platenTop - Math.max(G.H * 0.2, 7 * G.lh)));
+  if (scaleEl.dataset.cols !== String(G.cols)) {
+    scaleEl.innerHTML = ''; scaleEl.dataset.cols = G.cols;
+    for (let k = 0; k <= G.cols; k += 10) { const s = document.createElement('span'); s.textContent = k; s.style.left = `calc(${k + 0.5} * var(--char-w))`; scaleEl.appendChild(s); }
+  }
+  buildFilters();
+  Mech.layout();
+  tweens.delete('carX'); tweens.delete('paperY');
+  car.x = X(state.col); applyCar(); setPaperY(PY(state.line));
+}
+
+/* =========================================================================
+   Persistence
+   ========================================================================= */
+const KEY = 'typewriter.sheet.v1';
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({ v: 1, strikes, line: state.line, col: state.col })); } catch (e) { /* storage unavailable — carry on */ }
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (d && d.v === 1 && Array.isArray(d.strikes)) {
+      strikes = d.strikes.filter((s) => Array.isArray(s) && s.length === 9 && typeof s[2] === 'string');
+      state.line = Number.isFinite(d.line) ? d.line : 0;
+      state.col = Number.isFinite(d.col) ? d.col : 10;
+    }
+  } catch (e) { strikes = []; }
+  maxLine = Math.max(state.line, 0, ...strikes.map((s) => s[0]));
+}
+
+/* =========================================================================
+   Typing actions
+   ========================================================================= */
+let lastKeyT = 0, ema = 260;
+function cadenceForce() {
+  const t = now(), dt = clamp(t - lastKeyT, 40, 900); lastKeyT = t;
+  ema = ema * 0.65 + dt * 0.35;
+  return clamp(1.22 - (ema - 70) / 520, 0.72, 1.22) * rand(0.94, 1.06);
+}
+function crossBell(prev, next, delay) { if (prev < G.bellCol && next >= G.bellCol) Sound.bell(delay); }
+function locked() { Sound.locked(); recoil(0.6); }
+
+function typeChar(ch) {
+  hideHint();
+  if (state.col >= G.RM || state.col < 0) { locked(); return; }   // keys lock at the right margin
+  const f = cadenceForce(), bar = barIndex(ch), up = Mech.upTime(f);
+  const l = state.line, c = state.col;
+  const s = makeStrike(l, c, ch, f);
+  strikes.push(s); maxLine = Math.max(maxLine, l);
+  Sound.key(f, barPan(bar), barBias(bar), up / 1000);
+  Mech.fire(bar, f, up, () => { renderStrike(s); recoil(f); });
+  const prev = state.col; state.col++;
+  scheduleStep(up + 14, 56, ease.outBack);        // carriage escapes one tooth as the bar falls away
+  crossBell(prev, state.col, up / 1000 + 0.035);
+  save();
+}
+function space() {
+  hideHint();
+  if (state.col >= G.RM) { locked(); return; }
+  const f = cadenceForce();
+  Sound.space(f);
+  const prev = state.col; state.col++;
+  scheduleStep(30, 64, ease.outBack);
+  crossBell(prev, state.col, 0.05);
+  save();
+}
+function backspace() {
+  if (state.col <= 0) { locked(); return; }
+  Sound.backspace();
+  state.col--;
+  scheduleStep(18, 60, ease.outBack);
+  save();
+}
+function nudge(d) {
+  const next = state.col + d;
+  if (next < 0 || next > G.RM) { locked(); return; }
+  Sound.nudge();
+  const prev = state.col; state.col = next;
+  scheduleStep(10, 95, ease.outCubic);
+  if (d > 0) crossBell(prev, next, 0.03);
+  save();
+}
+function rollPlaten(d) {
+  const next = state.line + d;
+  if (next < -(G.topLines - 1)) { locked(); return; }
+  Sound.knob();
+  state.line = next; maxLine = Math.max(maxLine, next); updatePaperLen();
+  tween('paperY', paperY, PY(state.line), 110, ease.outCubic, setPaperY);
+  save();
+}
+function slideTo(col) {
+  col = clamp(col, 0, G.RM);
+  const n = Math.abs(col - state.col);
+  if (!n) { Sound.nudge(); return; }
+  carEpoch++;
+  const prev = state.col; state.col = col;
+  const dur = 110 + 3.2 * n;
+  Sound.slide(n, dur / 1000);
+  crossBell(prev, col, dur / 2000);
+  tween('carX', car.x, X(col), dur, ease.inOutCubic, setCarX);
+  save();
+}
+function lineEnd() {
+  let m = -1; for (const s of strikes) if (s[0] === state.line && s[1] > m) m = s[1];
+  return m >= 0 ? m + 1 : G.LM;
+}
+function tab() {
+  const st = G.tabEvery;
+  let next = state.col < G.LM ? G.LM : G.LM + st * (Math.floor((state.col - G.LM) / st) + 1);
+  next = Math.min(next, G.RM);
+  const n = next - state.col;
+  if (n <= 0) { locked(); return; }
+  carEpoch++; const ep = carEpoch;
+  const prev = state.col; state.col = next;
+  const dur = 45 + n * 9;
+  Sound.tab(n, dur / 1000, 0.012, TAB_EASE);
+  crossBell(prev, next, 0.012 + dur / 1000 * invert(TAB_EASE, (G.bellCol - prev) / n));
+  setTimeout(() => {
+    if (ep !== carEpoch) return;
+    const to = X(next);
+    tween('carX', car.x, to, dur, TAB_EASE, setCarX, () => rebound(to, -Math.min(G.cw * 0.12, 0.8 + n * 0.1), 140));
+  }, 12);
+  save();
+}
+function carriageReturn() {
+  hideHint();
+  carEpoch++; const ep = carEpoch;
+  const n = Math.max(0, state.col - G.LM);
+  const dur = n > 0 ? 95 + 3.4 * n : 0;
+  const travelDelay = 55;
+  Sound.carriageReturn(n, dur / 1000, travelDelay / 1000, RETURN_EASE);
+  if (leverEl.animate && !reduceMotion) {
+    const total = travelDelay + dur + 140;
+    leverEl.animate([
+      { transform: 'rotate(-24deg)' }, { transform: 'rotate(-13deg)', offset: travelDelay / total },
+      { transform: 'rotate(-13deg)', offset: (travelDelay + dur) / total }, { transform: 'rotate(-27deg)', offset: (travelDelay + dur + 50) / total },
+      { transform: 'rotate(-24deg)' },
+    ], { duration: total, easing: 'ease-out' });
+  }
+  // 1) the lever first indexes the platen one line…
+  state.line++; maxLine = Math.max(maxLine, state.line); updatePaperLen();
+  tween('paperY', paperY, PY(state.line), 85, ease.outCubic, setPaperY);
+  // 2) …then drives the carriage home into the margin stop.
+  const target = G.LM; state.col = target;
+  setTimeout(() => {
+    if (ep !== carEpoch) return;
+    const to = X(target);
+    if (n > 0) {
+      tween('carX', car.x, to, dur, RETURN_EASE, setCarX, () => {
+        rebound(to, Math.min(G.cw * 0.3, 1.2 + n * 0.05));
+        shudder(0.35 + 0.65 * Math.min(1, n / 40));
+      });
+    } else {
+      tween('carX', car.x, to, 60, ease.outCubic, setCarX);
+      shudder(0.2);
+    }
+  }, travelDelay);
+  save();
+}
+
+/* =========================================================================
+   Sheet management & export
+   ========================================================================= */
+function clearInk() { inkEl.innerHTML = ''; lineEls.clear(); }
+function newSheet() {
+  if (busy) return;
+  busy = true; closeMenu();
+  const outDur = 560;
+  Sound.paperOut(outDur / 1000);
+  const sheetH = G.lh * Math.max(G.sheetLines, G.topLines + maxLine + 40);
+  tween('paperY', paperY, -sheetH - 40, outDur, ease.inCubic, setPaperY, () => {
+    clearInk(); strikes = []; maxLine = 0; state.line = 0; wear = 0;
+    updatePaperLen(); save();
+    setPaperY(G.platenBottom + 4);
+    const inDur = 820;
+    Sound.paperIn(inDur / 1000);
+    tween('paperY', paperY, PY(0), inDur, ease.inOutCubic, setPaperY, () => { busy = false; });
+    if (state.col !== G.LM) slideTo(G.LM);
+  });
+}
+function buildText() {
+  const rows = new Map();
+  for (const s of strikes) { let r = rows.get(s[0]); if (!r) rows.set(s[0], (r = [])); r[s[1]] = s[2]; }   // last strike in a cell wins
+  if (!rows.size) return '';
+  const ls = [...rows.keys()], minL = Math.min(...ls), maxL = Math.max(...ls);
+  let minC = Infinity;
+  rows.forEach((r) => r.forEach((ch, c) => { if (ch && ch.trim()) minC = Math.min(minC, c); }));
+  const strip = Math.min(minC, G.LM);
+  const out = [];
+  for (let l = minL; l <= maxL; l++) {
+    const r = rows.get(l) || []; let s = '';
+    for (let c = strip; c < r.length; c++) s += r[c] || ' ';
+    out.push(s.replace(/\s+$/, ''));
+  }
+  return out.join('\n').replace(/\n+$/, '') + '\n';
+}
+function exportDoc() {
+  const txt = buildText();
+  if (!txt) { toast('The sheet is blank'); return; }
+  const d = new Date(), pad = (n) => String(n).padStart(2, '0');
+  const name = `typewritten-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.txt`;
+  try {
+    const url = URL.createObjectURL(new Blob([txt], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    toast('Exported ' + name);
+  } catch (e) { toast('Export failed'); }
+  closeMenu();
+}
+
+/* =========================================================================
+   UI: menu, hint, toast
+   ========================================================================= */
+const menuEl = $('#menu'), menuBtn = $('#menuBtn'), hintEl = $('#hint'), toastEl = $('#toast'), soundLbl = $('#soundLbl');
+let menuOpen = false, confirmNew = 0, toastT = 0;
+function openMenu() { menuOpen = true; menuEl.classList.add('open'); menuBtn.classList.add('on'); menuEl.setAttribute('aria-hidden', 'false'); resetNew(); }
+function closeMenu() { menuOpen = false; menuEl.classList.remove('open'); menuBtn.classList.remove('on'); menuEl.setAttribute('aria-hidden', 'true'); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }
+function toggleMenu() { menuOpen ? closeMenu() : openMenu(); }
+function resetNew() { confirmNew = 0; const b = menuEl.querySelector('[data-act="new"]'); b.classList.remove('warn'); b.querySelector('.lbl').textContent = 'New Sheet'; b.querySelector('.sub').textContent = 'Pull this page, feed a fresh one'; }
+function hideHint() { hintEl.classList.add('gone'); }
+function toast(msg) { toastEl.textContent = msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('show'), 2200); }
+function refreshSoundLbl() { soundLbl.textContent = 'Sound: ' + (Sound.enabled ? 'On' : 'Off'); }
+
+menuBtn.addEventListener('click', (e) => { e.stopPropagation(); Sound.init(); toggleMenu(); });
+menuEl.addEventListener('click', (e) => {
+  e.stopPropagation();
+  const b = e.target.closest('.item'); if (!b) return;
+  const act = b.dataset.act;
+  if (act === 'new') {
+    if (!strikes.length || confirmNew) { resetNew(); newSheet(); return; }
+    confirmNew = 1; b.classList.add('warn'); b.querySelector('.lbl').textContent = 'Discard this sheet?'; b.querySelector('.sub').textContent = 'Click again to confirm';
+    setTimeout(() => { if (confirmNew) resetNew(); }, 3500);
+  } else if (act === 'export') exportDoc();
+  else if (act === 'sound') { Sound.setEnabled(!Sound.enabled); refreshSoundLbl(); }
+});
+document.addEventListener('pointerdown', (e) => { Sound.init(); if (menuOpen && !menuEl.contains(e.target) && e.target !== menuBtn) closeMenu(); });
+
+/* =========================================================================
+   Keyboard
+   ========================================================================= */
+let lastRepeatT = 0;
+window.addEventListener('keydown', (e) => {
+  Sound.init();
+  const k = e.key;
+  if (k === 'Escape') { e.preventDefault(); toggleMenu(); return; }
+  if (menuOpen) return;
+  if (e.metaKey || (e.ctrlKey && !e.altKey)) return;            // leave browser shortcuts alone
+  const printable = [...k].length === 1;
+  const handled = printable || ['Enter', 'Backspace', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(k);
+  if (handled) e.preventDefault();
+  if (k === 'Shift') { if (!e.repeat) { Mech.setShift(1); Sound.shift(true); } return; }
+  if (busy || !handled) return;
+  if (e.repeat) {                                                 // a manual machine doesn't auto-repeat type
+    if (!['Backspace', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) return;
+    const t = now(); if (t - lastRepeatT < 70) return; lastRepeatT = t;
+  }
+  switch (k) {
+    case 'Enter': carriageReturn(); return;
+    case 'Backspace': backspace(); return;
+    case 'Tab': tab(); return;
+    case 'ArrowLeft': nudge(-1); return;
+    case 'ArrowRight': nudge(1); return;
+    case 'ArrowUp': rollPlaten(-1); return;
+    case 'ArrowDown': rollPlaten(1); return;
+    case 'Home': slideTo(G.LM); return;
+    case 'End': slideTo(lineEnd()); return;
+  }
+  if (k === ' ') { space(); return; }
+  if (printable) typeChar(k);
+});
+window.addEventListener('keyup', (e) => { if (e.key === 'Shift') { Mech.setShift(0); Sound.shift(false); } });
+window.addEventListener('blur', () => Mech.setShift(0));
+
+/* =========================================================================
+   Boot
+   ========================================================================= */
+genTextures();
+load();
+refreshSoundLbl();
+layout();
+updatePaperLen();
+for (const s of strikes) renderStrike(s);
+if (strikes.length) hideHint();
+let rz = 0;
+window.addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(layout); });
+if (document.fonts) {
+  document.fonts.ready.then(layout).catch(() => {});
+  document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', layout);
+}
+})();
+</script>
+</body>
+</html>
