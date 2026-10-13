@@ -613,7 +613,7 @@ const Story = (() => {
   };
 })();
 
-const CLOUD_CLIENT_ID = '';
+const CLOUD_CLIENT_ID = '746584309009-0ifbot96l5pdrmdifm6oid3670l109pr.apps.googleusercontent.com';
 
 /* ---------- Sync to a file (e.g. in Google Drive) ---------- */
 const FileSync = (() => {
@@ -1006,7 +1006,12 @@ const CloudSync = (() => {
       if (!/\.apps\.googleusercontent\.com\s*$/.test(v.trim())) { alert('That does not look like a Client ID. It should end in .apps.googleusercontent.com'); return; }
       cfg.clientId = v.trim(); saveCfg();
     }
-    try { await requestToken(''); } catch (e) { shellToast('Sign-in was cancelled or blocked. Allow pop-ups for this page and try again.', 7000); return; }
+    try { await requestToken(''); } catch (e) {
+      shellToast('Sign-in was cancelled or blocked. Allow pop-ups for this page and try again.', 7000);
+      // a Client ID that was typed in (not built in) may be the wrong one: let it be replaced
+      if (!(typeof CLOUD_CLIENT_ID === 'string' && CLOUD_CLIENT_ID) && cfg.clientId && confirm('Sign-in did not complete.\n\nOK = enter a different Google Client ID\nCancel = keep the current one and try again later')) { cfg.clientId = ''; tokenClient = null; saveCfg(); }
+      return;
+    }
     needGesture = false; cfg.signedIn = true; saveCfg();
     await cycle('signin');
   }
