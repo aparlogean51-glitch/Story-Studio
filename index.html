@@ -735,6 +735,8 @@ const CloudSync = (() => {
   const MANIFEST = 'studio-manifest.json';
   const API = 'https://www.googleapis.com/drive/v3', UP = 'https://www.googleapis.com/upload/drive/v3';
   const CFG_KEY = 'kotw_cloud', TOKEN_KEY = 'kotw_cloud_token';
+  // what identifies a version of the cloud file: its content fingerprint (Drive's own version number can rise by itself)
+  const stampOf = (f) => f ? (f.md5Checksum ? 'm:' + f.md5Checksum : 'v:' + f.version) : null;
   const pageName = (id, h) => 'p_' + id + '_' + h + '.gz';
   const LABEL = { signedout: '☁ Sign in', idle: '☁ Synced', syncing: '☁ Syncing…', waiting: '☁ Saving soon…', reconnect: '☁ Reconnect', offline: '☁ Offline',
     conflict: '☁ Choose version', error: '☁ Sync problem', other: '☁ Other window' };
@@ -746,7 +748,7 @@ const CloudSync = (() => {
   let cfg = {}, token = null, tokenExp = 0, tokenClient = null, pending = null, gis = null;
   let st = { base: null, pages: {}, dirty: false, sig: null };
   let cdb = null, mode = 'signedout', busy = false, again = false, timer = null, firstAt = 0, seq = 0, needGesture = false, leader = true, started = false;
-  let bc = null;
+  let bc = null, deferred = false;
 
   /* ----- settings ----- */
   function loadCfg() {
@@ -822,7 +824,7 @@ const CloudSync = (() => {
   async function listFiles() {
     const out = []; let pt = '';
     do {
-      const u = `${API}/files?spaces=appDataFolder&pageSize=1000&fields=${encodeURIComponent('nextPageToken,files(id,name,version,modifiedTime)')}` + (pt ? '&pageToken=' + encodeURIComponent(pt) : '');
+      const u = `${API}/files?spaces=appDataFolder&pageSize=1000&fields=${encodeURIComponent('nextPageToken,files(id,name,version,md5Checksum,modifiedTime)')}` + (pt ? '&pageToken=' + encodeURIComponent(pt) : '');
       const j = await (await api(u)).json(); out.push(...(j.files || [])); pt = j.nextPageToken;
     } while (pt);
     // if two computers ever created the manifest at once, use the newest
@@ -831,11 +833,11 @@ const CloudSync = (() => {
   }
   async function putFile(name, blob, existing) {
     const mime = 'application/octet-stream';
-    if (existing) return (await api(`${UP}/files/${existing.id}?uploadType=media&fields=id,name,version`, { method: 'PATCH', headers: { 'Content-Type': mime }, body: blob })).json();
+    if (existing) return (await api(`${UP}/files/${existing.id}?uploadType=media&fields=id,name,version,md5Checksum`, { method: 'PATCH', headers: { 'Content-Type': mime }, body: blob })).json();
     const b = 'kotw' + Math.random().toString(36).slice(2);
     const head = JSON.stringify({ name, parents: ['appDataFolder'], mimeType: mime });
     const body = new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${head}\r\n--${b}\r\nContent-Type: ${mime}\r\n\r\n`, blob, `\r\n--${b}--`]);
-    return (await api(`${UP}/files?uploadType=multipart&fields=id,name,version`, { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` }, body })).json();
+    return (await api(`${UP}/files?uploadType=multipart&fields=id,name,version,md5Checksum`, { method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${b}` }, body })).json();
   }
   async function getFile(f) { return (await api(`${API}/files/${f.id}?alt=media`)).blob(); }
   async function gz(text) {
@@ -887,7 +889,7 @@ const CloudSync = (() => {
     await pool(todo, 3, async (id) => { await putFile(pageName(id, snap.pages[id].hash), await gz(snap.pages[id].json), null); });
     // has another computer saved since we looked?
     const now = (await listFiles()).get(MANIFEST);
-    if ((now ? String(now.version) : null) !== (mf ? String(mf.version) : null)) throw Object.assign(new Error('changed elsewhere'), { code: 'race' });
+    if (stampOf(now) !== stampOf(mf)) throw Object.assign(new Error('changed elsewhere'), { code: 'race' });
     const manifest = { app: 'kotw-cloud', v: 1, savedAt: new Date().toISOString(),
       counts: { scenes: snap.story.scenes.length, manuscripts: ((snap.meta && snap.meta.manuscripts) || []).length },
       story: snap.story, meta: snap.meta, pages: Object.fromEntries(ids.map(id => [id, snap.pages[id].hash])) };
@@ -895,7 +897,7 @@ const CloudSync = (() => {
     // sheets the old cloud copy used that this one no longer does
     const old = st.pages || {}, stale = [];
     for (const id of Object.keys(old)) if (old[id] !== manifest.pages[id]) { const f = files.get(pageName(id, old[id])); if (f) stale.push(f); }
-    st.base = String(out.version); st.pages = manifest.pages; st.sig = snapSig(snap); st.dirty = seq !== mySeq;
+    st.base = stampOf(out); st.pages = manifest.pages; st.sig = snapSig(snap); st.dirty = seq !== mySeq;
     await saveSt();
     for (const f of stale) api(`${API}/files/${f.id}`, { method: 'DELETE' }).catch(() => {});
     if (st.dirty) schedule(1000);
@@ -926,7 +928,7 @@ const CloudSync = (() => {
     await WritingStore.write(remote.meta || null, got, Object.keys(local.pages).filter(id => !(id in remote.pages)), false);
     Story.replace(Story.normalize(remote.story), 'cloud');
     await Story.flush();
-    st.base = String(mf.version); st.pages = { ...remote.pages }; st.dirty = false; st.sig = snapSig(await snapshot());
+    st.base = stampOf(mf); st.pages = { ...remote.pages }; st.dirty = false; st.sig = snapSig(await snapshot());
     await saveSt();
     try { bc && bc.postMessage({ reload: true }); } catch (e) {}
     reloadWithToast('Updated from your Google Drive copy.');
@@ -965,8 +967,19 @@ const CloudSync = (() => {
     try {
       const files = await listFiles();
       const mf = files.get(MANIFEST);
+      let remote = null;
+      if (mf && stampOf(mf) !== st.base) {
+        // the file looks different: only a real difference in content counts
+        remote = await fetchManifest(mf);
+        const rsig = sigOf(remote.story, remote.meta, remote.pages);
+        if (st.sig && rsig === st.sig) { st.base = stampOf(mf); await saveSt(); remote = null; }          // same content as last time
+        else {
+          const snap = await snapshot();
+          if (snapSig(snap) === rsig) { st.base = stampOf(mf); st.sig = rsig; st.dirty = false; st.pages = { ...remote.pages }; await saveSt(); remote = null; }   // both sides already match
+        }
+      }
       if (!mf) { await push(files, null); }
-      else if (String(mf.version) === String(st.base)) {
+      else if (!remote) {
         if (st.dirty || reason === 'now') {
           const snap = await snapshot();
           if (reason !== 'now' && st.sig && snapSig(snap) === st.sig) { st.dirty = false; await saveSt(); }   // nothing real changed (a window just opened)
@@ -974,14 +987,16 @@ const CloudSync = (() => {
         }
       }
       else {
-        const remote = await fetchManifest(mf);
         const hasLocal = st.base === null ? await localHasContent() : st.dirty;   // a computer that has never synced only counts real work
         if (!hasLocal) await pull(files, remote, mf);
         else {
+          // "Decide later" stays decided until you click the cloud button: no repeat boxes on every edit
+          if (deferred && reason !== 'now' && reason !== 'signin') { setMode('conflict'); return; }
+          deferred = false;
           const pick = await resolve(files, mf, remote);
           if (pick === 'cloud') await pull(files, remote, mf);
           else if (pick === 'local') await push(files, mf);
-          else { setMode('conflict'); return; }
+          else { deferred = true; setMode('conflict'); return; }
         }
       }
       setMode(st.dirty ? 'waiting' : 'idle', st.dirty ? undefined : 'Saved to your Google Drive ' + new Date().toLocaleTimeString());
