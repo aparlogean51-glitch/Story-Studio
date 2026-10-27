@@ -1,0 +1,29 @@
+{
+ "name": "The Nephite Annals",
+ "short_name": "Annals",
+ "description": "An illustrated atlas of the Book of Mormon, from Mosiah's judges to Coriantumr's attack on Zarahemla.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "any",
+ "background_color": "#0d1513",
+ "theme_color": "#0d1513",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}

@@ -1,0 +1,2041 @@
+[
+  {
+    "id": "E01",
+    "title": "The reign of judges begins",
+    "year": null,
+    "dateLabel": "About 92–91 BC · transition to judges",
+    "category": "Government",
+    "summary": "With his sons unwilling to inherit the kingdom, Mosiah proposes judges chosen by the people, with higher and lower judges reviewing unjust judgments. The people accept, and Alma the younger becomes the first chief judge while retaining the high priesthood. Mosiah and Alma the elder die, ending the Nephite monarchy.",
+    "people": [
+      "Mosiah",
+      "Alma the younger",
+      "Alma the elder",
+      "Aaron"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Mosiah 29:1–47",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/mosiah/29?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "The people assembled in groups to cast their voices for judges; a written message from Mosiah is being considered.",
+    "chronologyNote": "Mosiah says he will remain king for the rest of his life (verse 11); this is a transition, not a violent deposition. It precedes the numbered years of the judges.",
+    "sortYear": 0
+  },
+  {
+    "id": "E02",
+    "title": "Nehor is tried for killing Gideon",
+    "year": 1,
+    "dateLabel": "Year 1 · about 91 BC",
+    "category": "Government",
+    "summary": "Nehor promotes paid religious leadership and kills the elderly teacher Gideon during a dispute. Brought before Alma, he is condemned under Mosiah’s law and executed on the hill Manti; his teaching continues to spread.",
+    "people": [
+      "Nehor",
+      "Gideon",
+      "Alma the younger"
+    ],
+    "places": [
+      "Hill Manti"
+    ],
+    "refs": [
+      {
+        "label": "Alma 1:1–17",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/1?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Nehor standing defiantly before Alma at his judgment seat, surrounded by witnesses; no depiction of execution.",
+    "chronologyNote": "The hill Manti is not identified here as the city or land of Manti; do not merge these locations."
+  },
+  {
+    "id": "M01",
+    "title": "The sons of Mosiah depart",
+    "year": 1,
+    "dateLabel": "Year 1 · about 91 BC",
+    "category": "Faith",
+    "summary": "Having refused the kingdom, the sons of Mosiah leave Zarahemla to preach among the Lamanites. After prayer and fasting in the wilderness, they separate to begin their ministries.",
+    "people": [
+      "Ammon",
+      "Aaron",
+      "Omner",
+      "Himni"
+    ],
+    "places": [
+      "Zarahemla",
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 17:6–18",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/17?lang=eng&id=p6#p6"
+      },
+      {
+        "label": "Alma 22:35",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/22?lang=eng&id=p35#p35"
+      }
+    ],
+    "scene": "Ammon blesses his fellow missionaries as they separate in the wilderness; travel-worn robes, quiet resolve. No palace or army.",
+    "chronologyNote": "Alma 17:6 explicitly places their departure in the first year of the judges; the account is a flashback."
+  },
+  {
+    "id": "M02",
+    "title": "Ammon defends the flocks",
+    "year": null,
+    "dateLabel": "About 91 BC · mission begins",
+    "category": "Faith",
+    "summary": "Ammon becomes Lamoni’s servant in the land of Ishmael. At the waters of Sebus he gathers the scattered flocks and defends the servants against attackers with a sling and sword.",
+    "people": [
+      "Ammon",
+      "Lamoni"
+    ],
+    "places": [
+      "Ishmael",
+      "Sebus"
+    ],
+    "refs": [
+      {
+        "label": "Alma 17:19–39",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/17?lang=eng&id=p19#p19"
+      }
+    ],
+    "scene": "Ammon stands with his sling poised beside the waters of Sebus while servants gather scattered flocks; attackers approach at a distance, no severed limbs or gore.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 1
+  },
+  {
+    "id": "E03",
+    "title": "Persecution, work, and care for the poor",
+    "year": 2,
+    "dateLabel": "Years 2–4 · about 90–88 BC",
+    "category": "Faith",
+    "summary": "Religious persecution and contention trouble the Church, and some members leave. Those who remain share their resources with people in need, while priests and hearers return to their own labor after worship; peace continues until the fifth year.",
+    "people": [
+      "Alma the younger"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 1:19–33",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/1?lang=eng&id=p19#p19"
+      }
+    ],
+    "scene": "Church members offering food and clothing to hungry and sick neighbors, without distinction of membership.",
+    "yearEnd": 4
+  },
+  {
+    "id": "M03",
+    "title": "Lamoni believes Ammon",
+    "year": null,
+    "dateLabel": "About 90 BC · missionary period",
+    "category": "Faith",
+    "summary": "Ammon teaches Lamoni and his servants from the scriptures, explaining the Creation, the Fall, and redemption through Christ. Lamoni prays for mercy and falls as if dead; his family mourns while he lies upon a bed for two days and nights.",
+    "people": [
+      "Ammon",
+      "Lamoni"
+    ],
+    "places": [
+      "Ishmael"
+    ],
+    "refs": [
+      {
+        "label": "Alma 18:24–43",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/18?lang=eng&id=p24#p24"
+      }
+    ],
+    "scene": "Ammon teaches an attentive King Lamoni and his servants in the royal house, with reverent stillness and dramatic warm light.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 2
+  },
+  {
+    "id": "M04",
+    "title": "Abish raises the queen",
+    "year": null,
+    "dateLabel": "About 90 BC · missionary period",
+    "category": "Faith",
+    "summary": "After Lamoni awakens, he, the queen, Ammon, and the servants are overcome by the Spirit. Abish gathers the people and then takes the queen by the hand; the queen rises, Lamoni teaches the crowd, and many are baptized.",
+    "people": [
+      "Abish",
+      "Lamoni",
+      "Ammon",
+      "Lamoni’s wife"
+    ],
+    "places": [
+      "Ishmael"
+    ],
+    "refs": [
+      {
+        "label": "Alma 19:1–36",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/19?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Abish takes the queen by the hand and helps her rise before an astonished crowd in Lamoni’s house; other figures rest on the floor, alive, no injuries.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 2
+  },
+  {
+    "id": "M05",
+    "title": "The prisoners of Middoni are freed",
+    "year": null,
+    "dateLabel": "About 90 BC · missionary period",
+    "category": "Faith",
+    "summary": "Aaron and companions are rejected in Jerusalem and Ani-Anti and imprisoned in Middoni. Traveling to free them, Ammon protects Lamoni from his father and obtains the older king’s consent to their release and Lamoni’s independence. Lamoni then secures the prisoners’ release from Antiomno.",
+    "people": [
+      "Aaron",
+      "Muloki",
+      "Ammah",
+      "Ammon",
+      "Lamoni",
+      "Lamoni’s father",
+      "Antiomno"
+    ],
+    "places": [
+      "Jerusalem",
+      "Ani-Anti",
+      "Middoni"
+    ],
+    "refs": [
+      {
+        "label": "Alma 21:1–17",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/21?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 20:1–30",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/20?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Ammon reunites with his exhausted imprisoned brethren as Lamoni brings them out of confinement at Middoni; dignified, non-graphic depiction with modest clothing.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 2
+  },
+  {
+    "id": "M06",
+    "title": "A king offers to give away his sins",
+    "year": null,
+    "dateLabel": "About 90–77 BC · missionary period",
+    "category": "Faith",
+    "summary": "Aaron teaches Lamoni’s father in the land of Nephi. The king prays to know God and offers to give away his sins; after he falls as if dead, Aaron raises him, and the king’s household is converted.",
+    "people": [
+      "Aaron",
+      "Lamoni’s father",
+      "Lamoni’s father’s wife"
+    ],
+    "places": [
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 22:1–26",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/22?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "An older king kneels in prayer before Aaron inside a restrained ancient palace; crown and riches are secondary, no supernatural spectacle.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 2
+  },
+  {
+    "id": "M07",
+    "title": "The Anti-Nephi-Lehies take a new name",
+    "year": null,
+    "dateLabel": "About 90–77 BC · missionary period",
+    "category": "Faith",
+    "summary": "A royal proclamation protects the missionaries, and many Lamanites are converted in several lands and cities. The converts take the name Anti-Nephi-Lehies; the king later transfers the kingdom to his son Anti-Nephi-Lehi and dies in the year preparations for war begin.",
+    "people": [
+      "Aaron",
+      "Ammon",
+      "Lamoni’s father",
+      "Anti-Nephi-Lehi"
+    ],
+    "places": [
+      "Ishmael",
+      "Middoni",
+      "Nephi",
+      "Shilom",
+      "Shemlon",
+      "Lemuel",
+      "Shimnilom"
+    ],
+    "refs": [
+      {
+        "label": "Alma 23:1–18",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/23?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 24:1–5",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/24?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Aaron and fellow teachers address a gathering of newly converted families; an ancient civic setting, hopeful and solemn, no written new-name banner.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 3
+  },
+  {
+    "id": "M08",
+    "title": "Weapons buried for peace",
+    "year": null,
+    "dateLabel": "About 90–77 BC · before the first massacre",
+    "category": "Faith",
+    "summary": "Facing attack, the Anti-Nephi-Lehies refuse to prepare for war. They bury their swords and other weapons deep in the earth as a covenant that they will surrender their own lives rather than shed their brethren’s blood.",
+    "people": [
+      "Anti-Nephi-Lehi"
+    ],
+    "places": [
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 24:6–19",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/24?lang=eng&id=p6#p6"
+      }
+    ],
+    "scene": "A gathered community lowers swords and other weapons into a deep trench, heads bowed; earth, hands, and surrendered weapons dominate the scene.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 4
+  },
+  {
+    "id": "M09",
+    "title": "The unresisting people are attacked",
+    "year": null,
+    "dateLabel": "About 90–77 BC · missionary period",
+    "category": "Warfare",
+    "summary": "The attackers kill 1,005 Anti-Nephi-Lehies who prostrate themselves and offer no resistance. Many attackers stop, repent, and lay down their own weapons; more people join the believers that day than were killed.",
+    "people": [
+      "Anti-Nephi-Lehi"
+    ],
+    "places": [
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 24:20–30",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/24?lang=eng&id=p20#p20"
+      }
+    ],
+    "scene": "Unarmed believers kneel in prayer before approaching warriors; one attacker lowers his sword, moved by their refusal to resist. No impact, gore, or injured children.",
+    "chronologyNote": "This episode belongs to the fourteen-year mission narrated retrospectively in Alma 17–27. The verses do not assign it an exact regnal year; the displayed BC date follows the chapter heading.",
+    "sortYear": 4
+  },
+  {
+    "id": "E04",
+    "title": "Amlici’s bid for a crown",
+    "year": 5,
+    "dateLabel": "Year 5 · about 87 BC",
+    "category": "Government",
+    "summary": "The people reject Amlici’s attempt to become king. His followers nevertheless consecrate him as their king, and he commands them to take up arms against the Nephites.",
+    "people": [
+      "Amlici"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 2:1–14",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/2?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Amlici raised before his gathered followers as they proclaim him king after the public rejection."
+  },
+  {
+    "id": "E05",
+    "title": "Battle on the hill Amnihu",
+    "year": 5,
+    "dateLabel": "Year 5 · about 87 BC",
+    "category": "Warfare",
+    "summary": "Alma leads the Nephites against the Amlicites on a hill east of the Sidon. The Amlicites retreat after heavy losses; the Nephites camp in the valley of Gideon and send spies after them.",
+    "people": [
+      "Alma the younger",
+      "Amlici",
+      "Zeram",
+      "Amnor",
+      "Manti (spy)",
+      "Limher"
+    ],
+    "places": [
+      "Hill Amnihu",
+      "River Sidon",
+      "Valley of Gideon"
+    ],
+    "refs": [
+      {
+        "label": "Alma 2:15–22",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/2?lang=eng&id=p15#p15"
+      }
+    ],
+    "scene": "Alma leading the Nephite defense on the hill above the river as the opposing ranks retreat; distant, non-graphic battle."
+  },
+  {
+    "id": "E06",
+    "title": "The battle at the Sidon crossing",
+    "year": 5,
+    "dateLabel": "Year 5 · about 87 BC",
+    "category": "Warfare",
+    "summary": "Spies report that the Amlicites have joined a Lamanite army in Minon and threaten Zarahemla. Returning toward the city, Alma’s army is attacked while crossing the Sidon; Alma kills Amlici, and the defeated enemy flees toward Hermounts.",
+    "people": [
+      "Alma the younger",
+      "Amlici",
+      "Zeram",
+      "Amnor",
+      "Manti (spy)",
+      "Limher"
+    ],
+    "places": [
+      "Minon",
+      "River Sidon",
+      "Zarahemla",
+      "Hermounts"
+    ],
+    "refs": [
+      {
+        "label": "Alma 2:23–38",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/2?lang=eng&id=p23#p23"
+      }
+    ],
+    "scene": "Alma and Amlici facing each other with swords beside the crowded river crossing, the larger battle behind them; no gore."
+  },
+  {
+    "id": "E07",
+    "title": "A second invasion is repelled",
+    "year": 5,
+    "dateLabel": "Year 5 · about 87 BC",
+    "category": "Warfare",
+    "summary": "Another Lamanite army enters the same region only days later. Alma remains behind because of a wound, while a Nephite army drives the invaders beyond their borders and restores a period of peace.",
+    "people": [
+      "Alma the younger"
+    ],
+    "places": [
+      "Minon",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 3:20–27",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/3?lang=eng&id=p20#p20"
+      }
+    ],
+    "scene": "Nephite troops advancing as the second invading force withdraws, with trampled grain fields showing the damage of war.",
+    "chronologyNote": "Minon is the contextual location from Alma 2:24, not an independently named city in Alma 3:20."
+  },
+  {
+    "id": "E08",
+    "title": "Mourning gives way to renewal",
+    "year": 6,
+    "dateLabel": "Years 6–7 · about 86–85 BC",
+    "category": "Faith",
+    "summary": "Loss of family members, livestock, and harvests leaves the people mourning after the war. Many are baptized in the Sidon; approximately 3,500 join the Church in the seventh year, during continued peace.",
+    "people": [
+      "Alma the younger"
+    ],
+    "places": [
+      "River Sidon",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 4:1–5",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/4?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma baptizing a convert in the Sidon as families wait along the riverbank.",
+    "yearEnd": 7
+  },
+  {
+    "id": "E09",
+    "title": "Alma relinquishes the judgment seat",
+    "year": 9,
+    "dateLabel": "Year 9 · about 83 BC",
+    "category": "Government",
+    "summary": "Prosperity brings pride and inequality within the Church during the eighth year. At the beginning of the ninth, Alma transfers the chief judgeship to Nephihah, with the people’s voice, so he can devote himself to preaching; he retains the high priesthood.",
+    "people": [
+      "Alma the younger",
+      "Nephihah"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 4:6–20",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/4?lang=eng&id=p6#p6"
+      }
+    ],
+    "scene": "Nephihah taking his place in the judgment seat while Alma turns toward the people he will teach.",
+    "chronologyNote": "The motivating social changes begin in year 8; the transfer is explicitly at the beginning of year 9."
+  },
+  {
+    "id": "E10",
+    "title": "A call to change in Zarahemla",
+    "year": 9,
+    "dateLabel": "Year 9 · about 83 BC",
+    "category": "Faith",
+    "summary": "Alma asks the people whether they have experienced a change of heart and calls them to abandon pride, persecution, and neglect of the poor. He sets the Church in order, ordains leaders, and receives repentant people through baptism.",
+    "people": [
+      "Alma the younger"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 5:1–62",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/5?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 6:1–6",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/6?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma speaking urgently to an attentive public assembly in Zarahemla."
+  },
+  {
+    "id": "E11",
+    "title": "Alma teaches in Gideon",
+    "year": 9,
+    "dateLabel": "Year 9 · about 83 BC",
+    "category": "Faith",
+    "summary": "Across the Sidon in Gideon, Alma teaches of the coming Redeemer, who will bear his people’s afflictions and sins. He invites repentance and baptism and commends the people’s faith before returning home to Zarahemla.",
+    "people": [
+      "Alma the younger"
+    ],
+    "places": [
+      "Gideon",
+      "River Sidon",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 6:7–8",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/6?lang=eng&id=p7#p7"
+      },
+      {
+        "label": "Alma 7:1–27",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/7?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 8:1–2",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/8?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma teaching the gathered people of Gideon, a peaceful valley settlement behind them."
+  },
+  {
+    "id": "E12",
+    "title": "The ministry in Melek",
+    "year": 10,
+    "dateLabel": "Year 10 · about 82 BC",
+    "category": "Faith",
+    "summary": "Alma travels to Melek west of the Sidon, near the wilderness. People gather from the surrounding borders to hear him, and baptisms take place throughout the land before he travels north toward Ammonihah.",
+    "people": [
+      "Alma the younger"
+    ],
+    "places": [
+      "Melek",
+      "Ammonihah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 8:3–6",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/8?lang=eng&id=p3#p3"
+      }
+    ],
+    "scene": "Families arriving from the wilderness borders to hear Alma in Melek."
+  },
+  {
+    "id": "E13",
+    "title": "An angel sends Alma back",
+    "year": 10,
+    "dateLabel": "Year 10 · about 82 BC",
+    "category": "Faith",
+    "summary": "Rejected and expelled from Ammonihah, Alma travels toward Aaron until an angel commands him to return. He enters from the south and is welcomed by Amulek, who has also received an angelic instruction; the two prepare to preach together.",
+    "people": [
+      "Alma the younger",
+      "Amulek"
+    ],
+    "places": [
+      "Ammonihah",
+      "Aaron"
+    ],
+    "refs": [
+      {
+        "label": "Alma 8:7–32",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/8?lang=eng&id=p7#p7"
+      },
+      {
+        "label": "Alma 10:6–11",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/10?lang=eng&id=p6#p6"
+      }
+    ],
+    "scene": "The sorrowing Alma encountering an angel on the road after his expulsion from Ammonihah.",
+    "chronologyNote": "Amulek dates his own angelic encounter to day 4, month 7, year 10. Alma travels toward Aaron, but arrival there is not stated."
+  },
+  {
+    "id": "E14",
+    "title": "Amulek refuses Zeezrom’s bribe",
+    "year": 10,
+    "dateLabel": "Year 10 · about 82 BC",
+    "category": "Faith",
+    "summary": "Alma and Amulek warn Ammonihah to repent. Zeezrom offers Amulek six onties of silver to deny God; Amulek refuses, exposes the deception, and teaches of redemption and resurrection.",
+    "people": [
+      "Alma the younger",
+      "Amulek",
+      "Zeezrom"
+    ],
+    "places": [
+      "Ammonihah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 9:1–34",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/9?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 10:12–32",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/10?lang=eng&id=p12#p12"
+      },
+      {
+        "label": "Alma 11:20–46",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/11?lang=eng&id=p20#p20"
+      }
+    ],
+    "scene": "Zeezrom offering silver to Amulek before a gathered crowd while Amulek refuses with an open hand; silver pieces without invented coin inscriptions."
+  },
+  {
+    "id": "E15",
+    "title": "The plan of redemption is taught",
+    "year": 10,
+    "dateLabel": "Year 10 · about 82 BC",
+    "category": "Faith",
+    "summary": "Zeezrom begins sincerely questioning Alma, and Antionah raises a question about immortality. Alma explains resurrection, judgment, repentance, and the plan of redemption, then teaches about the holy priesthood and urges the people not to delay repentance.",
+    "people": [
+      "Alma the younger",
+      "Amulek",
+      "Zeezrom",
+      "Antionah"
+    ],
+    "places": [
+      "Ammonihah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 12:1–37",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/12?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 13:1–31",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/13?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma extending his hand in an urgent appeal to the assembled people, with Zeezrom listening intently."
+  },
+  {
+    "id": "E16",
+    "title": "The martyrs of Ammonihah",
+    "year": 10,
+    "dateLabel": "Year 10 · about 82 BC",
+    "category": "Faith",
+    "summary": "Alma and Amulek are bound and accused; Zeezrom speaks in their defense but is expelled with other believers. Women, children, and their sacred records are burned, and Alma tells the anguished Amulek that the Spirit restrains him from intervening.",
+    "people": [
+      "Alma the younger",
+      "Amulek",
+      "Zeezrom"
+    ],
+    "places": [
+      "Ammonihah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 14:1–17",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/14?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "A non-graphic memorial scene centered on the grief of bound Alma and Amulek, lit by a fire kept outside the frame; no burning bodies or visible victims."
+  },
+  {
+    "id": "E17",
+    "title": "The prison falls",
+    "year": 10,
+    "dateLabel": "Year 10 · day 12, month 10 · about 82 BC",
+    "category": "Faith",
+    "summary": "After repeated abuse and deprivation, Alma prays for deliverance. Their bonds break, the earth shakes, and the prison collapses; Alma and Amulek emerge unharmed while those within the walls who had abused them perish.",
+    "people": [
+      "Alma the younger",
+      "Amulek"
+    ],
+    "places": [
+      "Ammonihah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 14:18–29",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/14?lang=eng&id=p18#p18"
+      }
+    ],
+    "scene": "Alma and Amulek standing amid the fallen prison walls with broken cords, dust and light around them; figures modestly framed and no visible bodies.",
+    "chronologyNote": "The passage explicitly gives day 12, month 10, year 10 (verse 23). The chapter heading spans about 82–81 BC."
+  },
+  {
+    "id": "E18",
+    "title": "Zeezrom is healed in Sidom",
+    "year": 10,
+    "dateLabel": "End of year 10 · about 82–81 BC",
+    "category": "Faith",
+    "summary": "Alma and Amulek join the expelled believers in Sidom and tell them what happened in Ammonihah. Alma prays for the fever-stricken Zeezrom, who rises, is baptized, and begins preaching; a church is established, and Alma later takes the bereaved Amulek into his home in Zarahemla.",
+    "people": [
+      "Alma the younger",
+      "Amulek",
+      "Zeezrom"
+    ],
+    "places": [
+      "Sidom",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 15:1–19",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/15?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma taking Zeezrom by the hand beside his sickbed, with Amulek nearby, at the moment of healing.",
+    "chronologyNote": "Alma 15:19 places this before the close of year 10; its editorial heading reads about 81 BC. Retain the textual regnal year rather than forcing an exact BC conversion."
+  },
+  {
+    "id": "E19",
+    "title": "Ammonihah is destroyed",
+    "year": 11,
+    "dateLabel": "Year 11 · day 5, month 2 · about 81 BC",
+    "category": "Warfare",
+    "summary": "A Lamanite army strikes from the wilderness before the Nephites can assemble a sufficient defense. Ammonihah is destroyed in one day, people near Noah are also killed, and other inhabitants are carried captive into the wilderness.",
+    "people": [],
+    "places": [
+      "Ammonihah",
+      "Noah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 16:1–3, 9–11",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/16?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "The deserted ruins of Ammonihah after its destruction, buildings broken and smoke hanging over empty streets; no gore."
+  },
+  {
+    "id": "E20",
+    "title": "Zoram rescues the captives",
+    "year": 11,
+    "dateLabel": "Year 11 · about 81 BC",
+    "category": "Warfare",
+    "summary": "Chief captain Zoram and his sons Lehi and Aha consult Alma about the captured people. Following the direction Alma receives, their army intercepts the Lamanites east of the Sidon beyond Manti and recovers every captive.",
+    "people": [
+      "Zoram (chief captain)",
+      "Lehi (son of Zoram)",
+      "Aha",
+      "Alma the younger"
+    ],
+    "places": [
+      "Manti",
+      "River Sidon",
+      "South wilderness"
+    ],
+    "refs": [
+      {
+        "label": "Alma 16:4–8",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/16?lang=eng&id=p4#p4"
+      }
+    ],
+    "scene": "Zoram and his sons receiving the rescued families beside their army in the southern wilderness.",
+    "chronologyNote": "This Zoram is the chief captain in Alma 16, not Zoram from Lehi’s company. The text does not establish whether his son Lehi is the later commander Lehi."
+  },
+  {
+    "id": "M10",
+    "title": "Persecution turns against the Amulonites",
+    "year": null,
+    "dateLabel": "About 90–77 BC · after the attacks",
+    "category": "Faith",
+    "summary": "After attacking Ammonihah and suffering defeats against the Nephites, surviving descendants of Amulon put believing Lamanites to death by fire. Other Lamanites turn against these rulers; many survivors later join the Anti-Nephi-Lehies and bury their weapons.",
+    "people": [
+      "Aaron"
+    ],
+    "places": [
+      "Ammonihah",
+      "Ishmael",
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 25:1–17",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/25?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Lamanite converts return to their own land and join a community burying weapons, with a distant wilderness behind them; no execution depicted.",
+    "chronologyNote": "Alma 25 retrospectively connects this aftermath to Ammonihah’s destruction in Alma 16. Do not count the destruction as a second attack or infer a precise year for the later persecution.",
+    "sortYear": 11
+  },
+  {
+    "id": "E21",
+    "title": "The Church spreads through the land",
+    "year": 12,
+    "dateLabel": "Years 12–14 · about 80–78 BC",
+    "category": "Faith",
+    "summary": "During the years after the rescue, Alma, Amulek, and other teachers preach without excluding anyone willing to listen. They establish the Church widely and teach that Christ will appear to the people after his resurrection; the account closes with the fourteenth year.",
+    "people": [
+      "Alma the younger",
+      "Amulek"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 16:12–21",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/16?lang=eng&id=p12#p12"
+      }
+    ],
+    "scene": "Alma and Amulek teaching a diverse gathering in an ancient sanctuary, with listeners receiving the message joyfully.",
+    "chronologyNote": "This is a regional ministry, not an event fixed to one city. Verse 12 says renewed warfare begins in year 14; this entry does not claim uninterrupted peace through that entire year.",
+    "yearEnd": 14
+  },
+  {
+    "id": "M11",
+    "title": "Alma and the missionaries reunite",
+    "year": 15,
+    "dateLabel": "Year 15 · about 77 BC",
+    "category": "Faith",
+    "summary": "While the Anti-Nephi-Lehies wait near the border, Ammon and his brethren meet Alma on the journey toward Zarahemla. Ammon is overcome with joy, and Alma brings the missionaries to his house before they report to the chief judge.",
+    "people": [
+      "Alma",
+      "Ammon",
+      "Aaron",
+      "Omner",
+      "Himni"
+    ],
+    "places": [
+      "Gideon",
+      "Manti",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 17:1–4",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/17?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 27:14–20",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/27?lang=eng&id=p14#p14"
+      },
+      {
+        "label": "Alma 26:1–37",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/26?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 29:1–17",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/29?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma embraces the returning missionaries along a wilderness path; Ammon is overcome with joy, supported by his brethren.",
+    "chronologyNote": "The return is placed about 77 BC by the heading to Alma17 and before the close of year15 in Alma28. Gideon and Manti frame Alma’s journey; the exact meeting site is not named."
+  },
+  {
+    "id": "M12",
+    "title": "Refuge in the land of Jershon",
+    "year": 15,
+    "dateLabel": "Year 15 · about 77 BC",
+    "category": "Migration",
+    "summary": "After renewed attacks, Ammon receives direction to lead the Anti-Nephi-Lehies out of the land of Nephi. By the voice of the people, the Nephites grant them Jershon and military protection in exchange for provisions to maintain the armies; they become known as the people of Ammon.",
+    "people": [
+      "Ammon",
+      "Alma",
+      "Anti-Nephi-Lehi"
+    ],
+    "places": [
+      "Nephi",
+      "Zarahemla",
+      "Jershon"
+    ],
+    "refs": [
+      {
+        "label": "Alma 27:1–30",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/27?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Families carrying bundles and leading their flocks enter a new land while Nephite protectors receive them; relief after a difficult journey.",
+    "chronologyNote": "Placed before the end of year15 by Alma28:1–9; the chapter27 heading gives the broader mission period."
+  },
+  {
+    "id": "M13",
+    "title": "A tremendous battle and mourning",
+    "year": 15,
+    "dateLabel": "Year 15 · about 77 BC",
+    "category": "Warfare",
+    "summary": "Lamanite armies follow the refugees into the wilderness and fight a tremendous battle. The Nephites drive them back, but losses on both sides bring widespread mourning, fasting, and prayer.",
+    "people": [
+      "People of Ammon"
+    ],
+    "places": [
+      "Jershon",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 28:1–14",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/28?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 30:1–4",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/30?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Bereaved families mourn beside returning Nephite soldiers after a devastating battle, weapons lowered; no graphic bodies or invented commander.",
+    "chronologyNote": "Alma28 closes year15; Alma30:2–4 places the ensuing peace in year16. The precise battlefield is not named."
+  },
+  {
+    "id": "M14",
+    "title": "Korihor confronts Alma",
+    "year": 17,
+    "dateLabel": "Late year 17 · about 75–74 BC",
+    "category": "Faith",
+    "summary": "Korihor denies the coming of Christ and is brought before Alma and the chief judge after preaching in Zarahemla, Jershon, and Gideon. He demands a sign and loses his speech; he writes an acknowledgment and later dies after being trampled among the Zoramites.",
+    "people": [
+      "Korihor",
+      "Alma",
+      "Ammon",
+      "Giddonah",
+      "Zoram"
+    ],
+    "places": [
+      "Zarahemla",
+      "Jershon",
+      "Gideon",
+      "Antionum"
+    ],
+    "refs": [
+      {
+        "label": "Alma 30:5–60",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/30?lang=eng&id=p5#p5"
+      }
+    ],
+    "scene": "Korihor, suddenly unable to speak, reaches toward a writing surface before Alma and the chief judge; tense faces, no magic beams.",
+    "chronologyNote": "Alma30:6 specifies the latter part of year17. The chapter heading spans approximately76–74BC; Antionum is identified as the Zoramite land in Alma31:3."
+  },
+  {
+    "id": "M15",
+    "title": "Alma encounters the Rameumptom",
+    "year": 17,
+    "dateLabel": "Year 17 · about 74 BC",
+    "category": "Faith",
+    "summary": "Concerned that the Zoramites may join the Lamanites, Alma leads a mission to Antionum. They find worshippers offering identical prayers on a raised stand called the Rameumptom; Alma prays for strength and success for his companions.",
+    "people": [
+      "Alma",
+      "Ammon",
+      "Aaron",
+      "Omner",
+      "Amulek",
+      "Zeezrom",
+      "Shiblon",
+      "Corianton",
+      "Zoram"
+    ],
+    "places": [
+      "Antionum"
+    ],
+    "refs": [
+      {
+        "label": "Alma 31:1–38",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/31?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 35:12",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/35?lang=eng&id=p12#p12"
+      }
+    ],
+    "scene": "A richly dressed Zoramite stands alone on a high narrow prayer platform with hands raised; Alma and his companions observe from below. No human sacrifice.",
+    "chronologyNote": "The mission precedes the close of year17 in Alma35:12. Do not confuse this Zoram with the earlier servant of Laban."
+  },
+  {
+    "id": "M16",
+    "title": "The word compared to a seed",
+    "year": 17,
+    "dateLabel": "Year 17 · about 74 BC",
+    "category": "Faith",
+    "summary": "On the hill Onidah, Alma teaches poor Zoramites who have been excluded from their synagogues, inviting them to exercise faith and nourish the word like a seed. He cites earlier prophets concerning Christ; Amulek follows with teachings on the Atonement, prayer, charity, and repentance.",
+    "people": [
+      "Alma",
+      "Amulek"
+    ],
+    "places": [
+      "Onidah",
+      "Antionum"
+    ],
+    "refs": [
+      {
+        "label": "Alma 32:1–43",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/32?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 33:1–23",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/33?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 34:1–41",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/34?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma teaches a gathering of poor listeners in coarse clothing on a hillside, his hand extended toward them; Amulek nearby. No literal magical tree or seed demonstration.",
+    "chronologyNote": "The mission precedes the close of year17 in Alma35:12. Onidah here is a hill in the Zoramite mission; do not automatically equate it with the place of arms in Alma47."
+  },
+  {
+    "id": "M17",
+    "title": "Jershon welcomes the expelled converts",
+    "year": 17,
+    "dateLabel": "End of year 17 · about 74 BC",
+    "category": "Migration",
+    "summary": "Zoramite rulers identify and expel those who believe the missionaries. The people of Ammon shelter, clothe, and give land to the refugees despite threats, while the hostile Zoramites join with the Lamanites and prepare for war.",
+    "people": [
+      "Alma",
+      "Amulek",
+      "People of Ammon"
+    ],
+    "places": [
+      "Antionum",
+      "Jershon"
+    ],
+    "refs": [
+      {
+        "label": "Alma 35:1–12",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/35?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "People of Ammon offer clothing and food to exhausted Zoramite refugees arriving with modest belongings; a scene of refuge and hospitality.",
+    "chronologyNote": "Alma35:12 explicitly closes year17 after these preparations."
+  },
+  {
+    "id": "M18",
+    "title": "The people of Ammon move to Melek",
+    "year": 18,
+    "dateLabel": "Year 18 · about 74 BC",
+    "category": "Migration",
+    "summary": "The people of Ammon leave Jershon for Melek, making room for the Nephite armies as war begins. The expelled Zoramite converts have lands in Jershon and take up arms to defend their families and inheritance.",
+    "people": [
+      "People of Ammon"
+    ],
+    "places": [
+      "Jershon",
+      "Melek"
+    ],
+    "refs": [
+      {
+        "label": "Alma 35:13–14",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/35?lang=eng&id=p13#p13"
+      }
+    ],
+    "scene": "A refugee community departs Jershon with bundled possessions while Nephite troops move into the vacated land; two streams of travelers, solemn resolve.",
+    "chronologyNote": "Alma35:13 explicitly places the opening of the war in year18. The converts who take arms in verse14 are the expelled Zoramites, not the covenant-bound people of Ammon."
+  },
+  {
+    "id": "M19",
+    "title": "Alma entrusts the sacred records to Helaman",
+    "year": null,
+    "dateLabel": "About 74 BC · opening war period",
+    "category": "Faith",
+    "summary": "Alma recounts his conversion to Helaman and charges him to preserve the records, including the brass plates and twenty-four plates, and the interpreters. He uses the Liahona to teach trust in God and directs Helaman to withhold the secret oaths and plans of the destroyed people while teaching against their wickedness.",
+    "people": [
+      "Alma",
+      "Helaman"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 35:14–16",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/35?lang=eng&id=p14#p14"
+      },
+      {
+        "label": "Alma 36:1–30",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/36?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 37:1–47",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/37?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma instructs Helaman beside carefully kept engraved metal records; an intimate, lamplit scene, no invented insignia, secret society, or magical effects.",
+    "chronologyNote": "Alma35 introduces the separate charges after the mission; chapters36–42 are dated about74BC in their headings, rather than assigned a separate exact regnal year. Year18 is the surrounding narrative anchor.",
+    "sortYear": 18
+  },
+  {
+    "id": "M20",
+    "title": "Alma counsels faithful Shiblon",
+    "year": null,
+    "dateLabel": "About 74 BC · opening war period",
+    "category": "Faith",
+    "summary": "Alma commends Shiblon for enduring bonds and stoning during the Zoramite mission. He urges humility, restraint, and continued service, teaching that salvation is through Christ.",
+    "people": [
+      "Alma",
+      "Shiblon"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 35:14–16",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/35?lang=eng&id=p14#p14"
+      },
+      {
+        "label": "Alma 38:1–15",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/38?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma speaks privately with Shiblon, a patient listener in simple travel clothing; the father’s hand lifted in counsel, subdued warmth.",
+    "chronologyNote": "Chapter38 recounts earlier persecution; the counsel belongs to the charges introduced in Alma35. Year18 is the surrounding narrative anchor, not an explicit date in chapter38.",
+    "sortYear": 18
+  },
+  {
+    "id": "M21",
+    "title": "Alma calls Corianton back to his ministry",
+    "year": null,
+    "dateLabel": "About 74 BC · opening war period",
+    "category": "Faith",
+    "summary": "Alma rebukes Corianton for abandoning his ministry to follow Isabel in Siron and for conduct that hindered belief among the Zoramites. He teaches him about resurrection, restoration, justice, mercy, and repentance, then commands him to preach truthfully and soberly.",
+    "people": [
+      "Alma",
+      "Corianton",
+      "Isabel"
+    ],
+    "places": [
+      "Zarahemla",
+      "Siron",
+      "Antionum"
+    ],
+    "refs": [
+      {
+        "label": "Alma 35:14–16",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/35?lang=eng&id=p14#p14"
+      },
+      {
+        "label": "Alma 39:1–19",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/39?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 40:1–26",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/40?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 41:1–15",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/41?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 42:1–31",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/42?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma counsels a troubled Corianton privately; father and son face one another across a quiet room, compassionate but serious. No depiction of sexual activity.",
+    "chronologyNote": "The counsel follows the Zoramite mission. Siron names the earlier misconduct’s location, not the location of this conversation; year18 is the surrounding narrative anchor.",
+    "sortYear": 18
+  },
+  {
+    "id": "W01",
+    "title": "The battle at the river Sidon",
+    "year": 18,
+    "dateLabel": "Year 18 of the judges · about 74 BC",
+    "category": "Warfare",
+    "summary": "Zerahemnah turns toward Manti after confronting Moroni’s armored forces near Jershon. Warned through Alma and informed by spies, Moroni and Lehi surround the invading army at the Sidon; after renewed fighting, the survivors surrender their weapons and covenant not to return to war.",
+    "people": [
+      "Moroni",
+      "Lehi",
+      "Zerahemnah",
+      "Alma"
+    ],
+    "places": [
+      "Jershon",
+      "Antionum",
+      "Manti",
+      "River Sidon",
+      "Hill Riplah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 43:3–54",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/43?lang=eng&id=p3#p3"
+      },
+      {
+        "label": "Alma 44:1–24",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/44?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Moroni halts his soldiers beside the river as the surrounded opposing army lowers its weapons; armor, shields and thick clothing on the Nephites, no graphic injuries.",
+    "route": [
+      "Jershon",
+      "Manti"
+    ]
+  },
+  {
+    "id": "W02",
+    "title": "Alma’s last charge and departure",
+    "year": 19,
+    "dateLabel": "Year 19 of the judges · about 73 BC",
+    "category": "Faith",
+    "summary": "Alma questions Helaman’s faith, entrusts him with a prophecy about the future destruction of the Nephites, and blesses his sons and the church. He then leaves Zarahemla as if going to Melek and is never heard from again; the record does not establish his death or burial.",
+    "people": [
+      "Alma",
+      "Helaman"
+    ],
+    "places": [
+      "Zarahemla",
+      "Melek"
+    ],
+    "refs": [
+      {
+        "label": "Alma 45:1–24",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/45?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Alma departing alone along a road from Zarahemla toward Melek; a solemn human departure, without depicting an unconfirmed ascension.",
+    "chronologyNote": "The reported belief that Alma was taken by the Spirit is explicitly distinguished from known information in verses 18–19."
+  },
+  {
+    "id": "W03",
+    "title": "Moroni raises the title of liberty",
+    "year": 19,
+    "dateLabel": "Year 19 of the judges · about 73 BC",
+    "category": "Government",
+    "summary": "Amalickiah seeks kingship and attracts dissenters, including lower judges. Moroni raises a written piece of his torn coat and gathers a covenant-making people; Amalickiah escapes with a few followers, while captured followers are required to support freedom or face death.",
+    "people": [
+      "Moroni",
+      "Amalickiah",
+      "Helaman"
+    ],
+    "places": [
+      "Zarahemla",
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 46:1–37",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/46?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Armored Moroni raises the torn garment on a pole as people gather and cast torn garments at his feet; an urgent civic covenant, no invented emblem."
+  },
+  {
+    "id": "W04",
+    "title": "Lehonti is betrayed at Antipas",
+    "year": 19,
+    "dateLabel": "Year 19 of the judges · about 73 BC",
+    "category": "Government",
+    "summary": "Amalickiah persuades Lehonti to surround his army and appoint him second in command. He then has a servant administer poison by degrees until Lehonti dies, gaining command of the combined force.",
+    "people": [
+      "Amalickiah",
+      "Lehonti"
+    ],
+    "places": [
+      "Onidah",
+      "Mount Antipas"
+    ],
+    "refs": [
+      {
+        "label": "Alma 47:1–19",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/47?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "A guarded meeting between Lehonti and Amalickiah just below the mountaintop encampment, with soldiers and tents in the distance."
+  },
+  {
+    "id": "W05",
+    "title": "Amalickiah takes the Lamanite throne",
+    "year": 19,
+    "dateLabel": "Year 19 of the judges · about 73 BC",
+    "category": "Government",
+    "summary": "A servant of Amalickiah murders the Lamanite king during a greeting, and the conspirators blame the king’s fleeing servants. Amalickiah deceives the queen, marries her, and gains the kingdom; he then incites war against the Nephites.",
+    "people": [
+      "Amalickiah",
+      "Lamanite king",
+      "Lamanite queen"
+    ],
+    "places": [
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 47:20–36",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/47?lang=eng&id=p20#p20"
+      },
+      {
+        "label": "Alma 48:1–6",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/48?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Amalickiah and the false witnesses stand before the seated Lamanite queen in a tense court hearing, without showing the murder.",
+    "chronologyNote": "The king and queen are unnamed in this passage. Neither is assigned a novel identity."
+  },
+  {
+    "id": "W06",
+    "title": "The fortified cities hold",
+    "year": 19,
+    "dateLabel": "Year 19 of the judges · about 73 BC",
+    "category": "Warfare",
+    "summary": "The invading army declines to attack rebuilt Ammonihah and marches to Noah, where Lehi commands unexpectedly strong defenses. Repeated assaults on the entrance and earthworks fail; more than a thousand attackers die, while no Nephite defender is killed.",
+    "people": [
+      "Lehi",
+      "Moroni",
+      "Amalickiah"
+    ],
+    "places": [
+      "Ammonihah",
+      "Noah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 48:7–25",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/48?lang=eng&id=p7#p7"
+      },
+      {
+        "label": "Alma 49:1–30",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/49?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Lehi’s defenders hold the narrow entrance of Noah behind high earthworks as attackers approach the ditch; defensive shields, arrows and stones, no graphic casualties.",
+    "route": [
+      "Ammonihah",
+      "Noah"
+    ]
+  },
+  {
+    "id": "W07",
+    "title": "Fortifications and new coastal cities",
+    "year": 20,
+    "dateLabel": "Years 20–23 · about 72–69 BC",
+    "category": "Government",
+    "summary": "Moroni strengthens cities with earth banks, timber works, pickets, and protected towers. After driving Lamanites from the east wilderness, the Nephites settle there and begin building Moroni, Nephihah, and Lehi; the following years bring prosperity and peace.",
+    "people": [
+      "Moroni"
+    ],
+    "places": [
+      "Moroni",
+      "Nephihah",
+      "Lehi",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 50:1–24",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/50?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Builders raise timber defenses above an earth bank while families and supplies arrive at a new coastal settlement.",
+    "yearEnd": 23
+  },
+  {
+    "id": "W08",
+    "title": "Morianton’s flight is stopped",
+    "year": 24,
+    "dateLabel": "Year 24 of the judges · about 68 BC",
+    "category": "Government",
+    "summary": "A land dispute between Morianton and Lehi leads Morianton’s people to plan a flight north. A mistreated maidservant warns Moroni; Teancum intercepts the dissenters near the narrow pass, kills Morianton in battle, and brings the survivors back to a peace settlement.",
+    "people": [
+      "Morianton",
+      "Teancum",
+      "Moroni",
+      "Morianton’s maidservant"
+    ],
+    "places": [
+      "Morianton",
+      "Lehi",
+      "Desolation",
+      "Narrow pass"
+    ],
+    "refs": [
+      {
+        "label": "Alma 50:25–36",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/50?lang=eng&id=p25#p25"
+      }
+    ],
+    "scene": "The escaped maidservant urgently reports Morianton’s planned flight to Moroni at his camp; the scene conveys resolve rather than depicting her abuse."
+  },
+  {
+    "id": "W09",
+    "title": "Pahoran succeeds Nephihah",
+    "year": 24,
+    "dateLabel": "Year 24 of the judges · about 68 BC",
+    "category": "Government",
+    "summary": "Nephihah dies after serving as chief judge. His son Pahoran takes the judgment seat under an oath to judge righteously, preserve peace and freedom, and protect religious privileges.",
+    "people": [
+      "Nephihah",
+      "Pahoran"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 50:37–40",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/50?lang=eng&id=p37#p37"
+      }
+    ],
+    "scene": "Pahoran takes his judicial oath before assembled people, beside the judgment seat.",
+    "chronologyNote": "The passage names the office but does not explicitly locate this ceremony; Zarahemla is used as the capital context, not an attested ceremony site."
+  },
+  {
+    "id": "W10",
+    "title": "The king-men challenge the government",
+    "year": 25,
+    "dateLabel": "Year 25 of the judges · about 67 BC",
+    "category": "Government",
+    "summary": "The people uphold Pahoran and the free government against the king-men’s proposal for monarchy. When the king-men refuse to defend the country during an invasion, Moroni receives authority to compel them; four thousand dissenters are killed and surviving leaders are imprisoned.",
+    "people": [
+      "Pahoran",
+      "Moroni"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 51:1–21",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/51?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "A divided civic assembly confronts the question of monarchy, with Pahoran and petitioners facing the gathered people; no invented political insignia.",
+    "chronologyNote": "The text describes a national political conflict without naming one location for all its actions."
+  },
+  {
+    "id": "W11",
+    "title": "Amalickiah captures the eastern cities",
+    "year": 25,
+    "dateLabel": "Year 25 of the judges · about 67 BC",
+    "category": "Warfare",
+    "summary": "While Moroni suppresses internal conflict, Amalickiah captures Moroni and advances along the eastern seashore, taking a chain of fortified cities. Teancum checks his advance at the borders of Bountiful.",
+    "people": [
+      "Amalickiah",
+      "Moroni",
+      "Teancum"
+    ],
+    "places": [
+      "Moroni",
+      "Lehi",
+      "Morianton",
+      "Omner",
+      "Gid",
+      "Mulek",
+      "Bountiful",
+      "Nephihah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 51:22–32",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/51?lang=eng&id=p22#p22"
+      }
+    ],
+    "scene": "Teancum’s army bars the coastward advance near Bountiful as Amalickiah’s force approaches after capturing fortified cities.",
+    "chronologyNote": "Alma 51:25 says Amalickiah avoided attacking Nephihah, but 51:26 includes it among captured cities; Alma 59 later narrates its fall in year 30. Preserve this textual tension rather than invent a recapture between them."
+  },
+  {
+    "id": "W12",
+    "title": "Teancum kills Amalickiah",
+    "year": 25,
+    "dateLabel": "Year 25 of the judges · about 67 BC",
+    "category": "Warfare",
+    "summary": "After the day’s fighting, Teancum and his servant enter the enemy camp by night. Teancum kills the sleeping Amalickiah with a javelin and returns to prepare his own army; the Lamanites discover the death on the first morning of year 26.",
+    "people": [
+      "Teancum",
+      "Amalickiah",
+      "Teancum’s servant"
+    ],
+    "places": [
+      "Bountiful"
+    ],
+    "refs": [
+      {
+        "label": "Alma 51:33–37",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/51?lang=eng&id=p33#p33"
+      },
+      {
+        "label": "Alma 52:1–2",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/52?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Teancum approaches Amalickiah’s silent tent in the coastal camp at night, carrying a javelin; show suspense before the killing.",
+    "chronologyNote": "At the year 25–26 boundary. The camp is on the seashore at the borders of Bountiful, not in the city."
+  },
+  {
+    "id": "W13",
+    "title": "Ammoron opens a western front",
+    "year": 26,
+    "dateLabel": "Years 26–27 · about 66–65 BC",
+    "category": "Warfare",
+    "summary": "Ammoron succeeds his brother Amalickiah and orders the eastern conquests held. He raises another army to attack near the west sea, while Moroni sends orders and reinforcements to Teancum in the east.",
+    "people": [
+      "Ammoron",
+      "Moroni",
+      "Teancum"
+    ],
+    "places": [
+      "Mulek",
+      "Bountiful",
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 52:1–18",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/52?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Ammoron’s army marches toward the western border while messengers carry military orders; one grounded marching scene, no invented named soldiers.",
+    "yearEnd": 27,
+    "chronologyNote": "The western advance is near the west sea, without an exact route. Moroni arrives at Bountiful late in year 27."
+  },
+  {
+    "id": "W14",
+    "title": "Two thousand sons join Helaman",
+    "year": 26,
+    "dateLabel": "Year 26 of the judges · about 66 BC",
+    "category": "Faith",
+    "summary": "The people of Ammon consider taking up arms, but Helaman urges them to keep their covenant. Two thousand sons who had not taken that oath covenant to defend the Nephites and ask Helaman to lead them; he brings them to strengthen Antipus at Judea.",
+    "people": [
+      "Helaman",
+      "Antipus"
+    ],
+    "places": [
+      "Judea"
+    ],
+    "refs": [
+      {
+        "label": "Alma 53:10–22",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/53?lang=eng&id=p10#p10"
+      },
+      {
+        "label": "Alma 56:3–20",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/56?lang=eng&id=p3#p3"
+      }
+    ],
+    "scene": "Helaman arrives at weary Judea with the young volunteer soldiers, welcomed by Antipus beside unfinished defenses.",
+    "chronologyNote": "Alma 53 recounts this within a year-28 narrative; Helaman’s retrospective letter explicitly dates the enlistment and arrival to year 26 (Alma 56:7–9)."
+  },
+  {
+    "id": "W15",
+    "title": "The young soldiers turn back to battle",
+    "year": 27,
+    "dateLabel": "Year 27 of the judges · about 65 BC",
+    "category": "Warfare",
+    "summary": "Helaman’s two thousand draw the army at Antiparah into a pursuit while Antipus follows behind. They return to aid Antipus’s hard-pressed force after he is killed; the enemy surrenders, and Helaman finds that none of his young soldiers has died.",
+    "people": [
+      "Helaman",
+      "Antipus"
+    ],
+    "places": [
+      "Judea",
+      "Antiparah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 56:20–57",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/56?lang=eng&id=p20#p20"
+      }
+    ],
+    "scene": "Helaman and his young soldiers choose to turn back from their flight to aid the army of Antipus, a resolute moment in the wilderness.",
+    "chronologyNote": "The pursuit culminates on the third day of the seventh month in the year-27 sequence; this is recounted in a letter received in year 30."
+  },
+  {
+    "id": "W16",
+    "title": "Mulek is retaken by a feigned retreat",
+    "year": 28,
+    "dateLabel": "Year 28 of the judges · about 64 BC",
+    "category": "Warfare",
+    "summary": "Teancum draws Jacob’s army away from Mulek along the seashore while Moroni sends men into the city. Lehi meets the pursuers near Bountiful and drives them back toward Moroni; Jacob is killed, Moroni is wounded, and the surviving enemy is captured.",
+    "people": [
+      "Moroni",
+      "Teancum",
+      "Lehi",
+      "Jacob"
+    ],
+    "places": [
+      "Mulek",
+      "Bountiful"
+    ],
+    "refs": [
+      {
+        "label": "Alma 52:19–40",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/52?lang=eng&id=p19#p19"
+      }
+    ],
+    "scene": "Teancum’s small force retreats north along the shore, drawing a much larger army away from the fortified city of Mulek.",
+    "route": [
+      "Mulek",
+      "Bountiful"
+    ]
+  },
+  {
+    "id": "W17",
+    "title": "Bountiful becomes a prison stronghold",
+    "year": 28,
+    "dateLabel": "Year 28 of the judges · about 64 BC",
+    "category": "Warfare",
+    "summary": "Lamanite prisoners bury the dead and are compelled to build a ditch and a high timber-and-earth wall around Bountiful. Moroni assigns Mulek to Lehi and spends the rest of the year strengthening defenses and securing food for soldiers and families.",
+    "people": [
+      "Moroni",
+      "Teancum",
+      "Lehi"
+    ],
+    "places": [
+      "Bountiful",
+      "Mulek"
+    ],
+    "refs": [
+      {
+        "label": "Alma 53:1–9",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/53?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Prisoners under guard build Bountiful’s high timber-and-earth wall, with a deep ditch in front; no glorification of captivity."
+  },
+  {
+    "id": "W18",
+    "title": "Antiparah is abandoned",
+    "year": 28,
+    "dateLabel": "Year 28 of the judges · about 64 BC",
+    "category": "Warfare",
+    "summary": "Ammoron offers Antiparah in exchange for prisoners, but Helaman refuses to trade prisoners for a city he believes he can take. As Helaman prepares to attack, the occupying force withdraws to other cities and Antiparah falls into Nephite hands.",
+    "people": [
+      "Helaman",
+      "Ammoron"
+    ],
+    "places": [
+      "Antiparah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 57:1–5",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/57?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Helaman’s soldiers approach the open defenses of abandoned Antiparah as the last opposing column withdraws in the distance."
+  },
+  {
+    "id": "W19",
+    "title": "The prisoner exchange breaks down",
+    "year": 29,
+    "dateLabel": "Year 29 of the judges · about 63 BC",
+    "category": "Government",
+    "summary": "Moroni demands a captive man with his wife and children for each Lamanite prisoner. Ammoron accepts the exchange terms but insists on Nephite submission; Moroni rejects his continuing war aims and instead prepares to free the prisoners by stratagem.",
+    "people": [
+      "Moroni",
+      "Ammoron"
+    ],
+    "places": [
+      "Gid"
+    ],
+    "refs": [
+      {
+        "label": "Alma 54:1–24",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/54?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 55:1–7",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/55?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Moroni reads Ammoron’s letter in a military camp as a messenger waits, surrounded by the practical burdens of provisioning an army.",
+    "chronologyNote": "Gid is the prisoners’ location, not an explicitly established location for writing or receiving the letters."
+  },
+  {
+    "id": "W20",
+    "title": "The prisoners of Gid are freed",
+    "year": 29,
+    "dateLabel": "Year 29 of the judges · about 63 BC",
+    "category": "Warfare",
+    "summary": "Laman, a former servant of the murdered Lamanite king, brings wine to Gid’s guards under a false claim of escape. Once the guards are drunk, Moroni arms the prisoners and surrounds the garrison; its morning surrender frees the captives without bloodshed.",
+    "people": [
+      "Moroni",
+      "Laman"
+    ],
+    "places": [
+      "Gid",
+      "Bountiful"
+    ],
+    "refs": [
+      {
+        "label": "Alma 55:4–35",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/55?lang=eng&id=p4#p4"
+      }
+    ],
+    "scene": "In profound night silence, weapons are passed over Gid’s wall to waiting prisoners while the guards sleep; avoid depicting harm to sleeping guards."
+  },
+  {
+    "id": "W21",
+    "title": "Cumeni falls and survives a counterattack",
+    "year": 29,
+    "dateLabel": "Year 29 of the judges · about 63 BC",
+    "category": "Warfare",
+    "summary": "Helaman’s army intercepts Cumeni’s provisions until its garrison surrenders. Prisoner unrest and an enemy counterattack put the army in danger, but Gid’s returning escort and Helaman’s 2,060 young soldiers help hold the city; all the young men are wounded, yet none dies.",
+    "people": [
+      "Helaman",
+      "Gid",
+      "Ammoron"
+    ],
+    "places": [
+      "Cumeni",
+      "Judea",
+      "Manti"
+    ],
+    "refs": [
+      {
+        "label": "Alma 57:6–36",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/57?lang=eng&id=p6#p6"
+      }
+    ],
+    "scene": "After defending Cumeni, Helaman checks the wounded young soldiers as companions dress their injuries; exhausted relief, wrapped wounds, no graphic injury."
+  },
+  {
+    "id": "W22",
+    "title": "Prayer and stratagem recover Manti",
+    "year": 29,
+    "dateLabel": "Year 29 of the judges · about 63 BC",
+    "category": "Warfare",
+    "summary": "After months of scarce supplies, Helaman’s soldiers pray and receive assurance. Helaman draws the defenders into the wilderness while Gid and Teomner seize Manti; a night march brings Helaman back ahead of the enemy, which withdraws from that quarter.",
+    "people": [
+      "Helaman",
+      "Gid",
+      "Teomner"
+    ],
+    "places": [
+      "Manti",
+      "Zarahemla",
+      "Nephi"
+    ],
+    "refs": [
+      {
+        "label": "Alma 58:1–41",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/58?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Helaman’s exhausted army prays together before attempting to recover Manti, with a modest camp and sparse provisions.",
+    "chronologyNote": "Late year 29, reported in a letter received at the start of year 30. Verse 21 describes guards being destroyed; verse 28’s phrase about taking Manti without bloodshed must not erase that detail."
+  },
+  {
+    "id": "W23",
+    "title": "Nephihah falls as the armies await help",
+    "year": 30,
+    "dateLabel": "Year 30 of the judges · about 62 BC",
+    "category": "Warfare",
+    "summary": "Moroni receives Helaman’s report of western victories and requests reinforcements for him. Meanwhile, Lamanite forces reinforced by troops from the Manti region capture Nephihah; its survivors join Moroni, who becomes angry at the government’s failure to provide support.",
+    "people": [
+      "Moroni",
+      "Helaman",
+      "Pahoran",
+      "Ammoron"
+    ],
+    "places": [
+      "Nephihah",
+      "Manti"
+    ],
+    "refs": [
+      {
+        "label": "Alma 56:1",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/56?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 59:1–13",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/59?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Refugees from Nephihah reach Moroni’s army after the city falls, carrying what they can while he receives news of the loss.",
+    "chronologyNote": "Helaman’s letter is received on day 2 of month 1, year 30; the text gives no exact day for Nephihah’s fall. See the earlier Nephihah tension in W11."
+  },
+  {
+    "id": "W24",
+    "title": "Pahoran reveals the rebellion",
+    "year": 30,
+    "dateLabel": "Year 30 of the judges · about 62 BC",
+    "category": "Government",
+    "summary": "Moroni accuses the government of neglecting the armies and threatens to intervene. Pahoran replies without anger: rebels have expelled him to Gideon, withheld supplies, and installed a king in Zarahemla allied with the Lamanites; he asks Moroni for help.",
+    "people": [
+      "Moroni",
+      "Pahoran"
+    ],
+    "places": [
+      "Zarahemla",
+      "Gideon"
+    ],
+    "refs": [
+      {
+        "label": "Alma 60:1–36",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/60?lang=eng&id=p1#p1"
+      },
+      {
+        "label": "Alma 61:1–21",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/61?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Pahoran writes his reply from refuge in Gideon, with loyal supporters gathering behind him.",
+    "chronologyNote": "The correspondence occurs in year 30. Pahoran describes a rebellion already underway; its beginning is not precisely dated."
+  },
+  {
+    "id": "W25",
+    "title": "Pahoran is restored in Zarahemla",
+    "year": 30,
+    "dateLabel": "Year 30 of the judges · about 62 BC",
+    "category": "Government",
+    "summary": "Moroni gathers supporters on his march to Gideon and joins Pahoran. They defeat Pachus’s forces at Zarahemla, restore Pahoran to the judgment seat, and conduct trials of captured rebels and imprisoned king-men.",
+    "people": [
+      "Moroni",
+      "Pahoran",
+      "Pachus"
+    ],
+    "places": [
+      "Gideon",
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 62:1–11",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/62?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Moroni and Pahoran lead their united force toward Zarahemla, with the standard of liberty raised and the city ahead.",
+    "route": [
+      "Gideon",
+      "Zarahemla"
+    ]
+  },
+  {
+    "id": "W26",
+    "title": "Nephihah is recovered by night",
+    "year": 31,
+    "dateLabel": "Year 31 of the judges · about 61 BC",
+    "category": "Warfare",
+    "summary": "After supplies and reinforcements are dispatched to both fronts, Moroni and Pahoran march on Nephihah. Their men descend the unguarded western wall by cords and ladders at night; they retake the city without a Nephite death, and many captured Lamanites join the people of Ammon.",
+    "people": [
+      "Moroni",
+      "Pahoran"
+    ],
+    "places": [
+      "Zarahemla",
+      "Nephihah"
+    ],
+    "refs": [
+      {
+        "label": "Alma 62:12–29",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/62?lang=eng&id=p12#p12"
+      }
+    ],
+    "scene": "Nephite soldiers quietly descend strong cords and ladders inside Nephihah’s western wall while the opposing camp sleeps near the eastern entrance.",
+    "route": [
+      "Zarahemla",
+      "Nephihah"
+    ]
+  },
+  {
+    "id": "W27",
+    "title": "Teancum’s final mission and the war’s end",
+    "year": 31,
+    "dateLabel": "Year 31 of the judges · about 61 BC",
+    "category": "Warfare",
+    "summary": "Moroni, Lehi, and Teancum drive the remaining forces into Moroni. Teancum enters the city at night and mortally wounds Ammoron, but is pursued and killed; the next day Moroni attacks and drives the enemy from the land.",
+    "people": [
+      "Moroni",
+      "Lehi",
+      "Teancum",
+      "Ammoron"
+    ],
+    "places": [
+      "Nephihah",
+      "Lehi",
+      "Moroni"
+    ],
+    "refs": [
+      {
+        "label": "Alma 62:30–39",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/62?lang=eng&id=p30#p30"
+      }
+    ],
+    "scene": "Teancum lowers himself over Moroni’s wall with a cord at night, carrying his javelin into the enemy-held city; show the dangerous approach rather than the deaths.",
+    "route": [
+      "Nephihah",
+      "Lehi",
+      "Moroni"
+    ]
+  },
+  {
+    "id": "W28",
+    "title": "Peace, renewal, and a new commander",
+    "year": 31,
+    "dateLabel": "After year 31 through year 35 · about 61–57 BC",
+    "category": "Faith",
+    "summary": "Moroni gives command to his son Moronihah and retires. Helaman returns to preaching and helps reestablish the church, while the people rebuild their society; the record notes that the war hardened some and humbled others, and that Helaman dies in year 35.",
+    "people": [
+      "Moroni",
+      "Moronihah",
+      "Helaman",
+      "Pahoran"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Alma 62:40–52",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/62?lang=eng&id=p40#p40"
+      }
+    ],
+    "scene": "Helaman teaches a gathering of returning families and former soldiers during the restoration of peaceful life.",
+    "yearEnd": 35,
+    "chronologyNote": "The narrative places these renewals after the war but gives no exact year for every individual action."
+  },
+  {
+    "id": "W29",
+    "title": "Shiblon receives the records; Moroni dies",
+    "year": 36,
+    "dateLabel": "Year 36 of the judges · about 56 BC",
+    "category": "Faith",
+    "summary": "Shiblon takes possession of the sacred things previously held by Helaman. Moroni also dies during this year.",
+    "people": [
+      "Shiblon",
+      "Helaman",
+      "Moroni"
+    ],
+    "places": [],
+    "refs": [
+      {
+        "label": "Alma 63:1–3",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/63?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Shiblon tends the sacred records in a quiet room; physical appearance and room design are illustrative rather than specified.",
+    "chronologyNote": "No location or circumstances of Moroni’s death are stated; no map pin is assigned."
+  },
+  {
+    "id": "W30",
+    "title": "Hagoth’s ships and the northward migrations",
+    "year": 37,
+    "dateLabel": "Years 37–38 · about 55–54 BC",
+    "category": "Migration",
+    "summary": "A large company leaves Zarahemla for the land northward, and Hagoth builds ships near Bountiful and Desolation by the west sea. One ship returns and sails again; later voyagers are not heard from, and the record does not establish their destinations or fate.",
+    "people": [
+      "Hagoth"
+    ],
+    "places": [
+      "Zarahemla",
+      "Bountiful",
+      "Desolation",
+      "West sea"
+    ],
+    "refs": [
+      {
+        "label": "Alma 63:4–9",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/63?lang=eng&id=p4#p4"
+      }
+    ],
+    "scene": "Families with provisions board Hagoth’s large wooden ship on the west sea near the narrow neck, ready for a northward journey.",
+    "yearEnd": 38,
+    "chronologyNote": "The text does not say Hagoth personally sailed, and the narrator’s supposition of drowning is not confirmed knowledge."
+  },
+  {
+    "id": "W31",
+    "title": "Helaman receives the records; Moronihah repels an attack",
+    "year": 39,
+    "dateLabel": "Year 39 of the judges · about 53 BC",
+    "category": "Government",
+    "summary": "Before his death, Shiblon entrusts the sacred things to Helaman, the son of Helaman, while Corianton is taking provisions north by ship. In the same year, dissenters stir up a Lamanite invasion that Moronihah’s army defeats.",
+    "people": [
+      "Shiblon",
+      "Helaman (son of Helaman)",
+      "Corianton",
+      "Moronihah"
+    ],
+    "places": [
+      "Land northward"
+    ],
+    "refs": [
+      {
+        "label": "Alma 63:10–17",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/alma/63?lang=eng&id=p10#p10"
+      }
+    ],
+    "scene": "Shiblon entrusts the sacred records to the younger Helaman in a solemn handover.",
+    "chronologyNote": "The battle location is not given. The younger Helaman is distinct from his father, who died in year 35."
+  },
+  {
+    "id": "W32",
+    "title": "A contested succession and Kishkumen’s murder",
+    "year": 40,
+    "dateLabel": "Year 40 of the judges · about 52 BC",
+    "category": "Government",
+    "summary": "After Pahoran’s death, his sons Pahoran, Paanchi, and Pacumeni compete for the judgment seat. Pahoran is chosen, Paanchi is condemned for rebellion, and Kishkumen murders the new chief judge; the conspirators swear secrecy and Pacumeni succeeds his brother.",
+    "people": [
+      "Pahoran",
+      "Pahoran (son of Pahoran)",
+      "Paanchi",
+      "Pacumeni",
+      "Kishkumen"
+    ],
+    "places": [
+      "Zarahemla"
+    ],
+    "refs": [
+      {
+        "label": "Helaman 1:1–13",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/hel/1?lang=eng&id=p1#p1"
+      }
+    ],
+    "scene": "Disguised Kishkumen escapes through the city after the attack on the judgment seat, with pursuers behind him; no graphic violence.",
+    "chronologyNote": "The older Pahoran’s death precedes the succession dispute; the text does not specify his death date more narrowly."
+  },
+  {
+    "id": "W33",
+    "title": "Coriantumr takes Zarahemla",
+    "year": 41,
+    "dateLabel": "Year 41 of the judges · about 51 BC",
+    "category": "Warfare",
+    "summary": "Tubaloth, son of Ammoron, sends Coriantumr—a Nephite dissenter descended from Zarahemla—to lead an invasion. Moving swiftly against the inadequately guarded capital, Coriantumr captures Zarahemla and kills Pacumeni, then advances toward Bountiful through the center of the land.",
+    "people": [
+      "Tubaloth",
+      "Coriantumr",
+      "Pacumeni",
+      "Moronihah"
+    ],
+    "places": [
+      "Zarahemla",
+      "Bountiful"
+    ],
+    "refs": [
+      {
+        "label": "Helaman 1:14–27",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/hel/1?lang=eng&id=p14#p14"
+      }
+    ],
+    "scene": "Coriantumr’s army surges through Zarahemla’s breached entrance while inhabitants flee deeper into the city; Coriantumr is a large, mighty man as the text describes, no novel likeness.",
+    "route": [
+      "Zarahemla",
+      "Bountiful"
+    ],
+    "chronologyNote": "The attack occurs in year 41, approximately 51 BC. The route points toward Bountiful; the attackers do not reach it."
+  },
+  {
+    "id": "W34",
+    "title": "Zarahemla is retaken",
+    "year": 41,
+    "dateLabel": "Year 41 of the judges · about 51 BC",
+    "category": "Warfare",
+    "summary": "Lehi intercepts Coriantumr before he reaches Bountiful and drives him back. Moronihah blocks the retreat, Coriantumr dies in the battle, and the surrounded army surrenders; Moronihah recovers Zarahemla and allows the prisoners to leave in peace.",
+    "people": [
+      "Lehi",
+      "Moronihah",
+      "Coriantumr"
+    ],
+    "places": [
+      "Zarahemla",
+      "Bountiful"
+    ],
+    "refs": [
+      {
+        "label": "Helaman 1:28–34",
+        "url": "https://www.churchofjesuschrist.org/study/scriptures/bofm/hel/1?lang=eng&id=p28#p28"
+      }
+    ],
+    "scene": "The trapped invading army lowers its weapons between the forces of Lehi and Moronihah; the capital’s recapture ends the sequence without graphic casualties.",
+    "chronologyNote": "The encounter is before Bountiful and on the retreat toward Zarahemla, not an explicitly located battle inside either city."
+  }
+]
