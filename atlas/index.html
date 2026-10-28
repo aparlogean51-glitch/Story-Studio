@@ -106,7 +106,7 @@ a { color: inherit; }
 .sw.on { background: var(--jade); } .sw.on::after { transform: translateX(14px); background: #fff; }
 
 /* ---------- Event card ---------- */
-#card { position: fixed; z-index: 15; right: 16px; top: calc(var(--top) + 10px); width: 410px; max-height: calc(100% - var(--top) - var(--dock, 140px) - 50px - env(safe-area-inset-bottom)); display: flex; flex-direction: column;
+#card { --step: 6px; position: fixed; z-index: 15; right: 16px; top: calc(var(--top) + 10px); width: 410px; max-height: calc(100% - var(--top) - var(--dock, 140px) - 50px - env(safe-area-inset-bottom)); display: flex; flex-direction: column;
   background: var(--parch); color: var(--parch-ink); box-shadow: 0 24px 60px rgba(0,0,0,.55); transition: transform .35s var(--ease), opacity .35s; }
 #card.away { transform: translateX(calc(100% + 30px)); opacity: 0; pointer-events: none; }
 #card .art { position: relative; flex: none; aspect-ratio: 16 / 9; background: #1d2a26 center / cover no-repeat; cursor: zoom-in; }
@@ -208,12 +208,13 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
 
 /* ---------- Narrow / portrait: the card becomes a sheet above the timeline ---------- */
 @media (max-width: 900px), (orientation: portrait) {
-  #card { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(var(--dock, 140px) + 26px + env(safe-area-inset-bottom)); max-height: calc(100% - var(--top) - var(--dock, 140px) - 60px); }
+  #card { left: 12px; right: 12px; width: auto; top: auto; bottom: calc(var(--dock, 140px) + 22px + env(safe-area-inset-bottom)); max-height: min(44vh, calc(100% - var(--top) - var(--dock, 140px) - 60px)); }
+  #card .body { padding: 14px 20px 16px; }
   #card.away { transform: translateY(calc(100% + 160px)); }
-  #card .art { aspect-ratio: auto; height: clamp(110px, 20vh, 200px); }
+  #card .art { aspect-ratio: auto; height: clamp(80px, 12vh, 140px); }
   #card.peek .art, #card.peek .details, #card.peek .more { display: none; }
   #card.peek .sum { -webkit-line-clamp: 2; }
-  #card h2 { font-size: 27px; }
+  #card h2 { font-size: 25px; }
   #card h2 { margin: 6px 0 8px; }
 }
 @media (max-width: 620px) {
@@ -316,9 +317,9 @@ function apply(glide) {
 }
 function clampView() {
   const w = innerWidth, h = innerHeight, mw = W * view.s, mh = H * view.s;
-  // keep at least a third of the map on screen
-  view.x = Math.min(w * 0.67, Math.max(w * 0.33 - mw, view.x));
-  view.y = Math.min(h * 0.67, Math.max(h * 0.33 - mh, view.y));
+  // the map always covers the whole screen: no empty bands at the edges
+  view.x = mw >= w ? Math.min(0, Math.max(w - mw, view.x)) : (w - mw) / 2;
+  view.y = mh >= h ? Math.min(0, Math.max(h - mh, view.y)) : (h - mh) / 2;
 }
 function fitMap(glide) {
   view.fit = Math.max(innerWidth / W, innerHeight / H) * 0.98;
@@ -326,7 +327,7 @@ function fitMap(glide) {
   apply(glide);
 }
 function zoomAt(f, cx, cy) {
-  const s = Math.min(view.fit * 5, Math.max(view.fit * 0.75, view.s * f));
+  const s = Math.min(view.fit * 5, Math.max(view.fit, view.s * f));
   view.x = cx - (cx - view.x) * s / view.s; view.y = cy - (cy - view.y) * s / view.s; view.s = s;
   clampView(); apply();
 }
@@ -349,11 +350,11 @@ function showPlaces(e, force) {
   const x1 = Math.min(...xs), x2 = Math.max(...xs), y1 = Math.min(...ys), y2 = Math.max(...ys);
   const inView = (s) => view.x + x1 * s > a.l + pad && view.x + x2 * s < a.r - pad && view.y + y1 * s > a.t + pad && view.y + y2 * s < a.b - pad;
   if (!force && inView(view.s)) return;
-  const want = Math.min(view.fit * 2.2, Math.max(view.fit * 1.2, Math.min((a.r - a.l - pad * 2) / Math.max(1, x2 - x1), (a.b - a.t - pad * 2) / Math.max(1, y2 - y1))));
+  const want = Math.min(view.fit * 1.7, Math.max(view.fit * 1.2, Math.min((a.r - a.l - pad * 2) / Math.max(1, x2 - x1), (a.b - a.t - pad * 2) / Math.max(1, y2 - y1))));
   view.s = force ? want : Math.max(view.s, Math.min(want, view.fit * 1.6));
   view.x = (a.l + a.r) / 2 - ((x1 + x2) / 2) * view.s;
   view.y = (a.t + a.b) / 2 - ((y1 + y2) / 2) * view.s;
-  apply(true);
+  clampView(); apply(true);
 }
 
 const touches = new Map();
@@ -376,7 +377,7 @@ $('#map').addEventListener('pointermove', (e) => {
   if (pinch && touches.size >= 2) {
     const [a, b] = [...touches.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y) || 1, cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
-    const s = Math.min(view.fit * 5, Math.max(view.fit * 0.75, pinch.s * d / pinch.d));
+    const s = Math.min(view.fit * 5, Math.max(view.fit, pinch.s * d / pinch.d));
     view.x = cx - (pinch.cx - pinch.x) * s / pinch.s; view.y = cy - (pinch.cy - pinch.y) * s / pinch.s; view.s = s;
     clampView(); apply(); return;
   }
@@ -481,9 +482,9 @@ $('#card').addEventListener('pointercancel', () => { sw = null; });
 
 function focusCity(n) {
   const [x, y] = CITIES[n], a = clearArea();
-  view.s = Math.max(view.s, view.fit * 2.2);
+  view.s = Math.max(view.s, view.fit * 1.9);
   view.x = (a.l + a.r) / 2 - x * view.s; view.y = (a.t + a.b) / 2 - y * view.s;
-  apply(true);
+  clampView(); apply(true);
 }
 
 /* ---------- Selecting events, timeline ---------- */
@@ -492,6 +493,7 @@ function select(id, opts = {}) {
   cur = e;
   if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
   drawRoute(e); renderCard(); drawPins(); renderDock(); markList();
+  if (opts.force) $('#card').classList.remove('peek');   // picked on purpose: show the whole card
   if (opts.show !== false) requestAnimationFrame(() => showPlaces(e, opts.force));
   // let the next illustrations load ahead of time
   const i = list.indexOf(e); [list[i + 1], list[i - 1]].forEach((n) => { if (n) new Image().src = art(n, 'md'); });
@@ -537,7 +539,8 @@ $('#play').onclick = () => {
 
 /* ---------- Filter (one menu) ---------- */
 function applyFilter() {
-  list = EVENTS.filter((e) => (filter === 'All' || e.category === filter) && (!query || [e.title, e.summary, ...e.people, ...e.places, ...e.refs.map((r) => r.label)].join(' ').toLowerCase().includes(query)));
+  // the timeline follows the filter; a search only narrows the Chronicle list
+  list = EVENTS.filter((e) => filter === 'All' || e.category === filter);
   $('#filterLbl').textContent = filter === 'All' ? 'All events' : CAT[filter].label;
   $('#filterDot').hidden = filter === 'All';
   if (filter !== 'All') $('#filterDot').style.background = CAT[filter].color;
@@ -559,7 +562,8 @@ function group(e) {
 }
 function renderList() {
   let html = '', last = '';
-  for (const e of list) {
+  const found = list.filter((e) => !query || [e.title, e.summary, ...e.people, ...e.places, ...e.refs.map((r) => r.label)].join(' ').toLowerCase().includes(query));
+  for (const e of found) {
     const [g, sub] = group(e);
     if (g !== last) { html += `<div class="yh">${esc(g)}<span>${esc(sub)}</span></div>`; last = g; }
     html += `<button class="ev${e === cur ? ' on' : ''}" data-id="${e.id}" style="--c:${(CAT[e.category] || {}).color}"><i></i><b>${esc(e.title)}</b></button>`;
@@ -575,7 +579,7 @@ $('#btnChron').onclick = () => setDrawer(!$('#drawer').classList.contains('open'
 $('#drawerX').onclick = () => setDrawer(false);
 $('#scrim').onclick = () => setDrawer(false);
 $('#list').addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (!b) return; stopPlay(); select(b.dataset.id, { force: true }); if (matchMedia('(max-width: 900px), (orientation: portrait)').matches) setDrawer(false); });
-$('#q').addEventListener('input', (e) => { query = e.target.value.toLowerCase().trim(); applyFilter(); });
+$('#q').addEventListener('input', (e) => { query = e.target.value.toLowerCase().trim(); renderList(); });
 
 /* ---------- Menus and popovers ---------- */
 function placeMenu(m, btn) {
