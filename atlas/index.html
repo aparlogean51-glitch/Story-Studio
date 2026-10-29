@@ -157,6 +157,15 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
 #ticks i.cur { background: var(--gold); }
 #rail { position: absolute; left: 0; right: 0; bottom: 5px; height: 2px; background: rgba(236,228,208,.2); }
 #knob { position: absolute; bottom: 0; width: 14px; height: 14px; margin-left: -7px; background: var(--gold); transform: rotate(45deg); box-shadow: 0 0 0 3px rgba(13,21,19,.9); transition: left .3s var(--ease); }
+.ctrl .fold { width: 36px; height: 36px; margin-left: 4px; border: 1px solid var(--line); color: var(--muted); }
+.ctrl .fold svg { width: 18px; height: 18px; transition: transform .3s var(--ease); }
+#dock.min { width: auto; padding: 6px 8px 6px 18px; }
+#dock.min #track, #dock.min .scale { display: none; }
+#dock.min .when b { font-size: 19px; }
+#dock.min .when span { display: none; }
+#dock.min .ctrl button { width: 38px; height: 38px; font-size: 20px; }
+#dock.min .ctrl #play { width: 38px; height: 38px; font-size: 14px; }
+#dock.min .fold svg { transform: rotate(180deg); }
 .scale { display: flex; justify-content: space-between; font-size: 10.5px; letter-spacing: .08em; color: var(--faint); margin-top: 2px; }
 
 /* ---------- Chronicle drawer ---------- */
@@ -255,7 +264,7 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
   <div class="greca"></div>
   <div class="drow">
     <div class="when"><b id="whenYear">—</b><span id="whenBc"></span></div>
-    <div class="ctrl"><button id="prev" aria-label="Previous event">‹</button><button id="play" aria-label="Play through the events">▶</button><button id="next" aria-label="Next event">›</button></div>
+    <div class="ctrl"><button id="prev" aria-label="Previous event">‹</button><button id="play" aria-label="Play through the events">▶</button><button id="next" aria-label="Next event">›</button><button id="dockToggle" class="fold" aria-expanded="true" aria-label="Collapse the timeline"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
   </div>
   <div id="track" role="slider" aria-label="Year of the judges" aria-valuemin="0" aria-valuemax="41" tabindex="0"><div id="ticks"></div><div id="rail"></div><div id="knob"></div></div>
   <div class="scale"><span>TRANSITION</span><span>YEAR 10</span><span>YEAR 20</span><span>YEAR 30</span><span>YEAR 41</span></div>
@@ -754,6 +763,15 @@ window.Atlas = { events: EVENTS, select: (id) => select(id, { force: true }) };
 
 // the card in portrait sits just above the timeline
 function measureDock() { document.documentElement.style.setProperty('--dock', $('#dock').offsetHeight + 'px'); }
+// the timeline folds down to a slim bar (year and the arrows) to give the map more room
+function setDock(min, save) {
+  $('#dock').classList.toggle('min', min);
+  const b = $('#dockToggle'); b.setAttribute('aria-expanded', !min); b.setAttribute('aria-label', min ? 'Show the full timeline' : 'Collapse the timeline');
+  if (save) store.set('dockMin', min);
+  measureDock(); drawPins();
+}
+$('#dockToggle').onclick = () => setDock(!$('#dock').classList.contains('min'), true);
+setDock(store.get('dockMin', false));
 addEventListener('resize', measureDock); measureDock();
 applyFilter();
 loadMap(mapKey); showLock();
