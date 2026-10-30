@@ -100,6 +100,7 @@ a { color: inherit; }
 .menu { position: fixed; z-index: 40; min-width: 230px; padding: 6px; background: var(--ink-2); border: 1px solid var(--line); box-shadow: 0 18px 40px rgba(0,0,0,.55); --step: 6px; }
 .menu button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 11px 12px; font-size: 14.5px; color: var(--text); }
 .menu button:hover { background: rgba(255,255,255,.05); }
+.menu .ver { padding: 8px 12px 4px; font-size: 11px; color: var(--faint); letter-spacing: .04em; border-top: 1px solid var(--line); margin-top: 4px; }
 .menu button .n { margin-left: auto; color: var(--faint); font-size: 12.5px; }
 .menu button.on { color: var(--gold); }
 .menu button.on::before { content: "✦"; font-size: 11px; }
@@ -310,6 +311,7 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
   <hr>
   <button data-do="offline">⤓ Save for offline use</button>
   <button data-do="about">ⓘ About &amp; sources</button>
+  <div class="ver">Version Oct 30 · 1350f</div>
 </div>
 <div id="city" class="stone" hidden></div>
 <div id="key" class="stone" hidden></div>
@@ -886,7 +888,16 @@ const start = location.hash.slice(1);
 select(EVENTS.some((e) => e.id === start) ? start : (list[0] || EVENTS[0]).id, { force: !!start });
 if (matchMedia('(max-width: 900px), (orientation: portrait)').matches && !start) $('#card').classList.add('peek');
 $('#card').addEventListener('pointerdown', () => $('#card').classList.remove('peek'));
-if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+// keep the Home Screen app current: look for a new version on open and whenever it comes back to the screen,
+// and reload once when one arrives
+if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => {
+  const had = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (had && !reloaded) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
+});
 </script>
 </body>
 </html>
