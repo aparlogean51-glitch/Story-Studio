@@ -1,5 +1,5 @@
 // The Nephite Annals: keeps the app on the device so it opens without a connection.
-const SHELL = 'annals-shell-1350f78c65', ART = 'annals-scenes';
+const SHELL = 'annals-shell-19d6e16dcb', ART = 'annals-scenes';
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./assets/map-painted.webp", "./assets/map-mosaic.webp", "./assets/fonts/cormorant-500.woff2", "./assets/fonts/cormorant-600.woff2", "./assets/fonts/dmsans-400.woff2", "./assets/fonts/dmsans-500.woff2", "./assets/fonts/dmsans-600.woff2"];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {

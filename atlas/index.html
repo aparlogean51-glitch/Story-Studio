@@ -152,22 +152,21 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
 .ctrl button:disabled { opacity: .3; }
 .ctrl #play { width: 48px; height: 48px; border: 1px solid rgba(210,172,95,.55); color: var(--gold); font-size: 17px; }
 /* the reel: one swipeable card per event, the centered one is the current event */
-#reel { display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
-  padding: 10px calc(50% - 84px) 4px; margin-top: 6px; scrollbar-width: none; touch-action: pan-x;
+#reel { display: flex; gap: 24px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+  padding: 22px calc(50% - 78px) 26px; margin-top: 0; scrollbar-width: none; touch-action: pan-x;
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
 #reel::-webkit-scrollbar { display: none; }
 #reel.drag { scroll-snap-type: none; cursor: grabbing; }
-.rc { position: relative; flex: none; width: 168px; height: 112px; border-radius: 12px; overflow: hidden; scroll-snap-align: center; background: #1d2a26;
-  box-shadow: 0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(236,228,208,.12); opacity: .62; transform: scale(.93); transition: opacity .3s, transform .35s var(--ease), box-shadow .3s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.rc { --k: 0; position: relative; flex: none; width: 156px; height: 104px; border-radius: 12px; overflow: hidden; scroll-snap-align: center; background: #1d2a26;
+  box-shadow: 0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(236,228,208,.12); opacity: calc(.55 + .45 * var(--k)); transform: scale(calc(.94 + .38 * var(--k))); z-index: calc(1 + var(--k) * 10); transition: box-shadow .3s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .rc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
 .rc::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,13,12,.55) 0%, transparent 28%, transparent 42%, rgba(8,13,12,.92) 100%); pointer-events: none; }
 .rc .yr { position: absolute; z-index: 1; left: 8px; top: 7px; display: flex; align-items: center; gap: 5px; font: 600 9.5px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.88); }
 .rc .yr i { width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1.5px rgba(0,0,0,.5); }
 .rc b { position: absolute; z-index: 1; left: 9px; right: 9px; bottom: 7px; font: 600 12.5px/1.22 var(--sans); color: #fff; text-align: left; text-shadow: 0 1px 3px rgba(0,0,0,.8);
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.rc:hover { opacity: .85; }
-.rc.on { opacity: 1; transform: scale(1); box-shadow: 0 12px 28px rgba(0,0,0,.6), inset 0 0 0 2px var(--gold), 0 0 0 1px rgba(210,172,95,.35); }
-.rhint { text-align: center; font-size: 10.5px; letter-spacing: .08em; color: var(--faint); margin-top: 4px; }
+.rc.near { box-shadow: 0 12px 28px rgba(0,0,0,.6), inset 0 0 0 2px var(--gold), 0 0 0 1px rgba(210,172,95,.35); }
+.rhint { text-align: center; font-size: 10.5px; letter-spacing: .08em; color: var(--faint); margin-top: -4px; }
 .ctrl .fold { width: 36px; height: 36px; margin-left: 4px; border: 1px solid var(--line); color: var(--muted); }
 .ctrl .fold svg { width: 18px; height: 18px; transition: transform .3s var(--ease); }
 #dock.min { left: 50%; right: auto; transform: translateX(-50%); padding: 6px 0; }
@@ -252,7 +251,7 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
   #card h2 { margin: 6px 0 8px; }
 }
 @media (max-width: 620px) {
-  .rc { width: 150px; height: 100px; } #reel { padding-left: calc(50% - 75px); padding-right: calc(50% - 75px); }
+  .rc { width: 132px; height: 88px; } #reel { gap: 20px; padding-left: calc(50% - 66px); padding-right: calc(50% - 66px); }
   #viewer .cap h2 { font-size: 23px; }
   .brand small { display: none; }
   .tbtn .lbl { display: none; }
@@ -291,7 +290,7 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
     <div class="ctrl"><button id="prev" aria-label="Previous event">‹</button><button id="play" aria-label="Play through the events">▶</button><button id="next" aria-label="Next event">›</button><button id="dockToggle" class="fold" aria-expanded="true" aria-label="Collapse the timeline"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
   </div>
   <div id="reel" role="listbox" aria-label="Events in order: swipe to move along the timeline" tabindex="0"></div>
-  <div class="rhint">Swipe the timeline · double-tap a scene to see it full screen</div>
+  <div class="rhint">Swipe the timeline · double-tap a scene for its story</div>
 </section>
 
 <div class="scrim" id="scrim"></div>
@@ -311,7 +310,7 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
   <hr>
   <button data-do="offline">⤓ Save for offline use</button>
   <button data-do="about">ⓘ About &amp; sources</button>
-  <div class="ver">Version Oct 30 · 1350f</div>
+  <div class="ver">Version Oct 30 · 19d6e</div>
 </div>
 <div id="city" class="stone" hidden></div>
 <div id="key" class="stone" hidden></div>
@@ -546,10 +545,10 @@ function drawRoute(e) {
 }
 
 /* ---------- The event card ---------- */
-let moreShown = store.get('more', false);
+let moreShown = store.get('more', false), cardOpen = false;   // the story card shows only when a scene is double-tapped
 function renderCard() {
   const e = cur, c = $('#card');
-  if (!e) { c.classList.add('away'); return; }
+  if (!e || !cardOpen) { c.classList.add('away'); return; }
   const cat = CAT[e.category] || { label: e.category, color: '#aaa' };
   const unplaced = e.places.filter((p) => !placeKey(p));
   const st = controlState(), changeHere = CHANGES.filter((x) => x.event === e.id);
@@ -577,11 +576,13 @@ function renderCard() {
 }
 $('#card').addEventListener('click', (ev) => {
   const t = ev.target;
-  if (t.closest('.x')) { $('#card').classList.add('away'); return; }
+  if (t.closest('.x')) { closeCard(); return; }
   if (t.closest('.art')) { openArt(cur); return; }
   if (t.closest('.more')) { moreShown = !moreShown; store.set('more', moreShown); $('#card').classList.remove('peek'); renderCard(); return; }
   const p = t.closest('[data-place]'); if (p) focusCity(p.dataset.place);
 });
+function closeCard() { cardOpen = false; $('#card').classList.add('away'); }
+function openCard() { cardOpen = true; $('#card').classList.remove('peek'); renderCard(); requestAnimationFrame(() => cur && showPlaces(cur)); }
 // swipe the card sideways for the next / previous event; down to tuck it away
 let sw = null;
 $('#card').addEventListener('pointerdown', (e) => { if (e.target.closest('a, button.chip')) return; sw = { x: e.clientX, y: e.clientY, t: Date.now() }; });
@@ -589,7 +590,7 @@ $('#card').addEventListener('pointerup', (e) => {
   if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y, fast = Date.now() - sw.t < 600; sw = null;
   if (!fast) return;
   if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) { stopPlay(); step(dx < 0 ? 1 : -1); }
-  else if (dy > 80 && Math.abs(dy) > Math.abs(dx) * 1.5 && matchMedia('(max-width: 900px), (orientation: portrait)').matches) $('#card').classList.add('away');
+  else if (dy > 80 && Math.abs(dy) > Math.abs(dx) * 1.5) closeCard();
 });
 $('#card').addEventListener('pointercancel', () => { sw = null; });
 
@@ -605,6 +606,7 @@ function focusCity(n) {
 function select(id, opts = {}) {
   const e = EVENTS.find((x) => x.id === id); if (!e) return;
   cur = e;
+  if ('card' in opts) cardOpen = opts.card;
   if (location.hash.slice(1) !== id) history.replaceState(null, '', '#' + id);
   drawRoute(e); renderCard(); drawPins(); renderDock(); markList();
   if (opts.force) $('#card').classList.remove('peek');   // picked on purpose: show the whole card
@@ -632,13 +634,13 @@ let reelAuto = 0, reelSettle = 0, reelTouch = false;
 function renderReel() {
   reel.innerHTML = list.map((e) => `<button class="rc" role="option" data-id="${e.id}" style="--c:${(CAT[e.category] || {}).color}" aria-label="${esc(yearTitle(e))}: ${esc(e.title)}">
     <img src="${art(e, 'sm')}" alt="" loading="lazy" decoding="async"><span class="yr"><i></i>${esc(e.year === null && e.id !== 'E01' ? 'About yr ' + e.sortYear : e.id === 'E01' ? 'Transition' : 'Year ' + (e.yearEnd && e.yearEnd !== e.year ? e.year + '–' + e.yearEnd : e.year))}</span><b>${esc(e.title)}</b></button>`).join('');
-  markReel(true);
+  markReel(true); queueSize();
 }
 // highlight the current event's card and slide it to the middle
 function markReel(jump) {
   const on = reel.querySelector('.rc.on'); if (on) { on.classList.remove('on'); on.removeAttribute('aria-selected'); }
   const c = cur && reel.querySelector(`[data-id="${cur.id}"]`); if (!c) return;
-  c.classList.add('on'); c.setAttribute('aria-selected', 'true');
+  c.classList.add('on'); c.setAttribute('aria-selected', 'true'); queueSize();
   if (reelTouch) return;   // the person is swiping: leave the reel where their finger is
   const left = c.offsetLeft - (reel.clientWidth - c.offsetWidth) / 2;
   if (Math.abs(reel.scrollLeft - left) < 2) return;
@@ -655,9 +657,26 @@ function centerCard() {
 function reelRest() {
   if (reelTouch) return;
   if (Date.now() - reelAuto < 900) return;   // our own slide, not a swipe
-  const c = centerCard(); if (c && c.dataset.id !== cur?.id) { stopPlay(); select(c.dataset.id); }
+  const c = centerCard(); if (c && c.dataset.id !== cur?.id) { stopPlay(); select(c.dataset.id, { card: false }); }
 }
-reel.addEventListener('scroll', () => { clearTimeout(reelSettle); reelSettle = setTimeout(reelRest, 180); }, { passive: true });
+// each card grows as it nears the middle, so the one under your finger is always the big one
+let sizeQueued = false;
+function sizeCards() {
+  sizeQueued = false;
+  const rr = reel.getBoundingClientRect(), mid = rr.left + reel.clientWidth / 2, kids = reel.children; if (!kids.length) return;
+  const span = kids[0].offsetWidth + parseFloat(getComputedStyle(reel).columnGap || 24);
+  let near = null, nd = 1e9;
+  for (const c of kids) {
+    const r = c.getBoundingClientRect(); if (r.right < rr.left - 200 || r.left > rr.right + 200) { if (c.style.getPropertyValue('--k') !== '0') c.style.setProperty('--k', 0); continue; }
+    const d = Math.abs(r.left + r.width / 2 - mid), k = Math.max(0, 1 - d / span);
+    c.style.setProperty('--k', (k * k * (3 - 2 * k)).toFixed(3));
+    if (d < nd) { nd = d; near = c; }
+  }
+  const was = reel.querySelector('.rc.near'); if (was !== near) { was?.classList.remove('near'); near?.classList.add('near'); }
+}
+const queueSize = () => { if (!sizeQueued) { sizeQueued = true; requestAnimationFrame(sizeCards); } };
+addEventListener('resize', queueSize);
+reel.addEventListener('scroll', () => { queueSize(); clearTimeout(reelSettle); reelSettle = setTimeout(reelRest, 180); }, { passive: true });
 reel.addEventListener('touchstart', () => { reelTouch = true; reelAuto = 0; }, { passive: true });
 reel.addEventListener('touchend', () => { reelTouch = false; clearTimeout(reelSettle); reelSettle = setTimeout(reelRest, 260); }, { passive: true });
 reel.addEventListener('touchcancel', () => { reelTouch = false; }, { passive: true });
@@ -672,7 +691,7 @@ addEventListener('pointermove', (e) => {
 });
 addEventListener('pointerup', () => {
   if (!rdrag) return; const moved = rdrag.moved; rdrag = null;
-  if (moved) { reel.classList.remove('drag'); reel.dataset.dragged = '1'; setTimeout(() => delete reel.dataset.dragged, 50); const c = centerCard(); if (c) { stopPlay(); select(c.dataset.id); } }
+  if (moved) { reel.classList.remove('drag'); reel.dataset.dragged = '1'; setTimeout(() => delete reel.dataset.dragged, 50); const c = centerCard(); if (c && c.dataset.id !== cur?.id) { stopPlay(); select(c.dataset.id, { card: false }); } }
 });
 reel.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { reel.scrollLeft += e.deltaY; e.preventDefault(); } reelAuto = 0; }, { passive: false });
 // tap: go to that event; double-tap: see it full screen
@@ -682,12 +701,12 @@ reel.addEventListener('click', (e) => {
   const now = Date.now(), dbl = lastCard.id === c.dataset.id && now - lastCard.t < 380;
   lastCard = { id: c.dataset.id, t: now };
   stopPlay();
-  if (c.dataset.id !== cur?.id) select(c.dataset.id, { force: true });
-  if (dbl) { lastCard.t = 0; openViewer(EVENTS.find((x) => x.id === c.dataset.id)); }
+  if (dbl) { lastCard.t = 0; if (cardOpen && c.dataset.id === cur?.id) openViewer(cur); else { if (c.dataset.id !== cur?.id) select(c.dataset.id); openCard(); } return; }
+  if (c.dataset.id !== cur?.id) select(c.dataset.id, { card: false });
 });
 reel.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') { stopPlay(); step(1); e.preventDefault(); } else if (e.key === 'ArrowLeft') { stopPlay(); step(-1); e.preventDefault(); }
-  else if (e.key === 'Enter' && cur) openViewer(cur);
+  else if (e.key === 'Enter' && cur) { if (cardOpen) openViewer(cur); else openCard(); }
 });
 $('#prev').onclick = () => { stopPlay(); step(-1); };
 $('#next').onclick = () => { stopPlay(); step(1); };
@@ -740,7 +759,7 @@ function setDrawer(open, focus) {
 $('#btnChron').onclick = () => setDrawer(!$('#drawer').classList.contains('open'));
 $('#drawerX').onclick = () => setDrawer(false);
 $('#scrim').onclick = () => setDrawer(false);
-$('#list').addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (!b) return; stopPlay(); select(b.dataset.id, { force: true }); if (matchMedia('(max-width: 900px), (orientation: portrait)').matches) setDrawer(false); });
+$('#list').addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (!b) return; stopPlay(); select(b.dataset.id, { force: true, card: true }); if (matchMedia('(max-width: 900px), (orientation: portrait)').matches) setDrawer(false); });
 $('#q').addEventListener('input', (e) => { query = e.target.value.toLowerCase().trim(); renderList(); });
 
 /* ---------- Menus and popovers ---------- */
@@ -774,7 +793,7 @@ function cityPop(n, r) {
   p.style.left = Math.max(10, Math.min(innerWidth - w - 10, r.right + 10)) + 'px';
   p.style.top = Math.max(70, Math.min(innerHeight - h - 10, r.top - 20)) + 'px';
 }
-$('#city').addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (b) { closeMenus(); stopPlay(); if (filter !== 'All' && !list.some((x) => x.id === b.dataset.id)) { filter = 'All'; store.set('filter', filter); applyFilter(); } select(b.dataset.id); } });
+$('#city').addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (b) { closeMenus(); stopPlay(); if (filter !== 'All' && !list.some((x) => x.id === b.dataset.id)) { filter = 'All'; store.set('filter', filter); applyFilter(); } select(b.dataset.id, { card: true }); } });
 
 /* ---------- Overlays: illustrations, artwork, about ---------- */
 function overlay(title, body, extraClass) {
@@ -789,7 +808,7 @@ function closeOverlay() { $('#ov')?.remove(); }
 function openGallery() {
   const o = overlay('Illustrations', `<div class="obody"><p style="color:var(--muted);margin-bottom:16px">One interpretive illustration for each of the ${EVENTS.length} accounts. Faces, clothing and buildings are artistic choices, not evidence.</p>
     <div class="grid">${EVENTS.map((e) => `<button class="tile" data-id="${e.id}"><img class="stone" loading="lazy" src="${art(e, 'sm')}" alt=""><b>${esc(e.title)}</b><small>${esc(yearTitle(e))}</small></button>`).join('')}</div></div>`);
-  o.addEventListener('click', (ev) => { const b = ev.target.closest('[data-id]'); if (b) { closeOverlay(); if (!list.some((x) => x.id === b.dataset.id)) { filter = 'All'; query = ''; $('#q').value = ''; applyFilter(); } select(b.dataset.id, { force: true }); } });
+  o.addEventListener('click', (ev) => { const b = ev.target.closest('[data-id]'); if (b) { closeOverlay(); if (!list.some((x) => x.id === b.dataset.id)) { filter = 'All'; query = ''; $('#q').value = ''; applyFilter(); } select(b.dataset.id, { force: true, card: true }); } });
 }
 function openArt(e) { openViewer(e); }
 /* ---------- Full-screen scene viewer: swipe for the next scene, tap to hide the caption ---------- */
@@ -866,7 +885,7 @@ $('#btnMap').onclick = (e) => { e.stopPropagation(); closeMenus(); switchMap(); 
 $('#btnLock').onclick = (e) => { e.stopPropagation(); closeMenus(); setLock(!locked); };
 addEventListener('hashchange', () => { const id = location.hash.slice(1); if (id && id !== cur?.id && EVENTS.some((e) => e.id === id)) select(id, { force: true }); });
 // for a future link from the Scene Board: Atlas.open('W22') or annals/#W22
-window.Atlas = { events: EVENTS, select: (id) => select(id, { force: true }) };
+window.Atlas = { events: EVENTS, select: (id) => select(id, { force: true, card: true }) };
 
 // the card in portrait sits just above the timeline
 function measureDock() { document.documentElement.style.setProperty('--dock', $('#dock').offsetHeight + 'px'); }
@@ -886,7 +905,6 @@ const saved = locked && store.get('lockedView', null);
 if (saved) goSpot(saved); else fitMap();
 const start = location.hash.slice(1);
 select(EVENTS.some((e) => e.id === start) ? start : (list[0] || EVENTS[0]).id, { force: !!start });
-if (matchMedia('(max-width: 900px), (orientation: portrait)').matches && !start) $('#card').classList.add('peek');
 $('#card').addEventListener('pointerdown', () => $('#card').classList.remove('peek'));
 // keep the Home Screen app current: look for a new version on open and whenever it comes back to the screen,
 // and reload once when one arrives
