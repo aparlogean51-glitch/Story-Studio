@@ -112,7 +112,7 @@ a { color: inherit; }
 #card { --step: 6px; position: fixed; z-index: 15; right: 16px; top: calc(var(--top) + 10px); width: 410px; max-height: calc(100% - var(--top) - var(--dock, 140px) - 50px - env(safe-area-inset-bottom)); display: flex; flex-direction: column;
   background: var(--parch); color: var(--parch-ink); box-shadow: 0 24px 60px rgba(0,0,0,.55); transition: transform .35s var(--ease), opacity .35s; }
 #card.away { transform: translateX(calc(100% + 30px)); opacity: 0; pointer-events: none; }
-#card .art { position: relative; flex: none; aspect-ratio: 3 / 2; background: #1d2a26 center / cover no-repeat; cursor: zoom-in; }
+#card .art { position: relative; flex: none; aspect-ratio: auto; height: clamp(110px, calc(100vh - var(--top) - var(--dock, 140px) - 400px), 273px); background: #1d2a26 center / cover no-repeat; cursor: zoom-in; }
 #card .art::after { content: ""; position: absolute; inset: auto 0 0 0; height: 40%; background: linear-gradient(transparent, rgba(0,0,0,.35)); }
 #card .x { position: absolute; z-index: 2; right: 14px; top: 14px; width: 34px; height: 34px; border-radius: 50%; background: rgba(13,21,19,.62); color: #fff; font-size: 17px; display: grid; place-items: center; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 #card .body { overflow-y: auto; padding: 20px 26px 22px; -webkit-overflow-scrolling: touch; touch-action: pan-y; overscroll-behavior: contain; }
@@ -139,10 +139,10 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
 .note b { color: #3c372e; }
 
 /* ---------- Timeline dock ---------- */
-#dock { position: fixed; z-index: 16; left: 50%; bottom: calc(14px + env(safe-area-inset-bottom)); transform: translateX(-50%); width: min(780px, calc(100% - 28px));
-  padding: 12px 20px 12px; background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 18px 44px rgba(0,0,0,.5); --step: 7px; }
+#dock { position: fixed; z-index: 16; left: 14px; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom));
+  padding: 10px 0 14px; background: var(--glass); border: 1px solid var(--line); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 18px 44px rgba(0,0,0,.5); --step: 7px; }
 #dock .greca { position: absolute; left: 22px; right: 22px; top: -4px; }
-.drow { display: flex; align-items: center; gap: 14px; }
+.drow { display: flex; align-items: center; gap: 14px; padding: 0 16px 0 22px; }
 .when { min-width: 0; flex: 1; }
 .when b { display: block; font: 600 26px/1.05 var(--serif); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .when span { font-size: 12.5px; color: var(--muted); }
@@ -150,23 +150,33 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
 .ctrl button { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; color: var(--text); }
 .ctrl button:disabled { opacity: .3; }
 .ctrl #play { width: 48px; height: 48px; border: 1px solid rgba(210,172,95,.55); color: var(--gold); font-size: 17px; }
-#track { position: relative; margin-top: 8px; height: 34px; touch-action: none; cursor: pointer; }
-#ticks { position: absolute; left: 0; right: 0; bottom: 12px; height: 22px; display: flex; align-items: flex-end; gap: 2px; }
-#ticks i { flex: 1; background: rgba(236,228,208,.18); border-radius: 1px 1px 0 0; min-height: 0; }
-#ticks i.has { background: rgba(236,228,208,.32); }
-#ticks i.cur { background: var(--gold); }
-#rail { position: absolute; left: 0; right: 0; bottom: 5px; height: 2px; background: rgba(236,228,208,.2); }
-#knob { position: absolute; bottom: 0; width: 14px; height: 14px; margin-left: -7px; background: var(--gold); transform: rotate(45deg); box-shadow: 0 0 0 3px rgba(13,21,19,.9); transition: left .3s var(--ease); }
+/* the reel: one swipeable card per event, the centered one is the current event */
+#reel { display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain;
+  padding: 10px calc(50% - 84px) 4px; margin-top: 6px; scrollbar-width: none; touch-action: pan-x;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent); }
+#reel::-webkit-scrollbar { display: none; }
+#reel.drag { scroll-snap-type: none; cursor: grabbing; }
+.rc { position: relative; flex: none; width: 168px; height: 112px; border-radius: 12px; overflow: hidden; scroll-snap-align: center; background: #1d2a26;
+  box-shadow: 0 6px 18px rgba(0,0,0,.45), inset 0 0 0 1px rgba(236,228,208,.12); opacity: .62; transform: scale(.93); transition: opacity .3s, transform .35s var(--ease), box-shadow .3s; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.rc img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; }
+.rc::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(8,13,12,.55) 0%, transparent 28%, transparent 42%, rgba(8,13,12,.92) 100%); pointer-events: none; }
+.rc .yr { position: absolute; z-index: 1; left: 8px; top: 7px; display: flex; align-items: center; gap: 5px; font: 600 9.5px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.88); }
+.rc .yr i { width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 1.5px rgba(0,0,0,.5); }
+.rc b { position: absolute; z-index: 1; left: 9px; right: 9px; bottom: 7px; font: 600 12.5px/1.22 var(--sans); color: #fff; text-align: left; text-shadow: 0 1px 3px rgba(0,0,0,.8);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rc:hover { opacity: .85; }
+.rc.on { opacity: 1; transform: scale(1); box-shadow: 0 12px 28px rgba(0,0,0,.6), inset 0 0 0 2px var(--gold), 0 0 0 1px rgba(210,172,95,.35); }
+.rhint { text-align: center; font-size: 10.5px; letter-spacing: .08em; color: var(--faint); margin-top: 4px; }
 .ctrl .fold { width: 36px; height: 36px; margin-left: 4px; border: 1px solid var(--line); color: var(--muted); }
 .ctrl .fold svg { width: 18px; height: 18px; transition: transform .3s var(--ease); }
-#dock.min { width: auto; padding: 6px 8px 6px 18px; }
-#dock.min #track, #dock.min .scale { display: none; }
+#dock.min { left: 50%; right: auto; transform: translateX(-50%); padding: 6px 0; }
+#dock.min .drow { padding: 0 8px 0 18px; }
+#dock.min #reel, #dock.min .rhint { display: none; }
 #dock.min .when b { font-size: 19px; }
 #dock.min .when span { display: none; }
 #dock.min .ctrl button { width: 38px; height: 38px; font-size: 20px; }
 #dock.min .ctrl #play { width: 38px; height: 38px; font-size: 14px; }
 #dock.min .fold svg { transform: rotate(180deg); }
-.scale { display: flex; justify-content: space-between; font-size: 10.5px; letter-spacing: .08em; color: var(--faint); margin-top: 2px; }
 
 /* ---------- Chronicle drawer ---------- */
 #drawer { position: fixed; z-index: 30; left: 0; top: 0; bottom: 0; width: min(390px, 92vw); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top);
@@ -207,6 +217,17 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
 .tile img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; display: block; background: #1d2a26; --step: 6px; }
 .tile b { display: block; font: 600 17px/1.2 var(--serif); margin-top: 8px; }
 .tile small { color: var(--faint); font-size: 12px; }
+#viewer { position: fixed; inset: 0; z-index: 80; background: #050807; display: flex; align-items: center; justify-content: center; touch-action: none; animation: vin .25s ease-out; }
+@keyframes vin { from { opacity: 0; } }
+#viewer img { width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; transition: transform .3s var(--ease), opacity .2s; }
+#viewer .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 60px max(24px, env(safe-area-inset-left)) calc(22px + env(safe-area-inset-bottom)); background: linear-gradient(transparent, rgba(0,0,0,.82)); transition: opacity .3s; pointer-events: none; }
+#viewer .cap small { font: 600 11px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--gold); }
+#viewer .cap h2 { font: 600 30px/1.1 var(--serif); margin-top: 6px; color: #fff; }
+#viewer .vx, #viewer .vn { position: absolute; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-size: 22px; transition: opacity .3s; }
+#viewer .vx { top: calc(14px + env(safe-area-inset-top)); right: 16px; font-size: 18px; }
+#viewer .vn { top: 50%; margin-top: -23px; } #viewer .vn.p { left: 16px; } #viewer .vn.n { right: 16px; }
+#viewer .vn:disabled { opacity: 0 !important; pointer-events: none; }
+#viewer.bare .cap, #viewer.bare .vn, #viewer.bare .vx { opacity: 0; }
 .artview { flex: 1; display: grid; place-items: center; padding: 10px 22px 30px; min-height: 0; }
 .artview img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 .about { max-width: 720px; }
@@ -230,6 +251,8 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
   #card h2 { margin: 6px 0 8px; }
 }
 @media (max-width: 620px) {
+  .rc { width: 150px; height: 100px; } #reel { padding-left: calc(50% - 75px); padding-right: calc(50% - 75px); }
+  #viewer .cap h2 { font-size: 23px; }
   .brand small { display: none; }
   .tbtn .lbl { display: none; }
   .tbtn { padding: 0 12px; }
@@ -266,8 +289,8 @@ button.chip:hover { border-color: #9a6f2a; color: #6f4d16; }
     <div class="when"><b id="whenYear">—</b><span id="whenBc"></span></div>
     <div class="ctrl"><button id="prev" aria-label="Previous event">‹</button><button id="play" aria-label="Play through the events">▶</button><button id="next" aria-label="Next event">›</button><button id="dockToggle" class="fold" aria-expanded="true" aria-label="Collapse the timeline"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button></div>
   </div>
-  <div id="track" role="slider" aria-label="Year of the judges" aria-valuemin="0" aria-valuemax="41" tabindex="0"><div id="ticks"></div><div id="rail"></div><div id="knob"></div></div>
-  <div class="scale"><span>TRANSITION</span><span>YEAR 10</span><span>YEAR 20</span><span>YEAR 30</span><span>YEAR 41</span></div>
+  <div id="reel" role="listbox" aria-label="Events in order: swipe to move along the timeline" tabindex="0"></div>
+  <div class="rhint">Swipe the timeline · double-tap a scene to see it full screen</div>
 </section>
 
 <div class="scrim" id="scrim"></div>
@@ -598,24 +621,72 @@ function renderDock() {
   $('#whenBc').textContent = `${bcText(e)} · ${list.indexOf(e) + 1} of ${list.length}${filter !== 'All' ? ' ' + CAT[filter].label.toLowerCase() : ''} events`;
   const i = list.indexOf(e);
   $('#prev').disabled = i <= 0; $('#next').disabled = i < 0 || i >= list.length - 1;
-  const counts = Array(42).fill(0); list.forEach((x) => { counts[Math.min(41, yearOf(x))]++; });
-  const mx = Math.max(1, ...counts), y = Math.min(41, yearOf(e));
-  $('#ticks').innerHTML = counts.map((n, k) => `<i class="${n ? 'has' : ''}${k === y ? ' cur' : ''}" style="height:${n ? 18 + 82 * n / mx : 6}%"></i>`).join('');
-  $('#knob').style.left = (y + 0.5) / 42 * 100 + '%';
-  $('#track').setAttribute('aria-valuenow', y); $('#track').setAttribute('aria-valuetext', yearTitle(e) + ': ' + e.title);
+  markReel();
 }
-// drag or tap along the year track
-function pickYear(clientX) {
-  const r = $('#track').getBoundingClientRect(), y = Math.max(0, Math.min(41, Math.floor((clientX - r.left) / r.width * 42)));
-  const cand = list.filter((x) => yearOf(x) === y);
-  const best = cand.length ? cand[0] : list.reduce((b, x) => Math.abs(yearOf(x) - y) < Math.abs(yearOf(b) - y) ? x : b, list[0]);
-  if (best && best !== cur) select(best.id);
+
+/* ---------- The reel: swipe along the timeline ---------- */
+const reel = $('#reel');
+let reelAuto = 0, reelSettle = 0, reelTouch = false;
+function renderReel() {
+  reel.innerHTML = list.map((e) => `<button class="rc" role="option" data-id="${e.id}" style="--c:${(CAT[e.category] || {}).color}" aria-label="${esc(yearTitle(e))}: ${esc(e.title)}">
+    <img src="${art(e, 'sm')}" alt="" loading="lazy" decoding="async"><span class="yr"><i></i>${esc(e.year === null && e.id !== 'E01' ? 'About yr ' + e.sortYear : e.id === 'E01' ? 'Transition' : 'Year ' + (e.yearEnd && e.yearEnd !== e.year ? e.year + '–' + e.yearEnd : e.year))}</span><b>${esc(e.title)}</b></button>`).join('');
+  markReel(true);
 }
-let scrub = false;
-$('#track').addEventListener('pointerdown', (e) => { scrub = true; stopPlay(); $('#track').setPointerCapture(e.pointerId); pickYear(e.clientX); });
-$('#track').addEventListener('pointermove', (e) => { if (scrub) pickYear(e.clientX); });
-['pointerup', 'pointercancel'].forEach((t) => $('#track').addEventListener(t, () => { scrub = false; }));
-$('#track').addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') { step(1); e.preventDefault(); } if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); } });
+// highlight the current event's card and slide it to the middle
+function markReel(jump) {
+  const on = reel.querySelector('.rc.on'); if (on) { on.classList.remove('on'); on.removeAttribute('aria-selected'); }
+  const c = cur && reel.querySelector(`[data-id="${cur.id}"]`); if (!c) return;
+  c.classList.add('on'); c.setAttribute('aria-selected', 'true');
+  if (reelTouch) return;   // the person is swiping: leave the reel where their finger is
+  const left = c.offsetLeft - (reel.clientWidth - c.offsetWidth) / 2;
+  if (Math.abs(reel.scrollLeft - left) < 2) return;
+  reelAuto = Date.now();
+  reel.scrollTo({ left, behavior: jump || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+// when a swipe comes to rest, the card in the middle becomes the current event
+function centerCard() {
+  const mid = reel.getBoundingClientRect().left + reel.clientWidth / 2;
+  let best = null, d = 1e9;
+  for (const c of reel.children) { const r = c.getBoundingClientRect(), x = Math.abs(r.left + r.width / 2 - mid); if (x < d) { d = x; best = c; } }
+  return best;
+}
+function reelRest() {
+  if (reelTouch) return;
+  if (Date.now() - reelAuto < 900) return;   // our own slide, not a swipe
+  const c = centerCard(); if (c && c.dataset.id !== cur?.id) { stopPlay(); select(c.dataset.id); }
+}
+reel.addEventListener('scroll', () => { clearTimeout(reelSettle); reelSettle = setTimeout(reelRest, 180); }, { passive: true });
+reel.addEventListener('touchstart', () => { reelTouch = true; reelAuto = 0; }, { passive: true });
+reel.addEventListener('touchend', () => { reelTouch = false; clearTimeout(reelSettle); reelSettle = setTimeout(reelRest, 260); }, { passive: true });
+reel.addEventListener('touchcancel', () => { reelTouch = false; }, { passive: true });
+// mouse or trackpad: drag the reel; wheel moves it sideways
+let rdrag = null;
+reel.addEventListener('pointerdown', (e) => { if (e.pointerType !== 'mouse' || e.button !== 0) return; rdrag = { x: e.clientX, l: reel.scrollLeft, moved: false }; });
+addEventListener('pointermove', (e) => {
+  if (!rdrag) return; const dx = e.clientX - rdrag.x;
+  if (!rdrag.moved && Math.abs(dx) < 5) return;
+  if (!rdrag.moved) { rdrag.moved = true; reel.classList.add('drag'); reelAuto = 0; }
+  reel.scrollLeft = rdrag.l - dx;
+});
+addEventListener('pointerup', () => {
+  if (!rdrag) return; const moved = rdrag.moved; rdrag = null;
+  if (moved) { reel.classList.remove('drag'); reel.dataset.dragged = '1'; setTimeout(() => delete reel.dataset.dragged, 50); const c = centerCard(); if (c) { stopPlay(); select(c.dataset.id); } }
+});
+reel.addEventListener('wheel', (e) => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { reel.scrollLeft += e.deltaY; e.preventDefault(); } reelAuto = 0; }, { passive: false });
+// tap: go to that event; double-tap: see it full screen
+let lastCard = { id: '', t: 0 };
+reel.addEventListener('click', (e) => {
+  const c = e.target.closest('.rc'); if (!c || reel.dataset.dragged) return;
+  const now = Date.now(), dbl = lastCard.id === c.dataset.id && now - lastCard.t < 380;
+  lastCard = { id: c.dataset.id, t: now };
+  stopPlay();
+  if (c.dataset.id !== cur?.id) select(c.dataset.id, { force: true });
+  if (dbl) { lastCard.t = 0; openViewer(EVENTS.find((x) => x.id === c.dataset.id)); }
+});
+reel.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') { stopPlay(); step(1); e.preventDefault(); } else if (e.key === 'ArrowLeft') { stopPlay(); step(-1); e.preventDefault(); }
+  else if (e.key === 'Enter' && cur) openViewer(cur);
+});
 $('#prev').onclick = () => { stopPlay(); step(-1); };
 $('#next').onclick = () => { stopPlay(); step(1); };
 function stopPlay() { clearInterval(playing); playing = 0; $('#play').textContent = '▶'; $('#play').setAttribute('aria-label', 'Play through the events'); }
@@ -634,7 +705,7 @@ function applyFilter() {
   $('#filterDot').hidden = filter === 'All';
   if (filter !== 'All') $('#filterDot').style.background = CAT[filter].color;
   $('#btnFilter').classList.toggle('on', filter !== 'All');
-  renderList();
+  renderList(); renderReel();
   if (cur && !list.includes(cur) && list.length) select(list[0].id); else renderDock();
 }
 function renderFilterMenu() {
@@ -718,10 +789,43 @@ function openGallery() {
     <div class="grid">${EVENTS.map((e) => `<button class="tile" data-id="${e.id}"><img class="stone" loading="lazy" src="${art(e, 'sm')}" alt=""><b>${esc(e.title)}</b><small>${esc(yearTitle(e))}</small></button>`).join('')}</div></div>`);
   o.addEventListener('click', (ev) => { const b = ev.target.closest('[data-id]'); if (b) { closeOverlay(); if (!list.some((x) => x.id === b.dataset.id)) { filter = 'All'; query = ''; $('#q').value = ''; applyFilter(); } select(b.dataset.id, { force: true }); } });
 }
-function openArt(e) {
-  const o = overlay(esc(e.title), `<div class="artview"><img src="${art(e, 'md')}" alt="Illustration: ${esc(e.title)}"></div>`);
-  const img = o.querySelector('img'), full = new Image(); full.onload = () => { img.src = full.src; }; full.src = art(e);
-  o.querySelector('.artview').onclick = closeOverlay;
+function openArt(e) { openViewer(e); }
+/* ---------- Full-screen scene viewer: swipe for the next scene, tap to hide the caption ---------- */
+function openViewer(e) {
+  if (!e) return; closeViewer(); stopPlay();
+  const v = document.createElement('div'); v.id = 'viewer'; v.setAttribute('role', 'dialog'); v.setAttribute('aria-label', 'Scene, full screen');
+  v.innerHTML = `<img alt=""><div class="cap"><small></small><h2></h2></div>
+    <button class="vn p" aria-label="Previous scene">‹</button><button class="vn n" aria-label="Next scene">›</button><button class="vx" aria-label="Close">✕</button>`;
+  document.body.append(v);
+  let at = e;
+  const show = (x) => {
+    at = x; const img = v.querySelector('img'), i = list.indexOf(x);
+    img.src = art(x, 'md'); img.alt = 'Illustration: ' + x.title;
+    const full = new Image(); full.onload = () => { if (at === x) img.src = full.src; }; full.src = art(x);
+    v.querySelector('small').textContent = `${yearTitle(x)} · ${bcText(x)}`; v.querySelector('h2').textContent = x.title;
+    v.querySelector('.p').disabled = i <= 0; v.querySelector('.n').disabled = i < 0 || i >= list.length - 1;
+    [list[i + 1], list[i - 1]].forEach((n) => { if (n) new Image().src = art(n); });
+  };
+  const go = (d) => { const i = list.indexOf(at), n = list[i + d]; if (n) show(n); };
+  v.querySelector('.p').onclick = (ev) => { ev.stopPropagation(); go(-1); };
+  v.querySelector('.n').onclick = (ev) => { ev.stopPropagation(); go(1); };
+  v.querySelector('.vx').onclick = (ev) => { ev.stopPropagation(); closeViewer(at); };
+  let sw = null, lastTap = 0;
+  v.addEventListener('pointerdown', (ev) => { if (ev.target.closest('button')) return; sw = { x: ev.clientX, y: ev.clientY, t: Date.now() }; });
+  v.addEventListener('pointerup', (ev) => {
+    if (!sw) return; const dx = ev.clientX - sw.x, dy = ev.clientY - sw.y; sw = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) { go(dx < 0 ? 1 : -1); return; }
+    if (dy > 90 && Math.abs(dy) > Math.abs(dx)) { closeViewer(at); return; }   // swipe down closes
+    const now = Date.now();
+    if (now - lastTap < 350) { closeViewer(at); return; }                      // double-tap closes
+    lastTap = now; setTimeout(() => { if (lastTap === now) v.classList.toggle('bare'); }, 360);
+  });
+  v._go = go; v._at = () => at;
+  show(e);
+}
+function closeViewer(at) {
+  const v = $('#viewer'); if (!v) return; v.remove();
+  if (at && at !== cur) select(at.id, { force: true });   // land on the scene you were looking at
 }
 function openAbout() {
   overlay('About &amp; sources', `<div class="obody"><div class="about">
@@ -730,7 +834,7 @@ function openAbout() {
     <h4>Geography</h4><p>The map is an interpretive model, not an archaeological reconstruction. Markers follow its city positions; places it doesn’t show stay unplaced rather than guessed. Dotted routes connect named places schematically. City colors show only control changes the text reports explicitly, not borders.</p>
     <h4>Illustrations</h4><p>Generated, interpretive images. Faces, clothing, architecture and ornament are artistic choices, not claims about Nephite material culture. The written accounts are drawn from the linked scripture.</p>
     <h4>Download the data</h4><p><a href="data/register.json" download>Event register with scripture references (JSON)</a><br><a href="data/source-notes.md" download>Source coverage and chronology notes</a><br><a href="data/briefs.json" download>Illustration briefs (JSON)</a></p>
-    <h4>Using the atlas</h4><p>Drag to move the map, pinch or scroll to zoom, double-tap to zoom in. The map button switches between the Painted and Mosaic maps; the padlock holds the map still. The chevron on the timeline folds it down to a slim bar. Swipe the event card sideways for the next or previous event. Tap a city for every event there. On a keyboard: ← → step through events, / searches.</p>
+    <h4>Using the atlas</h4><p>Drag to move the map, pinch or scroll to zoom, double-tap to zoom in. The map button switches between the Painted and Mosaic maps; the padlock holds the map still. The chevron on the timeline folds it down to a slim bar. Swipe the timeline of scenes along the bottom to move through the years; double-tap a scene to see it full screen, then swipe for the next one. Swipe the event card sideways for the next or previous event. Tap a city for every event there. On a keyboard: ← → step through events, / searches.</p>
   </div></div>`);
 }
 async function saveOffline() {
@@ -749,6 +853,7 @@ function toast(msg, ms = 3500) { const t = $('#toast'); t.textContent = msg; t.h
 
 /* ---------- Keyboard, deep links, start ---------- */
 document.addEventListener('keydown', (e) => {
+  if ($('#viewer')) { const v = $('#viewer'); if (e.key === 'Escape') closeViewer(v._at()); else if (e.key === 'ArrowRight') v._go(1); else if (e.key === 'ArrowLeft') v._go(-1); return; }
   if (e.key === 'Escape') { closeMenus(); closeOverlay(); setDrawer(false); return; }
   if (e.target.matches('input') || $('#ov')) return;
   if (e.key === 'ArrowRight') { stopPlay(); step(1); } else if (e.key === 'ArrowLeft') { stopPlay(); step(-1); }
@@ -773,7 +878,7 @@ function setDock(min, save) {
 $('#dockToggle').onclick = () => setDock(!$('#dock').classList.contains('min'), true);
 setDock(store.get('dockMin', false));
 addEventListener('resize', measureDock); measureDock();
-applyFilter();
+applyFilter(); measureDock();
 loadMap(mapKey); showLock();
 const saved = locked && store.get('lockedView', null);
 if (saved) goSpot(saved); else fitMap();
