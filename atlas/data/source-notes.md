@@ -1,6 +1,6 @@
 # The Nephite Annals — Source and coverage notes
 
-76 major-event records, from Mosiah29 to Helaman1:34. All65 chapter texts in this span were fully inspected during research. The atlas is a major-event selection, not a verse-by-verse commentary.
+82 major-event records, from Mosiah 29 to Helaman 1:34. All65 chapter texts in this span were fully inspected during research. The atlas is a major-event selection, not a verse-by-verse commentary.
 
 # Early period source audit
 
@@ -92,3 +92,8 @@ Built-in image generation, one scene per event. Visual interpretations share min
 ## Visual review
 
 Generated scenes reviewed as contact sheets and selected full images. Moroni’s title-of-liberty cloth was corrected to include inked writing, as required by Alma46:12. The depicted script is an artistic suggestion, not a recovered Nephite writing sample.
+
+
+# Added scenes (October 2026)
+
+Six records were added with the rebuilt illustration set, IDs N01–N06: Amulek taken into Alma's home (Alma 15:16–18), Zerahemnah's scalp (Alma 44:1–15), Amalickiah's oath (Alma 49:25–30), the mothers' teaching (Alma 53:16–21; 56:45–48), none of the 2,060 slain (Alma 57:25–27) and the mourning for Teancum (Alma 62:36–38). E18's summary no longer includes Amulek's homecoming, which is now N01. N04's year-26 placement and its setting in Melek are illustration choices; see its chronology note.
