@@ -1,6 +1,6 @@
 // The Nephite Annals: keeps the app on the device so it opens without a connection.
-const SHELL = 'annals-shell-19d6e16dcb', ART = 'annals-scenes';
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./assets/map-painted.webp", "./assets/map-mosaic.webp", "./assets/fonts/cormorant-500.woff2", "./assets/fonts/cormorant-600.woff2", "./assets/fonts/dmsans-400.woff2", "./assets/fonts/dmsans-500.woff2", "./assets/fonts/dmsans-600.woff2"];
+const SHELL = 'annals-shell-e9a403027e', ART = 'annals-scenes';
+const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./assets/map-painted.webp", "./assets/map-mosaic.webp", "./assets/map-promise.webp", "./assets/fonts/cormorant-500.woff2", "./assets/fonts/cormorant-600.woff2", "./assets/fonts/dmsans-400.woff2", "./assets/fonts/dmsans-500.woff2", "./assets/fonts/dmsans-600.woff2"];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => (k.startsWith('annals-shell-') && k !== SHELL) || k === 'annals-art').map((k) => caches.delete(k)))).then(() => self.clients.claim()));
