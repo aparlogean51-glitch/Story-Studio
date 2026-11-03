@@ -106,7 +106,7 @@
 <iframe class="view" id="viewWrite" title="Writing room" allow="fullscreen; microphone"></iframe>
 <div id="loading">Opening your story…</div>
 <div id="shellToast" role="status"></div>
-<div id="cloudMenu" hidden><button data-do="now">Sync now</button><button data-do="out">Sign out of cloud sync</button><button data-do="id">Use a different Client ID…</button><div class="ver" id="appVer">Version Nov 3 · eae21</div></div>
+<div id="cloudMenu" hidden><button data-do="now">Sync now</button><button data-do="back">↶ Put back an earlier copy…</button><button data-do="out">Sign out of cloud sync</button><button data-do="id">Use a different Client ID…</button><div class="ver" id="appVer">Version Nov 3 · c2287</div></div>
 <div id="cloudDlg" hidden role="dialog" aria-modal="true"><div class="box"><h3 id="cdTitle"></h3><p id="cdBody"></p><div class="row" id="cdRow"></div></div></div>
 
 <script>
@@ -1023,7 +1023,36 @@ const CloudSync = (() => {
     });
     return out;
   }
+  // this device's copies from before Drive's copy replaced them (newest first, up to 5), so a download can be undone
+  const KEEP = 'cloudBefore';
+  async function keepBefore(remote) {
+    try {
+      if (!(await localHasContent())) return;
+      if (!cdb) cdb = await idbOpen(STORY_DB, true);
+      const list = (await idbGet(cdb, KEEP)) || [];
+      list.unshift({ at: Date.now(), from: remote.savedAt || null, data: await exportAll() });
+      await idbPut(cdb, KEEP, list.slice(0, 5));
+    } catch (e) {}
+  }
+  async function putBack() {
+    let list = [];
+    try { if (!cdb) cdb = await idbOpen(STORY_DB, true); list = (await idbGet(cdb, KEEP)) || []; } catch (e) {}
+    if (!list.length) { shellToast('There is no earlier copy on this device yet.', 5000); return; }
+    // a rough word count of the typed sheets: letters typed / 5.7
+    const words = (d) => Math.round(Object.values(d.pages || {}).reduce((n, pg) => n + ((pg && pg.imps) || []).filter(i => i && i[0] && i[0] !== ' ').length, 0) / 5.7);
+    const label = (k) => { const d = new Date(k.at); return (new Date().toDateString() === d.toDateString() ? 'Today ' : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ') + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + ` · ${(k.data.story.scenes || []).length} scene${(k.data.story.scenes || []).length === 1 ? '' : 's'} · about ${words(k.data).toLocaleString()} words typed`; };
+    const shown = list.slice(0, 3);
+    const pick = await ask('Put back an earlier copy',
+      'These are the copies this device had just before a newer copy came down from your Google Drive. The one you pick replaces what is here now and is then saved to Drive for your other devices.\n\nWhat is here now is downloaded first as a backup, so nothing is lost.',
+      [...shown.map(label), 'Cancel']);
+    if (pick >= shown.length) return;
+    download(JSON.stringify(await exportAll()), `keepers-studio-before-putting-back-${stamp()}.json`);
+    await importAll(shown[pick].data, 'shell');
+    st.dirty = true; await saveSt();
+    reloadWithToast('Earlier copy put back. It is being saved to your Google Drive.');
+  }
   async function pull(files, remote, mf) {
+    await keepBefore(remote);
     const local = await WritingStore.read();
     const have = {}; for (const [id, pg] of Object.entries(local.pages)) have[id] = WritingStore.hash(JSON.stringify(pg));
     const need = Object.keys(remote.pages).filter(id => have[id] !== remote.pages[id]);
@@ -1077,6 +1106,7 @@ const CloudSync = (() => {
     busy = true; clearTimeout(timer); firstAt = 0;
     setMode('syncing');
     try {
+      if (reason === 'start' && !st.dirty && st.sig && snapSig(await snapshot()) !== st.sig) { st.dirty = true; await saveSt(); }
       const files = await listFiles();
       const mf = files.get(MANIFEST);
       let remote = null;
@@ -1099,7 +1129,9 @@ const CloudSync = (() => {
         }
       }
       else {
-        const hasLocal = st.base === null ? await localHasContent() : st.dirty;   // a computer that has never synced only counts real work
+        // a computer that has never synced only counts real work; otherwise only content that differs from the last sync
+        // counts (the writing room saving itself on opening is not a change)
+        const hasLocal = st.base === null ? await localHasContent() : st.dirty && !(st.sig && snapSig(await snapshot()) === st.sig);
         if (!hasLocal) await pull(files, remote, mf);
         else {
           // "Decide later" stays decided until you click the cloud button: no repeat boxes on every edit
@@ -1189,7 +1221,7 @@ const CloudSync = (() => {
     $('btnCloud').onclick = click;
     $('cloudMenu').onclick = (e) => {
       const a = e.target.closest('button'); if (!a) return; $('cloudMenu').hidden = true;
-      if (a.dataset.do === 'now') cycle('now'); else if (a.dataset.do === 'out') signOut(); else if (a.dataset.do === 'id') { cfg.clientId = ''; saveCfg(); tokenClient = null; signOut(); }
+      if (a.dataset.do === 'now') cycle('now'); else if (a.dataset.do === 'back') putBack(); else if (a.dataset.do === 'out') signOut(); else if (a.dataset.do === 'id') { cfg.clientId = ''; saveCfg(); tokenClient = null; signOut(); }
     };
     document.addEventListener('pointerdown', gesture, true);
     try { Story.subscribe((src, info) => {
