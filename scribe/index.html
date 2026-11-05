@@ -89,6 +89,11 @@ body.rail-right #doc .col{padding-right:calc(var(--rail-w) + 12px)}
   background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--gap) - 1px),var(--rule) calc(var(--gap) - 1px),var(--rule) var(--gap))}
 body.no-rules #ink-wrap{background-image:none}
 #ink{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#scribble{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:none;background:transparent;margin:0;
+  color:var(--ink);caret-color:var(--accent);font:400 30px/76px var(--serif);padding:2px 22px 0;box-sizing:border-box;overflow:hidden;
+  -webkit-user-select:text;user-select:text;touch-action:manipulation}
+body.mode-scribble #ink{display:none}
+body:not(.mode-scribble) #scribble{display:none}
 #fuse{position:absolute;left:0;top:0;height:2px;width:0;background:var(--accent);opacity:.75}
 #hint{position:absolute;left:18px;bottom:12px;font:500 12px var(--ui);color:var(--muted);pointer-events:none}
 
@@ -153,6 +158,7 @@ select,input[type=text]{height:40px;border-radius:10px;border:1px solid var(--li
   </div>
   <div id="ink-wrap">
     <canvas id="ink"></canvas>
+    <textarea id="scribble" aria-label="Scribble writing area" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none"></textarea>
     <div id="fuse"></div>
     <div id="hint">Write anywhere in here with Apple Pencil</div>
   </div>
@@ -188,9 +194,14 @@ select,input[type=text]{height:40px;border-radius:10px;border:1px solid var(--li
   <div class="sheet-head"><h2>Settings</h2><button class="btn primary" id="st-done">Done</button></div>
   <div id="settings-body"><div class="set">
     <div class="row">
-      <label for="st-pause">Pause before transcribing</label><output id="st-pause-out"></output>
+      <label for="st-pause">Pause before reading ink</label><output id="st-pause-out"></output>
       <div class="rng"><input type="range" id="st-pause" min="1" max="5" step="0.5"></div>
-      <div class="note">How long the pad waits after your Pencil lifts before it turns the ink into text. The blue line along the top of the pad counts it down.</div>
+      <div class="note">For the Claude and Google readers: how long the pad waits after your Pencil lifts before it turns the ink into text. The blue line along the top of the pad counts it down.</div>
+    </div>
+    <div class="row">
+      <label for="st-spause">Scribble pause</label><output id="st-spause-out"></output>
+      <div class="rng"><input type="range" id="st-spause" min="0.25" max="3" step="0.25"></div>
+      <div class="note">For Scribble: how long converted text stays in the pad before it moves up to the manuscript.</div>
     </div>
     <div class="row">
       <label for="st-pencil">Apple Pencil only</label><input type="checkbox" class="sw" id="st-pencil">
@@ -215,8 +226,9 @@ select,input[type=text]{height:40px;border-radius:10px;border:1px solid var(--li
     </div>
     <div class="row">
       <label for="st-engine">Handwriting reader</label>
-      <select id="st-engine"><option value="auto">Automatic</option><option value="claude">Claude</option><option value="google">Google</option></select>
+      <select id="st-engine"><option value="auto">Automatic</option><option value="scribble">Apple Scribble</option><option value="claude">Claude</option><option value="google">Google</option></select>
       <div class="note">Now reading with: <span id="engine-state">checking…</span><br>
+        Apple Scribble reads on the iPad itself, with no connection needed; turn it on in iPad Settings → Apple Pencil → Scribble.
         Claude reads messy and cursive writing best and works when this page is opened in Claude; each pause counts as a small request on your Claude plan.
         Google's free handwriting service is faster but can't be reached from inside Claude; it takes over when this same page is hosted on its own site, such as GitHub Pages.</div>
     </div>
@@ -239,7 +251,7 @@ const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slic
 const now = () => new Date().toISOString();
 
 /* ---------------- state ---------------- */
-const DEFAULTS = { pause: 2.5, pencilOnly: true, rules: true, ink: 2.5, size: 22, rail: "left", engine: "auto" };
+const DEFAULTS = { pause: 2.5, spause: 0.25, pencilOnly: true, rules: true, ink: 2.5, size: 22, rail: "left", engine: "auto" };
 const S = {
   set: Object.assign({}, DEFAULTS, LS.get("scribe.settings", {})),
   box: LS.get("scribe.box", null),
@@ -286,7 +298,6 @@ function applySettings(){
   document.body.classList.toggle("rail-right", s.rail === "right");
   document.body.classList.toggle("no-rules", !s.rules);
   document.documentElement.style.setProperty("--doc-size", s.size + "px");
-  $("hint").textContent = s.pencilOnly ? "Write anywhere in here with Apple Pencil" : "Write anywhere in here";
 }
 
 /* ---------------- ink ---------------- */
@@ -320,13 +331,16 @@ function accepts(e){ return !S.set.pencilOnly || e.pointerType === "pen" || e.po
 let fuseTimer = null;
 const fuse = $("fuse");
 function stopFuse(){ clearTimeout(fuseTimer); fuseTimer = null; fuse.style.transition = "none"; fuse.style.width = "0"; }
+function runFuse(ms, fn){
+  stopFuse();
+  fuse.style.width = "100%"; void fuse.offsetWidth;
+  fuse.style.transition = `width ${ms}ms linear`; fuse.style.width = "0";
+  fuseTimer = setTimeout(fn, ms);
+}
 function startFuse(){
   stopFuse();
   if (!S.strokes.length) return;
-  const ms = S.set.pause * 1000;
-  fuse.style.width = "100%"; void fuse.offsetWidth;
-  fuse.style.transition = `width ${ms}ms linear`; fuse.style.width = "0";
-  fuseTimer = setTimeout(flush, ms);
+  runFuse(S.set.pause * 1000, flush);
 }
 
 cv.addEventListener("pointerdown", (e) => {
@@ -357,6 +371,44 @@ function endStroke(e){
 cv.addEventListener("pointerup", endStroke);
 cv.addEventListener("pointercancel", endStroke);
 
+/* ---------------- Scribble mode: Apple's reader fills an always-empty text field ---------------- */
+const sb = $("scribble");
+let composing = false;
+function mode(){ return chooseEngine() === "scribble" ? "scribble" : "ink"; }
+function applyMode(){
+  const m = mode(), was = document.body.classList.contains("mode-scribble");
+  if (was && m !== "scribble") sbFlush();
+  if (!was && m === "scribble" && S.strokes.length) flush();
+  document.body.classList.toggle("mode-scribble", m === "scribble");
+  $("hint").textContent = m === "scribble" ? "Write with Apple Pencil. Scribble turns it into text."
+    : (S.set.pencilOnly ? "Write anywhere in here with Apple Pencil" : "Write anywhere in here");
+}
+function sbSchedule(){
+  stopFuse();
+  if (!sb.value) return;
+  runFuse(S.set.spause * 1000, sbFlush);
+}
+function sbFlush(){
+  stopFuse();
+  if (composing){ sbSchedule(); return; }
+  const v = sb.value; sb.value = "";
+  if (!v) return;
+  v.split("\n").forEach((t, i) => {
+    if (i > 0) S.queue.push({ seq: ++S.seq, kind: "break", status: "done" });
+    t = t.replace(/\s+/g, " ").trim();
+    if (t) S.queue.push({ seq: ++S.seq, kind: "ink", status: "done", text: t });
+  });
+  drain();
+}
+sb.addEventListener("input", () => { $("hint").hidden = true; sbSchedule(); });
+sb.addEventListener("compositionstart", () => { composing = true; stopFuse(); });
+sb.addEventListener("compositionend", () => { composing = false; sbSchedule(); });
+sb.addEventListener("touchstart", (e) => {
+  if (!S.set.pencilOnly) return;
+  const ts = Array.from(e.changedTouches);
+  if (ts.length && ts.every(t => t.touchType !== "stylus")) e.preventDefault();   // palm and fingers stay out
+}, { passive: false });
+
 /* ---------------- queue: ink -> text, applied in writing order ---------------- */
 function flush(){
   stopFuse();
@@ -369,6 +421,7 @@ function flush(){
 }
 function addBreak(){
   if (S.strokes.length) flush();
+  if (sb.value) sbFlush();
   S.queue.push({ seq: ++S.seq, kind: "break", status: "done" });
   drain();
 }
@@ -417,6 +470,7 @@ function drain(){
 }
 function undo(){
   if (S.live.size) return;
+  if (sb.value){ sb.value = sb.value.replace(/\s*\S+\s*$/, ""); sbSchedule(); return; }
   if (S.strokes.length){ S.strokes.pop(); redraw(); if (S.strokes.length) startFuse(); else stopFuse(); return; }
   const h = S.history.pop();
   if (!h){ setStatus("Nothing to undo"); setTimeout(() => drain(), 1400); return; }
@@ -453,16 +507,20 @@ function chooseEngine(){
   const want = S.set.engine, c = S.caps;
   const claudeOk = !!(c.sample && c.images);
   const googleOk = !c.inClaude;
+  if (want === "scribble") return "scribble";
   if (want === "claude") return claudeOk ? "claude" : null;
   if (want === "google") return googleOk ? "google" : null;
-  return claudeOk ? "claude" : googleOk ? "google" : null;
+  if (c.inClaude && !c.done) return "claude";
+  return claudeOk ? "claude" : "scribble";
 }
+function c0(){ return S.caps; }
 function fail(msg){ const e = new Error(msg); e.userMessage = msg; return e; }
 async function recognize(item){
   await capsReady;
   const eng = chooseEngine();
   if (eng === "claude") return recognizeClaude(item);
   if (eng === "google") return recognizeGoogle(item);
+  if (eng === "scribble" && !c0().inClaude) return recognizeGoogle(item);
   throw fail(S.set.engine === "google" ? "Google's reader can't be reached from inside Claude" : "No handwriting reader is available here");
 }
 async function recognizeClaude(item){
@@ -536,7 +594,9 @@ function renderDoc(){
   const ps = S.doc.paragraphs;
   if (!ps.some(p => p.text) && !S.queue.length){
     const e = el("div", "empty");
-    e.append(el("b", null, "Your pages land here. "), document.createTextNode(`Write in the pad below, then lift your Pencil. After a ${S.set.pause}-second pause the ink turns into text and scrolls up from the pad, like paper feeding through a typewriter.`));
+    e.append(el("b", null, "Your pages land here. "), document.createTextNode(mode() === "scribble"
+      ? "Write in the pad below with Apple Pencil. Scribble turns your writing into text, and a moment later it moves up here, like paper feeding through a typewriter."
+      : `Write in the pad below, then lift your Pencil. After a ${S.set.pause}-second pause the ink turns into text and scrolls up from the pad, like paper feeding through a typewriter.`));
     textEl.append(e); return;
   }
   let p = null;
@@ -659,17 +719,18 @@ async function initCaps(){
     }catch(e){ c.images = false; }
   }
   if (user){ try{ c.uidv = await user.id(); }catch(e){} }
+  c.done = true;
 }
 function standaloneEngineUI(){
   if (S.caps.inClaude) return;
   const o = st.engine.querySelector('option[value="claude"]'); if (o) o.remove();
   if (S.set.engine === "claude"){ S.set.engine = "auto"; LS.set("scribe.settings", S.set); }
   st.engine.closest(".row").querySelector(".note").innerHTML =
-    'Now reading with: <span id="engine-state"></span><br>Google’s free handwriting reader. It needs an internet connection; the app itself opens offline. Your pages are saved on this iPad. Use Review → Save to keep copies in Files.';
+    'Now reading with: <span id="engine-state"></span><br>Apple Scribble reads on the iPad itself and works offline; turn it on in iPad Settings → Apple Pencil → Scribble. Google’s free reader shows your ink and transcribes it after the pause; it needs an internet connection. Your pages are saved on this iPad. Use Review → Save to keep copies in Files.';
 }
 function refreshEngineLabel(){
   const e = chooseEngine();
-  $("engine-state").textContent = e === "claude" ? "Claude" : e === "google" ? "Google" :
+  $("engine-state").textContent = e === "scribble" ? "Apple Scribble" : e === "claude" ? "Claude" : e === "google" ? "Google" :
     (S.caps.inClaude ? "none — allow Claude when asked, or switch to Automatic" : "none available");
 }
 
@@ -697,7 +758,7 @@ dragHandle($("size"), (b, dx, dy) => {
 });
 $("undo").onclick = undo;
 $("para").onclick = addBreak;
-$("send").onclick = flush;
+$("send").onclick = () => { if (sb.value) sbFlush(); else flush(); };
 
 /* ---------------- review ---------------- */
 const rv = { text: $("rv-text"), title: $("rv-title"), docs: $("rv-docs"), msg: $("rv-msg") };
@@ -717,6 +778,7 @@ function updateCount(){
 }
 function openReview(){
   if (S.strokes.length) flush();
+  if (sb.value) sbFlush();
   saveLocal(); fillDocList();
   rv.title.value = S.doc.title; rv.text.value = docText(S.doc);
   updateCount(); rvMsg(""); armDelete(false);
@@ -803,20 +865,20 @@ $("rv-txt").onclick = () => { commitReview(); saveFile(slug(S.doc.title) + ".txt
 $("rv-json").onclick = () => { commitReview(); saveFile(slug(S.doc.title) + ".scribe.json", JSON.stringify(outlinerExport(S.doc), null, 2), "Story Outliner file"); };
 
 /* ---------------- settings ---------------- */
-const st = { pause: $("st-pause"), pencil: $("st-pencil"), rules: $("st-rules"), ink: $("st-ink"), size: $("st-size"), rail: $("st-rail"), engine: $("st-engine") };
+const st = { pause: $("st-pause"), spause: $("st-spause"), pencil: $("st-pencil"), rules: $("st-rules"), ink: $("st-ink"), size: $("st-size"), rail: $("st-rail"), engine: $("st-engine") };
 function fillSettings(){
   standaloneEngineUI();
   const s = S.set;
-  st.pause.value = s.pause; st.pencil.checked = s.pencilOnly; st.rules.checked = s.rules; st.ink.value = s.ink;
+  st.pause.value = s.pause; st.spause.value = s.spause; st.pencil.checked = s.pencilOnly; st.rules.checked = s.rules; st.ink.value = s.ink;
   st.size.value = s.size; st.rail.value = s.rail; st.engine.value = s.engine;
-  $("st-pause-out").textContent = s.pause + " s"; $("st-ink-out").textContent = s.ink + " pt"; $("st-size-out").textContent = s.size + " px";
+  $("st-pause-out").textContent = s.pause + " s"; $("st-spause-out").textContent = s.spause + " s"; $("st-ink-out").textContent = s.ink + " pt"; $("st-size-out").textContent = s.size + " px";
   refreshEngineLabel();
 }
 function readSettings(){
   const s = S.set;
-  s.pause = +st.pause.value; s.pencilOnly = st.pencil.checked; s.rules = st.rules.checked; s.ink = +st.ink.value;
+  s.pause = +st.pause.value; s.spause = +st.spause.value; s.pencilOnly = st.pencil.checked; s.rules = st.rules.checked; s.ink = +st.ink.value;
   s.size = +st.size.value; s.rail = st.rail.value; s.engine = st.engine.value;
-  LS.set("scribe.settings", s); applySettings(); fillSettings(); layout(); sizeCanvas();
+  LS.set("scribe.settings", s); applySettings(); applyMode(); fillSettings(); layout(); sizeCanvas();
 }
 Object.values(st).forEach(i => i.addEventListener("input", readSettings));
 Object.values(st).forEach(i => i.addEventListener("change", readSettings));
@@ -832,11 +894,11 @@ S.docs = LS.get("scribe.docs.v1", []);
 const curId = LS.get("scribe.current", null);
 S.doc = S.docs.find(d => d.id === curId) || S.docs[0];
 if (!S.doc){ S.doc = newDoc(); S.docs.push(S.doc); }
-applySettings(); layout();
+applySettings(); applyMode(); layout();
 new ResizeObserver(sizeCanvas).observe(wrap);
 addEventListener("resize", () => { layout(); });
 renderDoc();
-capsReady = initCaps().catch(() => {}).then(() => { refreshEngineLabel(); });
+capsReady = initCaps().catch(() => {}).then(() => { S.caps.done = true; refreshEngineLabel(); applyMode(); });
 capsReady.then(syncFromCloud);
 })();
 </script>
