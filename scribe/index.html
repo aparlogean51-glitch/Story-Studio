@@ -80,6 +80,8 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stro
   display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;font:500 13px var(--ui)}
 .tb:active,.tb.on{background:var(--hover);color:var(--ink)}
 .grip{cursor:grab}
+.tb.mode{border:1px solid var(--line);height:32px;padding:0 10px;font-weight:600}
+.tb.mode.auto{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 #status{flex:1;min-width:0;text-align:center;font:500 12px var(--ui);color:var(--muted);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #status.warn{color:var(--warn)}
 .sep{width:1px;height:22px;background:var(--line);margin:0 4px}
@@ -88,7 +90,7 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stro
 body.no-rules #ink-wrap{background-image:none}
 #ink{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 #scribble{position:absolute;inset:0;width:100%;height:100%;resize:none;border:0;outline:none;background:transparent;margin:0;
-  color:var(--ink);caret-color:var(--accent);font:400 30px/76px var(--serif);padding:2px 22px 0;box-sizing:border-box;overflow:hidden;
+  color:var(--ink);caret-color:var(--accent);font:400 30px/76px var(--serif);padding:2px 22px 0;box-sizing:border-box;overflow-y:auto;
   -webkit-user-select:text;user-select:text;touch-action:manipulation}
 body.mode-scribble #ink{display:none}
 body:not(.mode-scribble) #scribble{display:none}
@@ -150,6 +152,7 @@ select,input[type=text]{height:40px;border-radius:10px;border:1px solid var(--li
     <button class="tb" id="undo" aria-label="Undo"><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>Undo</button>
     <button class="tb" id="para" aria-label="New paragraph"><svg class="i" viewBox="0 0 24 24"><path d="M13 4v16M17 4v16M19 4H9.5a4.5 4.5 0 000 9H13"/></svg>New ¶</button>
     <div id="status" role="status" aria-live="polite"></div>
+    <button class="tb mode" id="auto" aria-label="Automatic or manual sending"></button>
     <button class="tb" id="send" aria-label="Transcribe now"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Send</button>
     <button class="tb grip" id="size" aria-label="Resize pad" title="Drag to resize">
       <svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
@@ -191,6 +194,10 @@ select,input[type=text]{height:40px;border-radius:10px;border:1px solid var(--li
 <section class="sheet" id="settings" hidden aria-label="Settings">
   <div class="sheet-head"><h2>Settings</h2><button class="btn primary" id="st-done">Done</button></div>
   <div id="settings-body"><div class="set">
+    <div class="row">
+      <label for="st-auto">Send automatically</label><input type="checkbox" class="sw" id="st-auto">
+      <div class="note">On: text moves up to the manuscript by itself after the pause. Off (manual): everything stays in the pad until you tap Send or New ¶. You can also switch with the Auto / Manual button on the pad.</div>
+    </div>
     <div class="row">
       <label for="st-pause">Pause before reading ink</label><output id="st-pause-out"></output>
       <div class="rng"><input type="range" id="st-pause" min="1" max="5" step="0.5"></div>
@@ -249,7 +256,7 @@ const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slic
 const now = () => new Date().toISOString();
 
 /* ---------------- state ---------------- */
-const DEFAULTS = { pause: 2.5, spause: 0.25, pencilOnly: true, rules: true, ink: 2.5, size: 22, rail: "left", engine: "auto" };
+const DEFAULTS = { auto: true, pause: 2.5, spause: 0.25, pencilOnly: true, rules: true, ink: 2.5, size: 22, rail: "left", engine: "auto" };
 const S = {
   set: Object.assign({}, DEFAULTS, LS.get("scribe.settings", {})),
   box: LS.get("scribe.box", null),
@@ -339,7 +346,7 @@ function runFuse(ms, fn){
 }
 function startFuse(){
   stopFuse();
-  if (!S.strokes.length) return;
+  if (!S.strokes.length || !S.set.auto) return;
   runFuse(S.set.pause * 1000, flush);
 }
 
@@ -385,7 +392,7 @@ function applyMode(){
 }
 function sbSchedule(){
   stopFuse();
-  if (!sb.value) return;
+  if (!sb.value || !S.set.auto) return;
   runFuse(S.set.spause * 1000, sbFlush);
 }
 function sbFlush(){
@@ -595,7 +602,8 @@ function renderDoc(){
   if (!ps.some(p => p.text) && !S.queue.length){
     const e = el("div", "empty");
     e.append(el("b", null, "Your pages land here. "), document.createTextNode(mode() === "scribble"
-      ? "Write in the pad below with Apple Pencil. Scribble turns your writing into text, and a moment later it moves up here, like paper feeding through a typewriter."
+      ? (S.set.auto ? "Write in the pad below with Apple Pencil. Scribble turns your writing into text, and a moment later it moves up here, like paper feeding through a typewriter."
+                    : "Write in the pad below with Apple Pencil. Scribble turns your writing into text; tap Send when you're ready and it moves up here.")
       : `Write in the pad below, then lift your Pencil. After a ${S.set.pause}-second pause the ink turns into text and scrolls up from the pad, like paper feeding through a typewriter.`));
     textEl.append(e); return;
   }
@@ -756,6 +764,19 @@ dragHandle($("size"), (b, dx, dy) => {
   const nh = Math.max(170, b.h - dy);
   S.box.y = b.y + (b.h - nh); S.box.h = nh;
 });
+function paintAuto(){
+  const b = $("auto"), on = S.set.auto;
+  b.textContent = on ? "Auto" : "Manual";
+  b.classList.toggle("auto", on);
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.title = on ? "Text sends itself after a pause. Tap for manual." : "Text waits for Send. Tap for automatic.";
+}
+function setAuto(on){
+  S.set.auto = on; LS.set("scribe.settings", S.set); paintAuto();
+  if (on){ if (sb.value) sbSchedule(); else if (S.strokes.length) startFuse(); }
+  else stopFuse();
+}
+$("auto").onclick = () => setAuto(!S.set.auto);
 $("undo").onclick = undo;
 $("para").onclick = addBreak;
 $("send").onclick = () => { if (sb.value) sbFlush(); else flush(); };
@@ -865,20 +886,20 @@ $("rv-txt").onclick = () => { commitReview(); saveFile(slug(S.doc.title) + ".txt
 $("rv-json").onclick = () => { commitReview(); saveFile(slug(S.doc.title) + ".scribe.json", JSON.stringify(outlinerExport(S.doc), null, 2), "Story Outliner file"); };
 
 /* ---------------- settings ---------------- */
-const st = { pause: $("st-pause"), spause: $("st-spause"), pencil: $("st-pencil"), rules: $("st-rules"), ink: $("st-ink"), size: $("st-size"), rail: $("st-rail"), engine: $("st-engine") };
+const st = { auto: $("st-auto"), pause: $("st-pause"), spause: $("st-spause"), pencil: $("st-pencil"), rules: $("st-rules"), ink: $("st-ink"), size: $("st-size"), rail: $("st-rail"), engine: $("st-engine") };
 function fillSettings(){
   standaloneEngineUI();
   const s = S.set;
-  st.pause.value = s.pause; st.spause.value = s.spause; st.pencil.checked = s.pencilOnly; st.rules.checked = s.rules; st.ink.value = s.ink;
+  st.auto.checked = s.auto; st.pause.value = s.pause; st.spause.value = s.spause; st.pencil.checked = s.pencilOnly; st.rules.checked = s.rules; st.ink.value = s.ink;
   st.size.value = s.size; st.rail.value = s.rail; st.engine.value = s.engine;
   $("st-pause-out").textContent = s.pause + " s"; $("st-spause-out").textContent = s.spause + " s"; $("st-ink-out").textContent = s.ink + " pt"; $("st-size-out").textContent = s.size + " px";
   refreshEngineLabel();
 }
 function readSettings(){
   const s = S.set;
-  s.pause = +st.pause.value; s.spause = +st.spause.value; s.pencilOnly = st.pencil.checked; s.rules = st.rules.checked; s.ink = +st.ink.value;
+  s.auto = st.auto.checked; s.pause = +st.pause.value; s.spause = +st.spause.value; s.pencilOnly = st.pencil.checked; s.rules = st.rules.checked; s.ink = +st.ink.value;
   s.size = +st.size.value; s.rail = st.rail.value; s.engine = st.engine.value;
-  LS.set("scribe.settings", s); applySettings(); applyMode(); fillSettings(); layout(); sizeCanvas();
+  LS.set("scribe.settings", s); setAuto(s.auto); applySettings(); applyMode(); fillSettings(); layout(); sizeCanvas();
 }
 Object.values(st).forEach(i => i.addEventListener("input", readSettings));
 Object.values(st).forEach(i => i.addEventListener("change", readSettings));
@@ -894,7 +915,7 @@ S.docs = LS.get("scribe.docs.v1", []);
 const curId = LS.get("scribe.current", null);
 S.doc = S.docs.find(d => d.id === curId) || S.docs[0];
 if (!S.doc){ S.doc = newDoc(); S.docs.push(S.doc); }
-applySettings(); applyMode(); layout();
+applySettings(); applyMode(); paintAuto(); layout();
 new ResizeObserver(sizeCanvas).observe(wrap);
 addEventListener("resize", () => { layout(); });
 renderDoc();
