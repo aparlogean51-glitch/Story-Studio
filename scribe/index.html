@@ -92,7 +92,7 @@ body.no-rules #ink-wrap{background-image:none}
   -webkit-user-select:text;user-select:text;touch-action:manipulation}
 body.mode-scribble #ink{display:none}
 body:not(.mode-scribble) #scribble{display:none}
-#fuse{position:absolute;left:0;top:0;height:2px;width:0;background:var(--accent);opacity:.75}
+#fuse{display:none}
 #hint{position:absolute;left:18px;bottom:12px;font:500 12px var(--ui);color:var(--muted);pointer-events:none}
 
 /* ---------- side rail ---------- */
@@ -194,7 +194,7 @@ select,input[type=text]{height:40px;border-radius:10px;border:1px solid var(--li
     <div class="row">
       <label for="st-pause">Pause before reading ink</label><output id="st-pause-out"></output>
       <div class="rng"><input type="range" id="st-pause" min="1" max="5" step="0.5"></div>
-      <div class="note">For the Claude and Google readers: how long the pad waits after your Pencil lifts before it turns the ink into text. The blue line along the top of the pad counts it down.</div>
+      <div class="note">For the Claude and Google readers: how long the pad waits after your Pencil lifts before it turns the ink into text.</div>
     </div>
     <div class="row">
       <label for="st-spause">Scribble pause</label><output id="st-spause-out"></output>

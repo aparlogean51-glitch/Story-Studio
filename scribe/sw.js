@@ -1,6 +1,6 @@
 // Scribe Pad: keeps the app itself on the iPad so it opens without a connection.
 // Your pages are not stored here (they live in the app's own storage on the iPad).
-const CACHE = 'scribe-pad-c330d57ea3';
+const CACHE = 'scribe-pad-c7b4523053';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
