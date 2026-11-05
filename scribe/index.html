@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Scribe Pad</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Scribe Pad">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#E8EBEF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#13161B" media="(prefers-color-scheme: dark)">
+<script>if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: a writing desk. Manuscript pages scroll up from the top of the screen and land on the
+   writing pad; the pad floats wherever it is placed; nothing lives below it (palm rest). */
+:root{
+  --desk:#E8EBEF; --paper:#FBFCFD; --ink:#1D2639; --muted:#62697B; --line:#D3D9E2;
+  --rule:#C5D0E0; --accent:#2D4A9A; --accent-soft:#E2E8F6; --warn:#A8452A; --warn-soft:#F6E5DF;
+  --hover:#EEF1F5; --shadow:rgba(29,38,57,.28); --stroke:#1E2C5C;
+  --serif:"Literata","Iowan Old Style","Palatino",Georgia,serif;
+  --ui:"Hanken Grotesk",-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --doc-size:22px; --measure:40em; --rail-w:84px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --desk:#13161B; --paper:#1B2028; --ink:#E5E8EE; --muted:#9098AA; --line:#2B323D;
+  --rule:#2D3646; --accent:#93ABEA; --accent-soft:#25304A; --warn:#E59276; --warn-soft:#3A2722;
+  --hover:#232933; --shadow:rgba(0,0,0,.6); --stroke:#C9D6F7; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#13161B; --paper:#1B2028; --ink:#E5E8EE; --muted:#9098AA; --line:#2B323D;
+  --rule:#2D3646; --accent:#93ABEA; --accent-soft:#25304A; --warn:#E59276; --warn-soft:#3A2722;
+  --hover:#232933; --shadow:rgba(0,0,0,.6); --stroke:#C9D6F7; color-scheme:dark}
+
+*,*::before,*::after{box-sizing:border-box}
+html{color-scheme:light}
+[hidden]{display:none!important}
+img{max-width:100%}
+html,body{height:100%;overflow:hidden;margin:0}
+body{font-size:14px}
+body{background:var(--desk);color:var(--ink);font-family:var(--ui);position:fixed;inset:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ---------- manuscript ---------- */
+#doc{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:50%;overflow-y:auto;touch-action:pan-y;
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 56px);mask-image:linear-gradient(to bottom,transparent 0,#000 56px)}
+#doc .col{min-height:100%;display:flex;flex-direction:column;justify-content:flex-end;max-width:var(--measure);margin:0 auto;
+  padding:72px max(24px,env(safe-area-inset-right,0px)) 10px max(24px,env(safe-area-inset-left,0px));box-sizing:border-box}
+body.rail-left #doc .col{padding-left:calc(var(--rail-w) + 12px)}
+body.rail-right #doc .col{padding-right:calc(var(--rail-w) + 12px)}
+#text{font-family:var(--serif);font-size:var(--doc-size);line-height:1.62;-webkit-user-select:text;user-select:text}
+#text p{margin:0 0 .15em;overflow-wrap:anywhere}
+#text p+p{text-indent:1.6em}
+#text p.blank{min-height:1.62em}
+.empty{font-family:var(--ui);color:var(--muted);font-size:15px;line-height:1.5;max-width:30em;border-left:2px solid var(--line);padding:2px 0 2px 14px}
+.empty b{color:var(--ink);font-weight:600}
+
+.chip{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;text-indent:0;margin-left:.3em;
+  font:500 13px/1 var(--ui);border-radius:999px;padding:6px 10px;background:var(--accent-soft);color:var(--accent)}
+.dots i{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin:0 1.5px;animation:blink 1.1s infinite both}
+.dots i:nth-child(2){animation-delay:.18s}.dots i:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.chip.err{background:var(--warn-soft);color:var(--warn);padding:4px 4px 4px 10px}
+.chip.err img{height:26px;max-width:120px;border-radius:4px;background:#fff}
+.chip.err button{border:0;background:var(--paper);color:var(--ink);border-radius:999px;padding:6px 10px;font:600 12px var(--ui)}
+.para-mark{font:500 13px var(--ui);color:var(--accent);margin-left:.3em}
+
+/* ---------- writing pad ---------- */
+#box{position:fixed;left:0;top:0;width:600px;height:300px;background:var(--paper);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 22px 48px -30px var(--shadow);display:flex;flex-direction:column;overflow:hidden;z-index:5}
+#bar{height:46px;flex:none;display:flex;align-items:center;gap:2px;padding:0 4px 0 2px;border-bottom:1px solid var(--line);touch-action:none}
+.tb{height:38px;min-width:44px;border:0;background:transparent;color:var(--muted);border-radius:9px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;font:500 13px var(--ui)}
+.tb:active,.tb.on{background:var(--hover);color:var(--ink)}
+.grip{cursor:grab}
+#status{flex:1;min-width:0;text-align:center;font:500 12px var(--ui);color:var(--muted);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status.warn{color:var(--warn)}
+.sep{width:1px;height:22px;background:var(--line);margin:0 4px}
+#ink-wrap{position:relative;flex:1;--gap:76px;
+  background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--gap) - 1px),var(--rule) calc(var(--gap) - 1px),var(--rule) var(--gap))}
+body.no-rules #ink-wrap{background-image:none}
+#ink{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#fuse{position:absolute;left:0;top:0;height:2px;width:0;background:var(--accent);opacity:.75}
+#hint{position:absolute;left:18px;bottom:12px;font:500 12px var(--ui);color:var(--muted);pointer-events:none}
+
+/* ---------- side rail ---------- */
+#rail{position:fixed;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:6}
+body.rail-left #rail{left:max(10px,env(safe-area-inset-left,0px))}
+body.rail-right #rail{right:max(10px,env(safe-area-inset-right,0px))}
+.rb{width:64px;height:64px;border-radius:16px;border:1px solid var(--line);background:var(--paper);color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:600 11px var(--ui);letter-spacing:.03em}
+.rb:active{background:var(--hover)}
+
+/* ---------- sheets ---------- */
+.sheet{position:fixed;inset:0;z-index:20;background:var(--desk);display:flex;flex-direction:column;touch-action:pan-y;
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+.sheet-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-block:14px;border-bottom:1px solid var(--line)}
+.sheet-head h2{margin:0;font:600 13px var(--ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);flex:1;min-width:0}
+.btn{height:40px;border-radius:10px;border:1px solid var(--line);background:var(--paper);padding:0 14px;font:600 14px var(--ui);display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--paper)}
+.btn.danger{color:var(--warn)}
+.btn.armed{background:var(--warn);border-color:var(--warn);color:var(--paper)}
+select,input[type=text]{height:40px;border-radius:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:500 14px var(--ui);padding:0 10px;max-width:100%}
+
+#review-body{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;gap:12px;padding-block:18px}
+#rv-title{width:100%;max-width:var(--measure);box-sizing:border-box;height:auto;border:0;background:transparent;padding:0;
+  font:500 30px/1.25 var(--serif);color:var(--ink)}
+#rv-text{flex:1;min-height:0;width:100%;max-width:var(--measure);box-sizing:border-box;resize:none;border:1px solid var(--line);border-radius:12px;
+  background:var(--paper);color:var(--ink);padding:18px 20px;font:400 calc(var(--doc-size) * .86)/1.62 var(--serif);-webkit-user-select:text;user-select:text}
+.sheet-foot{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding-block:12px;border-top:1px solid var(--line)}
+.count{font:500 13px var(--ui);color:var(--muted);font-variant-numeric:tabular-nums;flex:1;min-width:10em}
+#rv-msg{font:500 13px var(--ui);color:var(--accent);width:100%}
+#rv-msg.warn{color:var(--warn)}
+
+#settings-body{flex:1;overflow-y:auto;padding-block:8px 24px}
+.set{max-width:620px;margin:0 auto;display:flex;flex-direction:column}
+.row{display:grid;grid-template-columns:1fr auto;gap:6px 18px;align-items:center;padding:16px 2px;border-bottom:1px solid var(--line)}
+.row label{font:600 15px var(--ui)}
+.row .note{grid-column:1/-1;font:400 13px/1.45 var(--ui);color:var(--muted)}
+.row output{font:500 14px var(--ui);font-variant-numeric:tabular-nums;color:var(--muted);min-width:3.5em;text-align:right}
+.rng{grid-column:1/-1;display:flex;align-items:center;gap:12px}
+.rng input{flex:1;accent-color:var(--accent)}
+.sw{appearance:none;-webkit-appearance:none;width:50px;height:30px;border-radius:999px;background:var(--line);position:relative;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--paper);box-shadow:0 1px 2px var(--shadow);transition:transform .15s}
+.sw:checked{background:var(--accent)}.sw:checked::after{transform:translateX(20px)}
+#engine-state{font-weight:600;color:var(--ink)}
+@media (prefers-reduced-motion: reduce){.dots i{animation:none;opacity:.7}.sw,.sw::after{transition:none}}
+</style>
+</head>
+<body>
+<div id="doc" aria-label="Transcribed manuscript"><div class="col"><div id="text"></div></div></div>
+
+<div id="box" aria-label="Writing pad">
+  <div id="bar">
+    <button class="tb grip" id="move" aria-label="Move pad" title="Drag to move">
+      <svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>Move</button>
+    <div class="sep"></div>
+    <button class="tb" id="undo" aria-label="Undo"><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>Undo</button>
+    <button class="tb" id="para" aria-label="New paragraph"><svg class="i" viewBox="0 0 24 24"><path d="M13 4v16M17 4v16M19 4H9.5a4.5 4.5 0 000 9H13"/></svg>New ¶</button>
+    <div id="status" role="status" aria-live="polite"></div>
+    <button class="tb" id="send" aria-label="Transcribe now"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Send</button>
+    <button class="tb grip" id="size" aria-label="Resize pad" title="Drag to resize">
+      <svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
+  </div>
+  <div id="ink-wrap">
+    <canvas id="ink"></canvas>
+    <div id="fuse"></div>
+    <div id="hint">Write anywhere in here with Apple Pencil</div>
+  </div>
+</div>
+
+<nav id="rail">
+  <button class="rb" id="open-review"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg>Review</button>
+  <button class="rb" id="open-settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Settings</button>
+</nav>
+
+<section class="sheet" id="review" hidden aria-label="Review">
+  <div class="sheet-head">
+    <h2>Review</h2>
+    <select id="rv-docs" aria-label="Document"></select>
+    <button class="btn" id="rv-new">New document</button>
+    <button class="btn primary" id="rv-done">Done</button>
+  </div>
+  <div id="review-body">
+    <input type="text" id="rv-title" aria-label="Document title" autocomplete="off">
+    <textarea id="rv-text" aria-label="Document text" spellcheck="true"></textarea>
+  </div>
+  <div class="sheet-foot">
+    <span class="count" id="rv-count"></span>
+    <button class="btn" id="rv-copy">Copy text</button>
+    <button class="btn" id="rv-txt">Save .txt</button>
+    <button class="btn" id="rv-json">Save for Story Outliner</button>
+    <button class="btn danger" id="rv-del">Delete</button>
+    <div id="rv-msg" role="status"></div>
+  </div>
+</section>
+
+<section class="sheet" id="settings" hidden aria-label="Settings">
+  <div class="sheet-head"><h2>Settings</h2><button class="btn primary" id="st-done">Done</button></div>
+  <div id="settings-body"><div class="set">
+    <div class="row">
+      <label for="st-pause">Pause before transcribing</label><output id="st-pause-out"></output>
+      <div class="rng"><input type="range" id="st-pause" min="1" max="5" step="0.5"></div>
+      <div class="note">How long the pad waits after your Pencil lifts before it turns the ink into text. The blue line along the top of the pad counts it down.</div>
+    </div>
+    <div class="row">
+      <label for="st-pencil">Apple Pencil only</label><input type="checkbox" class="sw" id="st-pencil">
+      <div class="note">Fingers and palms never leave ink on the pad. Turn off to write with a finger.</div>
+    </div>
+    <div class="row">
+      <label for="st-rules">Guide lines</label><input type="checkbox" class="sw" id="st-rules">
+      <div class="note">Faint ruled lines on the pad to keep your lines level.</div>
+    </div>
+    <div class="row">
+      <label for="st-ink">Ink thickness</label><output id="st-ink-out"></output>
+      <div class="rng"><input type="range" id="st-ink" min="1.5" max="5" step="0.5"></div>
+    </div>
+    <div class="row">
+      <label for="st-size">Manuscript text size</label><output id="st-size-out"></output>
+      <div class="rng"><input type="range" id="st-size" min="16" max="32" step="1"></div>
+    </div>
+    <div class="row">
+      <label for="st-rail">Button side</label>
+      <select id="st-rail"><option value="left">Left</option><option value="right">Right</option></select>
+      <div class="note">Which edge holds the Review and Settings buttons. Put them on the side away from your writing hand.</div>
+    </div>
+    <div class="row">
+      <label for="st-engine">Handwriting reader</label>
+      <select id="st-engine"><option value="auto">Automatic</option><option value="claude">Claude</option><option value="google">Google</option></select>
+      <div class="note">Now reading with: <span id="engine-state">checking…</span><br>
+        Claude reads messy and cursive writing best and works when this page is opened in Claude; each pause counts as a small request on your Claude plan.
+        Google's free handwriting service is faster but can't be reached from inside Claude; it takes over when this same page is hosted on its own site, such as GitHub Pages.</div>
+    </div>
+    <div class="row">
+      <label>Pad position</label><button class="btn" id="st-reset">Reset pad</button>
+      <div class="note">Puts the pad back in the middle of the screen at its default size.</div>
+    </div>
+  </div></div>
+</section>
+
+<script>
+(() => {
+"use strict";
+const $ = (id) => document.getElementById(id);
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+const uid = (p) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const now = () => new Date().toISOString();
+
+/* ---------------- state ---------------- */
+const DEFAULTS = { pause: 2.5, pencilOnly: true, rules: true, ink: 2.5, size: 22, rail: "left", engine: "auto" };
+const S = {
+  set: Object.assign({}, DEFAULTS, LS.get("scribe.settings", {})),
+  box: LS.get("scribe.box", null),
+  docs: [], doc: null,
+  strokes: [], live: new Map(),
+  queue: [], seq: 0, history: [],
+  caps: { sample: null, db: null, user: null, downloads: null, images: false, tier: undefined, uidv: null, inClaude: !!(window.claude && window.claude.use) },
+};
+let capsReady;
+
+function newDoc(title){
+  const t = now();
+  return { id: uid("d"), title: title || "Untitled pages", createdAt: t, updatedAt: t, paragraphs: [] };
+}
+function docText(d){ return d.paragraphs.map(p => p.text).filter(Boolean).join("\n\n"); }
+function words(s){ const m = s.trim().match(/\S+/g); return m ? m.length : 0; }
+
+/* ---------------- layout ---------------- */
+const box = $("box"), docEl = $("doc"), wrap = $("ink-wrap"), cv = $("ink"), ctx = cv.getContext("2d");
+function defaultBox(){
+  const W = innerWidth, H = innerHeight;
+  const w = Math.min(W - 160, 1040), h = Math.round(Math.min(Math.max(H * .3, 220), 380));
+  return { x: Math.round((W - w) / 2), y: Math.round(H * .44), w, h };
+}
+function clampBox(){
+  const W = innerWidth, H = innerHeight, b = S.box;
+  const railL = S.set.rail !== "right" ? 86 : 4, railR = S.set.rail === "right" ? 86 : 4;
+  b.w = Math.max(300, Math.min(b.w, W - railL - railR));
+  b.h = Math.max(170, Math.min(b.h, H - 60));
+  b.x = Math.max(railL, Math.min(b.x, W - b.w - railR));
+  b.y = Math.max(40, Math.min(b.y, H - b.h - 4));
+}
+function layout(){
+  if (!S.box) S.box = defaultBox();
+  clampBox();
+  const b = S.box;
+  box.style.left = b.x + "px"; box.style.top = b.y + "px";
+  box.style.width = b.w + "px"; box.style.height = b.h + "px";
+  docEl.style.bottom = Math.max(0, innerHeight - b.y + 12) + "px";
+}
+function applySettings(){
+  const s = S.set;
+  document.body.classList.toggle("rail-left", s.rail !== "right");
+  document.body.classList.toggle("rail-right", s.rail === "right");
+  document.body.classList.toggle("no-rules", !s.rules);
+  document.documentElement.style.setProperty("--doc-size", s.size + "px");
+  $("hint").textContent = s.pencilOnly ? "Write anywhere in here with Apple Pencil" : "Write anywhere in here";
+}
+
+/* ---------------- ink ---------------- */
+let dpr = 1;
+function sizeCanvas(){
+  dpr = window.devicePixelRatio || 1;
+  const r = wrap.getBoundingClientRect();
+  cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+  redraw();
+}
+function strokeColor(){ return getComputedStyle(document.documentElement).getPropertyValue("--stroke").trim() || "#1E2C5C"; }
+function seg(c, a, b, scale, base){
+  c.lineWidth = base * (0.55 + 0.9 * (b[3] ?? .5)) * scale;
+  c.beginPath(); c.moveTo(a[0] * scale, a[1] * scale); c.lineTo(b[0] * scale, b[1] * scale); c.stroke();
+}
+function drawStroke(c, st, scale, base){
+  const p = st.pts;
+  if (p.length === 1){ c.beginPath(); c.arc(p[0][0]*scale, p[0][1]*scale, base*.7*scale, 0, 7); c.fill(); return; }
+  for (let i = 1; i < p.length; i++) seg(c, p[i-1], p[i], scale, base);
+}
+function prep(c, color){ c.lineCap = "round"; c.lineJoin = "round"; c.strokeStyle = color; c.fillStyle = color; }
+function redraw(){
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,cv.width,cv.height);
+  prep(ctx, strokeColor());
+  for (const st of S.strokes) drawStroke(ctx, st, dpr, S.set.ink);
+  for (const st of S.live.values()) drawStroke(ctx, st, dpr, S.set.ink);
+}
+function pt(e){ const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top, e.timeStamp || performance.now(), e.pressure || .5]; }
+function accepts(e){ return !S.set.pencilOnly || e.pointerType === "pen" || e.pointerType === "mouse"; }
+
+let fuseTimer = null;
+const fuse = $("fuse");
+function stopFuse(){ clearTimeout(fuseTimer); fuseTimer = null; fuse.style.transition = "none"; fuse.style.width = "0"; }
+function startFuse(){
+  stopFuse();
+  if (!S.strokes.length) return;
+  const ms = S.set.pause * 1000;
+  fuse.style.width = "100%"; void fuse.offsetWidth;
+  fuse.style.transition = `width ${ms}ms linear`; fuse.style.width = "0";
+  fuseTimer = setTimeout(flush, ms);
+}
+
+cv.addEventListener("pointerdown", (e) => {
+  if (!accepts(e)) return;
+  e.preventDefault(); stopFuse();
+  try{ cv.setPointerCapture(e.pointerId); }catch(_){}
+  S.live.set(e.pointerId, { pts: [pt(e)] });
+  $("hint").hidden = true;
+  redraw();
+});
+cv.addEventListener("pointermove", (e) => {
+  const st = S.live.get(e.pointerId); if (!st) return;
+  e.preventDefault();
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  prep(ctx, strokeColor());
+  for (const ev of (evs.length ? evs : [e])){
+    const p = pt(ev), prev = st.pts[st.pts.length - 1];
+    if (Math.abs(p[0]-prev[0]) + Math.abs(p[1]-prev[1]) < .4) continue;
+    st.pts.push(p); seg(ctx, prev, p, dpr, S.set.ink);
+  }
+});
+function endStroke(e){
+  const st = S.live.get(e.pointerId); if (!st) return;
+  S.live.delete(e.pointerId);
+  S.strokes.push(st);
+  if (!S.live.size) startFuse();
+}
+cv.addEventListener("pointerup", endStroke);
+cv.addEventListener("pointercancel", endStroke);
+
+/* ---------------- queue: ink -> text, applied in writing order ---------------- */
+function flush(){
+  stopFuse();
+  if (!S.strokes.length) return;
+  const r = wrap.getBoundingClientRect();
+  const item = { seq: ++S.seq, kind: "ink", strokes: S.strokes, w: r.width, h: r.height, status: "pending", text: "" };
+  S.strokes = []; redraw();
+  S.queue.push(item); renderDoc();
+  recognizeItem(item);
+}
+function addBreak(){
+  if (S.strokes.length) flush();
+  S.queue.push({ seq: ++S.seq, kind: "break", status: "done" });
+  drain();
+}
+async function recognizeItem(item){
+  item.status = "pending"; item.err = null; renderDoc(); setStatus("Reading your handwriting…");
+  try{
+    item.text = await recognize(item);
+    item.status = "done";
+  }catch(err){
+    item.status = "error"; item.err = err && err.userMessage || "Couldn't read this";
+  }
+  drain();
+}
+function lastPara(){
+  const ps = S.doc.paragraphs;
+  if (!ps.length) ps.push({ id: uid("p"), text: "", createdAt: now() });
+  return ps[ps.length - 1];
+}
+function joinText(a, b){
+  if (!a) return b;
+  if (!b) return a;
+  if (/^[.,;:!?)\]”’'"…]/.test(b) && !/^["“]\s?\w/.test(b)) return a + b;
+  if (/[-—]$/.test(a) && /^[a-z]/.test(b) && /\w-$/.test(a)) return a.slice(0, -1) + b;
+  return a + " " + b;
+}
+function drain(){
+  let changed = false;
+  while (S.queue.length && S.queue[0].status === "done"){
+    const it = S.queue.shift();
+    if (it.kind === "break"){
+      const lp = lastPara();
+      if (lp.text.trim()){
+        const np = { id: uid("p"), text: "", createdAt: now() };
+        S.doc.paragraphs.push(np); S.history.push({ type: "break", paraId: np.id }); changed = true;
+      }
+    } else if (it.text){
+      const p = lastPara();
+      S.history.push({ type: "text", paraId: p.id, prev: p.text });
+      p.text = joinText(p.text, it.text); changed = true;
+    }
+  }
+  if (changed){ touch(); }
+  const errs = S.queue.filter(q => q.status === "error").length, pend = S.queue.filter(q => q.status === "pending").length;
+  setStatus(errs ? "A line couldn't be read — see the manuscript" : pend ? "Reading your handwriting…" : "", !!errs);
+  renderDoc();
+}
+function undo(){
+  if (S.live.size) return;
+  if (S.strokes.length){ S.strokes.pop(); redraw(); if (S.strokes.length) startFuse(); else stopFuse(); return; }
+  const h = S.history.pop();
+  if (!h){ setStatus("Nothing to undo"); setTimeout(() => drain(), 1400); return; }
+  const ps = S.doc.paragraphs, i = ps.findIndex(p => p.id === h.paraId);
+  if (h.type === "text" && i >= 0) ps[i].text = h.prev;
+  if (h.type === "break" && i >= 0 && !ps[i].text.trim()) ps.splice(i, 1);
+  touch(); renderDoc();
+}
+
+/* ---------------- recognition ---------------- */
+function bbox(strokes){
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of strokes) for (const p of s.pts){ x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }
+  return { x0, y0, x1, y1 };
+}
+function inkImage(item, maxW){
+  const b = bbox(item.strokes), pad = 28;
+  const w = b.x1 - b.x0 + pad * 2, h = b.y1 - b.y0 + pad * 2;
+  const sc = Math.min(2, (maxW || 1600) / w);
+  const c = document.createElement("canvas");
+  c.width = Math.max(8, Math.round(w * sc)); c.height = Math.max(8, Math.round(h * sc));
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+  g.translate((pad - b.x0) * sc, (pad - b.y0) * sc);
+  prep(g, "#000");
+  for (const s of item.strokes) drawStroke(g, s, sc, Math.max(2.4, S.set.ink));
+  return c;
+}
+function contextTail(){
+  const t = docText(S.doc);
+  return t.slice(-500);
+}
+function chooseEngine(){
+  const want = S.set.engine, c = S.caps;
+  const claudeOk = !!(c.sample && c.images);
+  const googleOk = !c.inClaude;
+  if (want === "claude") return claudeOk ? "claude" : null;
+  if (want === "google") return googleOk ? "google" : null;
+  return claudeOk ? "claude" : googleOk ? "google" : null;
+}
+function fail(msg){ const e = new Error(msg); e.userMessage = msg; return e; }
+async function recognize(item){
+  await capsReady;
+  const eng = chooseEngine();
+  if (eng === "claude") return recognizeClaude(item);
+  if (eng === "google") return recognizeGoogle(item);
+  throw fail(S.set.engine === "google" ? "Google's reader can't be reached from inside Claude" : "No handwriting reader is available here");
+}
+async function recognizeClaude(item){
+  const blob = await new Promise(res => inkImage(item, 1600).toBlob(res, "image/png"));
+  const tail = contextTail();
+  const prompt =
+`Transcribe the handwriting in the attached image. It is one fragment written on an iPad with Apple Pencil by a novelist drafting prose; it may span several lines.
+
+Rules:
+- Output ONLY the transcribed words as a single line of plain text. No quotes around it, no labels, no commentary.
+- Read lines top to bottom and join them with single spaces. Rejoin a word that is hyphenated across a line break.
+- Keep the writer's own wording, spelling, capitalization and punctuation. Do not fix grammar, add words or finish sentences.
+- Words that are crossed out or scribbled over are deletions: leave them out.
+- Where a word is hard to read, choose the most likely word given the text that comes before it.
+- If there is no legible writing, output exactly: <empty>
+${tail ? `\nText already written just before this fragment (context only; do not repeat it):\n"""${tail}"""` : ""}`;
+  let r;
+  try{
+    r = await S.caps.sample(prompt, { images: [blob], modelTier: S.caps.tier, cache: false });
+  }catch(e){
+    const code = e && e.code;
+    if (code === "not_granted"){ S.caps.sample = null; refreshEngineLabel(); throw fail("Claude access was declined for this page"); }
+    if (code === "rate_limited") throw fail("Claude is busy or you've hit a usage limit — try again shortly");
+    throw fail("Couldn't read this");
+  }
+  let t = (r && r.text || "").trim();
+  if (/^<empty>$/i.test(t)) return "";
+  t = t.replace(/^["“](.*)["”]$/s, "$1").replace(/\s*\n+\s*/g, " ").trim();
+  return t;
+}
+function splitLines(strokes){
+  const rows = [];
+  const sorted = strokes.map(s => ({ s, b: bbox([s]) })).sort((a, b) => a.b.y0 - b.b.y0);
+  for (const it of sorted){
+    const cy = (it.b.y0 + it.b.y1) / 2;
+    let row = rows.find(r => cy >= r.y0 - 6 && cy <= r.y1 + 6);
+    if (!row){ row = { y0: it.b.y0, y1: it.b.y1, items: [] }; rows.push(row); }
+    row.items.push(it); row.y0 = Math.min(row.y0, it.b.y0); row.y1 = Math.max(row.y1, it.b.y1);
+  }
+  rows.sort((a, b) => a.y0 - b.y0);
+  return rows.map(r => r.items.map(i => i.s).sort((a, b) => a.pts[0][2] - b.pts[0][2]));
+}
+async function recognizeGoogle(item){
+  const lines = splitLines(item.strokes);
+  let out = "", ctxText = contextTail();
+  for (const line of lines){
+    const t0 = line[0].pts[0][2];
+    const ink = line.map(s => [s.pts.map(p => Math.round(p[0])), s.pts.map(p => Math.round(p[1])), s.pts.map(p => Math.round(p[2] - t0))]);
+    let res;
+    try{
+      const r = await fetch("https://inputtools.google.com/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ options: "enable_pre_space", requests: [{
+          writing_guide: { writing_area_width: Math.round(item.w), writing_area_height: Math.round(item.h) },
+          ink, language: "en", pre_context: ctxText.slice(-20) }] })
+      });
+      res = await r.json();
+    }catch(e){ throw fail("Couldn't reach Google's handwriting reader"); }
+    if (!res || res[0] !== "SUCCESS") throw fail("Google's reader returned an error");
+    const cand = res[1] && res[1][0] && res[1][0][1] && res[1][0][1][0] || "";
+    out = joinText(out, cand.trim()); ctxText = joinText(ctxText, cand.trim());
+  }
+  return out;
+}
+
+/* ---------------- manuscript rendering ---------------- */
+const textEl = $("text");
+function el(tag, cls, txt){ const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
+function renderDoc(){
+  textEl.textContent = "";
+  const ps = S.doc.paragraphs;
+  if (!ps.some(p => p.text) && !S.queue.length){
+    const e = el("div", "empty");
+    e.append(el("b", null, "Your pages land here. "), document.createTextNode(`Write in the pad below, then lift your Pencil. After a ${S.set.pause}-second pause the ink turns into text and scrolls up from the pad, like paper feeding through a typewriter.`));
+    textEl.append(e); return;
+  }
+  let p = null;
+  ps.forEach((para, i) => {
+    p = el("p", para.text ? "" : "blank", para.text);
+    textEl.append(p);
+  });
+  if (!p){ p = el("p"); textEl.append(p); }
+  for (const it of S.queue){
+    if (it.kind === "break"){ p = el("p", "blank"); p.append(el("span", "para-mark", "¶")); textEl.append(p); continue; }
+    if (it.status === "pending"){
+      const c = el("span", "chip"); const d = el("span", "dots"); d.append(el("i"), el("i"), el("i")); c.append(d); p.append(c);
+    } else if (it.status === "error"){
+      const c = el("span", "chip err");
+      const img = new Image(); img.alt = "Your handwriting"; img.src = inkImage(it, 360).toDataURL("image/png");
+      const retry = el("button", null, "Retry"), drop = el("button", null, "Discard");
+      retry.onclick = () => recognizeItem(it);
+      drop.onclick = () => { S.queue.splice(S.queue.indexOf(it), 1); drain(); };
+      c.append(img, document.createTextNode(it.err), retry, drop); p.append(c);
+    } else if (it.status === "done" && it.text){
+      p.append(document.createTextNode((p.textContent ? " " : "") + it.text));
+    }
+  }
+  requestAnimationFrame(() => { docEl.scrollTop = docEl.scrollHeight; });
+}
+let statusTimer;
+function setStatus(msg, warn){
+  const s = $("status"); clearTimeout(statusTimer);
+  s.textContent = msg || ""; s.classList.toggle("warn", !!warn);
+}
+
+/* ---------------- saving ---------------- */
+let saveTimer = null, saving = false, dirty = false;
+function touch(){ S.doc.updatedAt = now(); scheduleSave(); }
+function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 1200); }
+function metaOf(d){ return { id: d.id, title: d.title, updatedAt: d.updatedAt, createdAt: d.createdAt }; }
+function saveLocal(){
+  const i = S.docs.findIndex(d => d.id === S.doc.id);
+  if (i >= 0) S.docs[i] = S.doc; else S.docs.unshift(S.doc);
+  LS.set("scribe.docs.v1", S.docs);
+  LS.set("scribe.current", S.doc.id);
+}
+function userBase(){ return "data/users/" + S.caps.uidv; }
+async function save(){
+  saveLocal();
+  if (!S.caps.db || !S.caps.uidv) return;
+  if (saving){ dirty = true; return; }
+  saving = true;
+  try{
+    const d = S.doc, parts = [];
+    let cur = [], size = 0;
+    for (const p of d.paragraphs){
+      const n = JSON.stringify(p).length;
+      if (cur.length && size + n > 150000){ parts.push(cur); cur = []; size = 0; }
+      cur.push(p); size += n;
+    }
+    parts.push(cur);
+    const base = userBase();
+    for (let i = 0; i < parts.length; i++) await S.caps.db.doc(`${base}/${d.id}/parts/${i}`).set({ paragraphs: parts[i] });
+    const prevParts = d._parts || 0;
+    for (let i = parts.length; i < prevParts; i++) await S.caps.db.doc(`${base}/${d.id}/parts/${i}`).delete();
+    d._parts = parts.length;
+    await S.caps.db.doc(`${base}/${d.id}`).set(Object.assign(metaOf(d), { parts: parts.length, words: words(docText(d)) }));
+  }catch(e){
+    setStatus("Saved on this iPad only — cloud copy failed", true);
+  }finally{
+    saving = false;
+    if (dirty){ dirty = false; save(); }
+  }
+}
+async function loadCloudDoc(meta){
+  const base = userBase(), paras = [];
+  for (let i = 0; i < (meta.parts || 0); i++){
+    const s = await S.caps.db.doc(`${base}/${meta.id}/parts/${i}`).get();
+    if (s.exists) paras.push(...(s.data().paragraphs || []));
+  }
+  return { id: meta.id, title: meta.title, createdAt: meta.createdAt, updatedAt: meta.updatedAt, paragraphs: paras, _parts: meta.parts || 0 };
+}
+async function syncFromCloud(){
+  const { db } = S.caps;
+  if (!db || !S.caps.uidv) return;
+  try{
+    const snap = await db.collection(userBase()).get();
+    let changed = false;
+    for (const ds of snap.docs){
+      const m = ds.data(); if (!m || !m.id) continue;
+      const local = S.docs.find(d => d.id === m.id);
+      if (!local || (m.updatedAt > local.updatedAt)){
+        const full = await loadCloudDoc(m);
+        if (local) Object.assign(local, full); else S.docs.push(full);
+        changed = true;
+      } else if (local) local._parts = m.parts || 0;
+    }
+    if (changed){
+      S.docs.sort((a, b) => (b.updatedAt > a.updatedAt ? 1 : -1));
+      const cur = LS.get("scribe.current", null);
+      const pick = S.docs.find(d => d.id === (S.doc && S.doc.id)) || S.docs.find(d => d.id === cur) || S.docs[0];
+      if (pick && !S.queue.length){ S.doc = pick; S.history = []; renderDoc(); }
+      LS.set("scribe.docs.v1", S.docs);
+    }
+    // push local-only documents up
+    const cloudIds = new Set(snap.docs.map(d => d.id));
+    for (const d of S.docs) if (!cloudIds.has(d.id) && d.paragraphs.some(p => p.text)){ const keep = S.doc; S.doc = d; await save(); S.doc = keep; }
+  }catch(e){}
+}
+
+/* ---------------- capabilities ---------------- */
+async function initCaps(){
+  const c = S.caps;
+  if (!c.inClaude) return;
+  const use = (n) => window.claude.use(n).catch(() => null);
+  const [sample, db, user, downloads] = await Promise.all([use("sample"), use("db"), use("user"), use("downloads")]);
+  c.sample = sample; c.db = db; c.user = user; c.downloads = downloads;
+  if (sample){
+    try{
+      const lim = await sample.limits();
+      c.images = !!(lim && lim.images);
+      const tiers = lim && lim.modelTiers;
+      c.tier = !tiers || tiers.includes("quick") ? "quick" : "default";
+    }catch(e){ c.images = false; }
+  }
+  if (user){ try{ c.uidv = await user.id(); }catch(e){} }
+}
+function standaloneEngineUI(){
+  if (S.caps.inClaude) return;
+  const o = st.engine.querySelector('option[value="claude"]'); if (o) o.remove();
+  if (S.set.engine === "claude"){ S.set.engine = "auto"; LS.set("scribe.settings", S.set); }
+  st.engine.closest(".row").querySelector(".note").innerHTML =
+    'Now reading with: <span id="engine-state"></span><br>Google’s free handwriting reader. It needs an internet connection; the app itself opens offline. Your pages are saved on this iPad. Use Review → Save to keep copies in Files.';
+}
+function refreshEngineLabel(){
+  const e = chooseEngine();
+  $("engine-state").textContent = e === "claude" ? "Claude" : e === "google" ? "Google" :
+    (S.caps.inClaude ? "none — allow Claude when asked, or switch to Automatic" : "none available");
+}
+
+/* ---------------- pad move / resize ---------------- */
+function dragHandle(elm, onMove){
+  let start = null;
+  elm.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    start = { x: e.clientX, y: e.clientY, b: Object.assign({}, S.box), id: e.pointerId };
+    try{ elm.setPointerCapture(e.pointerId); }catch(_){}
+    elm.classList.add("on");
+  });
+  elm.addEventListener("pointermove", (e) => {
+    if (!start || e.pointerId !== start.id) return;
+    onMove(start.b, e.clientX - start.x, e.clientY - start.y); layout();
+  });
+  const end = (e) => { if (!start || e.pointerId !== start.id) return; start = null; elm.classList.remove("on"); LS.set("scribe.box", S.box); sizeCanvas(); };
+  elm.addEventListener("pointerup", end); elm.addEventListener("pointercancel", end);
+}
+dragHandle($("move"), (b, dx, dy) => { S.box.x = b.x + dx; S.box.y = b.y + dy; });
+dragHandle($("size"), (b, dx, dy) => {
+  S.box.w = b.w + dx;
+  const nh = Math.max(170, b.h - dy);
+  S.box.y = b.y + (b.h - nh); S.box.h = nh;
+});
+$("undo").onclick = undo;
+$("para").onclick = addBreak;
+$("send").onclick = flush;
+
+/* ---------------- review ---------------- */
+const rv = { text: $("rv-text"), title: $("rv-title"), docs: $("rv-docs"), msg: $("rv-msg") };
+let rvTimer = null;
+function rvMsg(m, warn){ rv.msg.textContent = m || ""; rv.msg.classList.toggle("warn", !!warn); }
+function fillDocList(){
+  rv.docs.textContent = "";
+  for (const d of S.docs){
+    const o = el("option", null, `${d.title || "Untitled pages"} · ${new Date(d.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`);
+    o.value = d.id; if (d.id === S.doc.id) o.selected = true; rv.docs.append(o);
+  }
+}
+function updateCount(){
+  const t = rv.text.value;
+  const n = words(t), paras = t.split(/\n+/).filter(s => s.trim()).length;
+  $("rv-count").textContent = `${n.toLocaleString()} words · ${paras} paragraph${paras === 1 ? "" : "s"}`;
+}
+function openReview(){
+  if (S.strokes.length) flush();
+  saveLocal(); fillDocList();
+  rv.title.value = S.doc.title; rv.text.value = docText(S.doc);
+  updateCount(); rvMsg(""); armDelete(false);
+  $("review").hidden = false;
+}
+function commitReview(){
+  clearTimeout(rvTimer);
+  const lines = rv.text.value.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  const old = S.doc.paragraphs.filter(p => p.text);
+  const before = docText(S.doc);
+  S.doc.paragraphs = lines.map((t, i) => ({ id: old[i] ? old[i].id : uid("p"), text: t, createdAt: old[i] ? old[i].createdAt : now() }));
+  const title = rv.title.value.trim() || "Untitled pages";
+  if (docText(S.doc) !== before || title !== S.doc.title){ S.doc.title = title; S.history = []; touch(); }
+}
+rv.text.addEventListener("input", () => { updateCount(); clearTimeout(rvTimer); rvTimer = setTimeout(commitReview, 900); });
+rv.title.addEventListener("input", () => { clearTimeout(rvTimer); rvTimer = setTimeout(commitReview, 900); });
+$("rv-done").onclick = () => { commitReview(); $("review").hidden = true; renderDoc(); };
+rv.docs.onchange = () => {
+  commitReview(); save();
+  const d = S.docs.find(x => x.id === rv.docs.value); if (!d) return;
+  S.doc = d; S.history = []; LS.set("scribe.current", d.id);
+  rv.title.value = d.title; rv.text.value = docText(d); updateCount(); renderDoc(); armDelete(false);
+};
+$("rv-new").onclick = () => {
+  commitReview(); save();
+  S.doc = newDoc(); S.docs.unshift(S.doc); S.history = [];
+  saveLocal(); fillDocList(); rv.title.value = S.doc.title; rv.text.value = ""; updateCount(); renderDoc();
+  rv.title.focus(); rv.title.select();
+};
+let delArmed = false;
+function armDelete(on){ delArmed = on; const b = $("rv-del"); b.classList.toggle("armed", on); b.textContent = on ? "Tap again to delete" : "Delete"; }
+$("rv-del").onclick = async () => {
+  if (!delArmed){ armDelete(true); setTimeout(() => armDelete(false), 4000); return; }
+  armDelete(false);
+  const d = S.doc;
+  S.docs = S.docs.filter(x => x.id !== d.id);
+  if (S.caps.db && S.caps.uidv){
+    try{
+      for (let i = 0; i < (d._parts || 0); i++) await S.caps.db.doc(`${userBase()}/${d.id}/parts/${i}`).delete();
+      await S.caps.db.doc(`${userBase()}/${d.id}`).delete();
+    }catch(e){}
+  }
+  S.doc = S.docs[0] || newDoc(); if (!S.docs.length) S.docs.push(S.doc);
+  S.history = []; saveLocal(); fillDocList();
+  rv.title.value = S.doc.title; rv.text.value = docText(S.doc); updateCount(); renderDoc();
+  rvMsg(`Deleted “${d.title}”.`);
+};
+function slug(s){ return (s || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "untitled"; }
+function outlinerExport(d){
+  const paras = d.paragraphs.filter(p => p.text);
+  return {
+    format: "scribe-pad/manuscript", version: 1,
+    note: "Handwritten draft from Scribe Pad. Each paragraph keeps a stable id so it can be mapped to a scene or beat later.",
+    title: d.title, id: d.id, createdAt: d.createdAt, updatedAt: d.updatedAt,
+    wordCount: words(docText(d)),
+    paragraphs: paras.map((p, i) => ({ id: p.id, order: i + 1, text: p.text, createdAt: p.createdAt, words: words(p.text) })),
+    text: docText(d)
+  };
+}
+async function copyText(str, label){
+  try{ await navigator.clipboard.writeText(str); rvMsg(`${label} copied.`); return true; }
+  catch(e){ rv.text.focus(); rv.text.select(); rvMsg("Copying was blocked here. The text is selected; use Copy from the menu.", true); return false; }
+}
+async function saveFile(filename, data, label){
+  const dl = S.caps.downloads;
+  if (!dl){
+    const type = filename.endsWith(".json") ? "application/json" : "text/plain";
+    const file = new File([data], filename, { type });
+    try{
+      if (navigator.canShare && navigator.canShare({ files: [file] })){
+        await navigator.share({ files: [file], title: filename });
+        rvMsg(`${filename} ready. Choose “Save to Files” to keep it.`); return;
+      }
+    }catch(e){ if (e && e.name === "AbortError"){ rvMsg("Save cancelled."); return; } }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = filename;
+    document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    rvMsg(`${filename} saved to Downloads.`); return;
+  }
+  try{ await dl.save({ filename, data }); rvMsg(`${filename} saved.`); }
+  catch(e){ if (e && /cancel|declin/i.test(e.code || "")) rvMsg("Save cancelled."); else rvMsg("The file couldn't be saved.", true); }
+}
+$("rv-copy").onclick = () => { commitReview(); copyText(docText(S.doc), "Text"); };
+$("rv-txt").onclick = () => { commitReview(); saveFile(slug(S.doc.title) + ".txt", (S.doc.title ? S.doc.title + "\n\n" : "") + docText(S.doc) + "\n", "Text"); };
+$("rv-json").onclick = () => { commitReview(); saveFile(slug(S.doc.title) + ".scribe.json", JSON.stringify(outlinerExport(S.doc), null, 2), "Story Outliner file"); };
+
+/* ---------------- settings ---------------- */
+const st = { pause: $("st-pause"), pencil: $("st-pencil"), rules: $("st-rules"), ink: $("st-ink"), size: $("st-size"), rail: $("st-rail"), engine: $("st-engine") };
+function fillSettings(){
+  standaloneEngineUI();
+  const s = S.set;
+  st.pause.value = s.pause; st.pencil.checked = s.pencilOnly; st.rules.checked = s.rules; st.ink.value = s.ink;
+  st.size.value = s.size; st.rail.value = s.rail; st.engine.value = s.engine;
+  $("st-pause-out").textContent = s.pause + " s"; $("st-ink-out").textContent = s.ink + " pt"; $("st-size-out").textContent = s.size + " px";
+  refreshEngineLabel();
+}
+function readSettings(){
+  const s = S.set;
+  s.pause = +st.pause.value; s.pencilOnly = st.pencil.checked; s.rules = st.rules.checked; s.ink = +st.ink.value;
+  s.size = +st.size.value; s.rail = st.rail.value; s.engine = st.engine.value;
+  LS.set("scribe.settings", s); applySettings(); fillSettings(); layout(); sizeCanvas();
+}
+Object.values(st).forEach(i => i.addEventListener("input", readSettings));
+Object.values(st).forEach(i => i.addEventListener("change", readSettings));
+$("st-reset").onclick = () => { S.box = defaultBox(); LS.set("scribe.box", S.box); layout(); sizeCanvas(); };
+$("open-settings").onclick = () => { fillSettings(); $("settings").hidden = false; };
+$("st-done").onclick = () => { $("settings").hidden = true; renderDoc(); };
+$("open-review").onclick = openReview;
+
+/* ---------------- boot ---------------- */
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+document.addEventListener("dblclick", (e) => { if (!e.target.closest("textarea,input,#text")) e.preventDefault(); });
+S.docs = LS.get("scribe.docs.v1", []);
+const curId = LS.get("scribe.current", null);
+S.doc = S.docs.find(d => d.id === curId) || S.docs[0];
+if (!S.doc){ S.doc = newDoc(); S.docs.push(S.doc); }
+applySettings(); layout();
+new ResizeObserver(sizeCanvas).observe(wrap);
+addEventListener("resize", () => { layout(); });
+renderDoc();
+capsReady = initCaps().catch(() => {}).then(() => { refreshEngineLabel(); });
+capsReady.then(syncFromCloud);
+})();
+</script>
+</body>
+</html>
