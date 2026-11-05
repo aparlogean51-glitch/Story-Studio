@@ -53,15 +53,13 @@ svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stro
 /* ---------- manuscript ---------- */
 #doc{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:50%;overflow-y:auto;touch-action:pan-y;
   -webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 56px);mask-image:linear-gradient(to bottom,transparent 0,#000 56px)}
-#doc .col{min-height:100%;display:flex;flex-direction:column;justify-content:flex-end;max-width:var(--measure);margin:0 auto;
-  padding:72px max(24px,env(safe-area-inset-right,0px)) 10px max(24px,env(safe-area-inset-left,0px));box-sizing:border-box}
-body.rail-left #doc .col{padding-left:calc(var(--rail-w) + 12px)}
-body.rail-right #doc .col{padding-right:calc(var(--rail-w) + 12px)}
+/* the manuscript column lines up with the writing pad's left and right edges */
+#doc .col{min-height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:72px 22px 10px;box-sizing:border-box;max-width:100%}
 #text{font-family:var(--serif);font-size:var(--doc-size);line-height:1.62;-webkit-user-select:text;user-select:text}
 #text p{margin:0 0 .15em;overflow-wrap:anywhere}
 #text p+p{text-indent:1.6em}
 #text p.blank{min-height:1.62em}
-.empty{font-family:var(--ui);color:var(--muted);font-size:15px;line-height:1.5;max-width:30em;border-left:2px solid var(--line);padding:2px 0 2px 14px}
+.empty{font-family:var(--ui);color:var(--muted);font-size:15px;line-height:1.5;border-left:2px solid var(--line);padding:2px 0 2px 14px}
 .empty b{color:var(--ink);font-weight:600}
 
 .chip{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;text-indent:0;margin-left:.3em;
@@ -291,6 +289,8 @@ function layout(){
   box.style.left = b.x + "px"; box.style.top = b.y + "px";
   box.style.width = b.w + "px"; box.style.height = b.h + "px";
   docEl.style.bottom = Math.max(0, innerHeight - b.y + 12) + "px";
+  const col = docEl.firstElementChild;
+  col.style.marginLeft = b.x + "px"; col.style.width = b.w + "px";
 }
 function applySettings(){
   const s = S.set;
