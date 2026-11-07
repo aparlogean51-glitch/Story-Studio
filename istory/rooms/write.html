@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Write</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
+<style>
+/* The writing room: a desk with the scene's beats on one side, the manuscript rising above a fixed writing pad,
+   and nothing below the pad so a palm can rest there. The manuscript column lines up with the pad's edges. */
+:root {
+  --desk: #12151b; --panel: #171b22; --paper: #1b2028; --ink: #e5e8ee; --muted: #9098aa; --faint: #5f6778;
+  --line: #2a313c; --rule: #2a3343; --accent: #8fb4f0; --accent-soft: #232f47; --written: #34d399; --written-soft: rgba(52,211,153,0.14);
+  --warn: #e59276; --warn-soft: #3a2722; --hover: #222833; --shadow: rgba(0,0,0,.6); --stroke: #c9d6f7;
+  --serif: 'Literata', 'Iowan Old Style', Palatino, Georgia, serif;
+  --ui: 'Inter', -apple-system, 'Helvetica Neue', system-ui, sans-serif;
+  --doc-size: 21px; --bar-h: 58px; --panel-w: 300px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body { background: var(--desk); color: var(--ink); font: 14px/1.4 var(--ui); position: fixed; inset: 0;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---------- top bar ---------- */
+#bar { position: absolute; left: 0; right: 0; top: 0; height: var(--bar-h); display: flex; align-items: center; gap: 4px; padding: 0 10px; border-bottom: 1px solid var(--line); background: #0f1217; z-index: 8; }
+.scene-btn { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px; border-radius: 11px; min-width: 0; max-width: 46%; }
+.scene-btn:active { background: var(--hover); }
+.scene-btn b { font: 500 17px/1.2 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scene-btn .no { font: 600 12px var(--ui); color: var(--muted); letter-spacing: .04em; white-space: nowrap; }
+#meta { font-size: 13px; color: var(--faint); white-space: nowrap; font-variant-numeric: tabular-nums; padding-left: 4px; overflow: hidden; text-overflow: ellipsis; }
+#meta.warn { color: var(--warn); }
+.spacer { flex: 1; }
+.tb { height: 42px; min-width: 44px; padding: 0 12px; border-radius: 10px; color: var(--muted); font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+.tb:active, .tb.on { background: var(--hover); color: var(--ink); }
+.tb[aria-pressed="true"] { color: var(--ink); background: var(--accent-soft); }
+
+/* ---------- the beat panel ---------- */
+#panel { position: absolute; top: var(--bar-h); bottom: 0; width: var(--panel-w); background: var(--panel); display: flex; flex-direction: column; z-index: 6; touch-action: pan-y; }
+body.side-left #panel { left: 0; border-right: 1px solid var(--line); }
+body.side-right #panel { right: 0; border-left: 1px solid var(--line); }
+.p-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 10px 18px; }
+.p-head h2 { flex: 1; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.p-head h2 span { color: var(--faint); letter-spacing: .02em; text-transform: none; font-weight: 500; margin-left: 6px; }
+.p-head .tb { height: 36px; font-size: 13px; }
+.meter { height: 3px; margin: 0 18px 8px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--written); width: 0; transition: width .3s; }
+#beats { list-style: none; overflow-y: auto; flex: 1; padding: 4px 10px 30px; -webkit-overflow-scrolling: touch; }
+.bt { display: grid; grid-template-columns: 40px 1fr; gap: 8px; align-items: start; padding: 4px 0; position: relative; }
+.bt::before { content: ""; position: absolute; left: 19px; top: 42px; bottom: -4px; width: 1.5px; background: var(--line); }
+.bt:last-child::before { display: none; }
+.tick { width: 36px; height: 36px; margin: 4px 0 0 2px; border-radius: 50%; border: 1.5px solid #3a4352; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--panel); position: relative; z-index: 1; font-variant-numeric: tabular-nums; }
+.bt.done .tick { background: var(--written); border-color: var(--written); color: #062218; }
+.bt.cur .tick { border-color: var(--accent); color: var(--accent); }
+.bt.done.cur .tick { color: #062218; }
+.bt-body { text-align: left; padding: 8px 10px; border-radius: 10px; min-width: 0; }
+.bt-body:active { background: var(--hover); }
+.bt-body b { display: block; font-size: 14px; font-weight: 600; color: var(--ink); }
+.bt.done .bt-body b { color: var(--muted); }
+.bt-body span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 2px; }
+.bt.cur .bt-body { background: var(--paper); border: 1px solid var(--line); }
+.bt.cur .bt-body span { -webkit-line-clamp: unset; display: block; color: var(--ink); font: 15px/1.5 var(--serif); }
+.bt-more { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.bt-more .note { font-size: 13px; color: var(--muted); line-height: 1.45; border-left: 2px solid var(--line); padding-left: 8px; white-space: pre-wrap; }
+.bt-more .dl { font: italic 14px/1.45 var(--serif); color: var(--ink); }
+.bt-more .dl b { font: 600 11px var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: inline; margin-right: 6px; font-style: normal; }
+.next-btn { margin: 10px 0 2px 48px; height: 46px; border-radius: 11px; background: var(--written-soft); color: var(--written); font-weight: 600; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 48px); }
+.next-btn.undo { background: var(--hover); color: var(--muted); }
+.p-empty { margin: 8px 18px; padding: 16px; border: 1px dashed #343c49; border-radius: 12px; color: var(--muted); font-size: 14px; line-height: 1.5; display: flex; flex-direction: column; gap: 10px; }
+.p-empty .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill-btn { height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); font-weight: 600; font-size: 13px; }
+
+/* ---------- the desk: manuscript above, pad, palm rest ---------- */
+#desk { position: absolute; top: var(--bar-h); bottom: 0; left: 0; right: 0; }
+body.panel.side-left #desk { left: var(--panel-w); }
+body.panel.side-right #desk { right: var(--panel-w); }
+#doc { position: absolute; left: 0; right: 0; top: 0; bottom: 50%; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 36px); mask-image: linear-gradient(to bottom, transparent 0, #000 36px); }
+#doc .col { min-height: 100%; display: flex; flex-direction: column; justify-content: flex-end; padding: 40px 22px 10px; }
+.ms-head { font: 600 11px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin-bottom: 14px; }
+#text { font: 400 var(--doc-size)/1.62 var(--serif); -webkit-user-select: text; user-select: text; color: var(--ink); }
+#text p { margin: 0; overflow-wrap: anywhere; }
+#text p.ind { text-indent: 1.6em; }
+#text p.center { text-align: center; }
+#text p.blank { min-height: 1.62em; }
+.empty-ms { font: 15px/1.55 var(--ui); color: var(--muted); max-width: 34em; border-left: 2px solid var(--line); padding: 2px 0 2px 14px; }
+.empty-ms b { color: var(--ink); font-weight: 600; }
+.chip { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; text-indent: 0; margin-left: .3em; font: 500 13px/1 var(--ui); border-radius: 999px; padding: 6px 10px; background: var(--accent-soft); color: var(--accent); }
+.dots i { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: currentColor; margin: 0 1.5px; animation: blink 1.1s infinite both; }
+.dots i:nth-child(2) { animation-delay: .18s; } .dots i:nth-child(3) { animation-delay: .36s; }
+@keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+.chip.err { background: var(--warn-soft); color: var(--warn); padding: 4px 4px 4px 10px; }
+.chip.err img { height: 26px; max-width: 120px; border-radius: 4px; background: #fff; }
+.chip.err button { background: var(--paper); color: var(--ink); border-radius: 999px; padding: 6px 10px; font: 600 12px var(--ui); }
+.para-mark { font: 500 13px var(--ui); color: var(--accent); }
+
+#box { position: absolute; left: 0; top: 0; width: 600px; height: 300px; background: var(--paper); border: 1px solid var(--line); border-radius: 14px;
+  box-shadow: 0 22px 48px -30px var(--shadow); display: flex; flex-direction: column; overflow: hidden; z-index: 5; }
+#padbar { height: 46px; flex: none; display: flex; align-items: center; gap: 2px; padding: 0 4px 0 2px; border-bottom: 1px solid var(--line); touch-action: none; }
+.pb { height: 38px; min-width: 44px; border-radius: 9px; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; font: 500 13px var(--ui); }
+.pb:active, .pb.on { background: var(--hover); color: var(--ink); }
+.pb.mode { border: 1px solid var(--line); height: 32px; font-weight: 600; }
+.pb.mode.auto { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.grip { cursor: grab; }
+#status { flex: 1; min-width: 0; text-align: center; font: 500 12px var(--ui); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#status.warn { color: var(--warn); }
+.sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+#ink-wrap { position: relative; flex: 1; --gap: 76px;
+  background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--gap) - 1px), var(--rule) calc(var(--gap) - 1px), var(--rule) var(--gap)); }
+body.no-rules #ink-wrap { background-image: none; }
+#ink { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+#scribble { position: absolute; inset: 0; width: 100%; height: 100%; resize: none; border: 0; outline: none; background: transparent; color: var(--ink); caret-color: var(--accent);
+  font: 400 30px/76px var(--serif); padding: 2px 22px 0; overflow-y: auto; -webkit-user-select: text; user-select: text; touch-action: manipulation; }
+body.mode-scribble #ink { display: none; }
+body:not(.mode-scribble) #scribble { display: none; }
+#hint { position: absolute; left: 18px; bottom: 12px; font: 500 12px var(--ui); color: var(--faint); pointer-events: none; }
+#nosc { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 30px; }
+#nosc .card { max-width: 440px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+#nosc h2 { font: 500 26px/1.25 var(--serif); }
+#nosc p { color: var(--muted); font-size: 15px; line-height: 1.55; }
+.big { height: 50px; padding: 0 22px; border-radius: 12px; background: var(--accent); color: #0b1424; font-weight: 700; font-size: 15px; }
+
+/* ---------- drawers and sheets ---------- */
+.sheet { position: absolute; inset: 0; z-index: 20; background: var(--desk); display: flex; flex-direction: column; touch-action: pan-y; }
+.sh-head { display: flex; align-items: center; gap: 10px; height: var(--bar-h); padding: 0 12px 0 20px; border-bottom: 1px solid var(--line); background: #0f1217; flex: none; }
+.sh-head h2 { flex: 1; font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.btn { height: 42px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); padding: 0 16px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #0b1424; }
+.sh-body { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+/* scenes */
+#sceneList { max-width: 760px; margin: 0 auto; padding: 8px 18px 60px; }
+.g-part { font: 500 20px var(--serif); padding: 22px 4px 4px; }
+.g-act { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 14px 4px 2px; }
+.g-seq { font-size: 13px; color: var(--faint); padding: 10px 4px 4px; }
+.sc { width: 100%; display: grid; grid-template-columns: 38px 1fr auto auto; gap: 12px; align-items: center; text-align: left; padding: 13px 12px; border-radius: 12px; min-height: 54px; }
+.sc:active { background: var(--hover); }
+.sc[aria-current="true"] { background: var(--accent-soft); }
+.sc .n { color: var(--faint); font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.sc .t { font: 500 17px/1.3 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc .t small { display: block; font: 13px var(--ui); color: var(--faint); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+.sc .w { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st { font-size: 10px; font-weight: 700; letter-spacing: .08em; padding: 3px 7px; border-radius: 5px; background: #262c37; color: var(--muted); }
+.st.leaning { background: rgba(245,158,11,0.16); color: #fbbf24; }
+.st.locked { background: var(--written-soft); color: var(--written); }
+.sc-empty { color: var(--muted); padding: 30px 6px; line-height: 1.55; }
+.new-sc { margin: 24px 4px 0; }
+
+/* review */
+#review .sh-body { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 18px; }
+#rv-text { flex: 1; min-height: 0; width: 100%; max-width: 46em; resize: none; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); color: var(--ink);
+  padding: 18px 20px; font: 400 calc(var(--doc-size) * .9)/1.62 var(--serif); -webkit-user-select: text; user-select: text; touch-action: pan-y; }
+.sh-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--line); flex: none; }
+.count { font: 500 13px var(--ui); color: var(--muted); font-variant-numeric: tabular-nums; flex: 1; min-width: 10em; }
+#rv-msg { font: 500 13px var(--ui); color: var(--accent); width: 100%; }
+#rv-msg:empty { display: none; }
+
+/* settings */
+.set { max-width: 640px; margin: 0 auto; padding: 8px 20px 40px; display: flex; flex-direction: column; }
+.row { display: grid; grid-template-columns: 1fr auto; gap: 6px 18px; align-items: center; padding: 16px 2px; border-bottom: 1px solid var(--line); }
+.row label { font: 600 15px var(--ui); }
+.row .note { grid-column: 1 / -1; font: 400 13px/1.45 var(--ui); color: var(--muted); }
+.row output { font: 500 14px var(--ui); font-variant-numeric: tabular-nums; color: var(--muted); min-width: 3.5em; text-align: right; }
+.rng { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; }
+.rng input { flex: 1; accent-color: var(--accent); }
+select { height: 42px; border-radius: 10px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font: 500 15px var(--ui); padding: 0 10px; }
+.sw { appearance: none; -webkit-appearance: none; width: 52px; height: 32px; border-radius: 999px; background: #323a47; position: relative; transition: background .15s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #e9edf4; box-shadow: 0 1px 2px var(--shadow); transition: transform .15s; }
+.sw:checked { background: var(--accent); } .sw:checked::after { transform: translateX(20px); }
+
+#toast { position: absolute; z-index: 40; bottom: 22px; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 12px; max-width: calc(100% - 40px);
+  background: #232a35; border: 1px solid #3a4352; border-radius: 12px; padding: 10px 12px 10px 16px; box-shadow: 0 10px 30px rgba(0,0,0,.5); font-size: 14px; }
+#toast.on { display: flex; }
+#toast button { color: var(--accent); font-weight: 600; min-height: 36px; padding: 0 6px; }
+@media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7; } .sw, .sw::after, .meter i { transition: none; } }
+</style>
+</head>
+<body class="side-left">
+<header id="bar">
+  <button class="scene-btn" id="scenesBtn" aria-label="Choose a scene">
+    <svg class="i" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+    <span class="no" id="sceneNo"></span><b id="sceneTitle">Choose a scene</b>
+  </button>
+  <span id="meta"></span>
+  <span class="spacer"></span>
+  <button class="tb" id="beatsBtn" aria-pressed="true"><svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><path d="M11 6h9M11 12h9M11 18h6"/></svg>Beats</button>
+  <button class="tb" id="reviewBtn"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg>Review</button>
+  <button class="tb" id="settingsBtn" aria-label="Settings"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg></button>
+  <button class="tb" id="focusBtn" aria-label="Clear the desk" title="Hide the room rail"><svg class="i" viewBox="0 0 24 24" id="focusIcon"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+</header>
+
+<aside id="panel" aria-label="Beats for this scene">
+  <div class="p-head"><h2>Beats<span id="beatCount"></span></h2><button class="tb" id="editBeats">Edit</button></div>
+  <div class="meter"><i id="meterFill"></i></div>
+  <ol id="beats"></ol>
+</aside>
+
+<section id="desk">
+  <div id="doc" aria-label="Manuscript"><div class="col"><div class="ms-head" id="msHead"></div><div id="text"></div></div></div>
+  <div id="box" aria-label="Writing pad">
+    <div id="padbar">
+      <button class="pb grip" id="move" aria-label="Move pad" title="Drag to move">
+        <svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-2.5 2.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></svg>Move</button>
+      <div class="sep"></div>
+      <button class="pb" id="undo" aria-label="Undo"><svg class="i" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg>Undo</button>
+      <button class="pb" id="para" aria-label="New paragraph"><svg class="i" viewBox="0 0 24 24"><path d="M13 4v16M17 4v16M19 4H9.5a4.5 4.5 0 000 9H13"/></svg>New ¶</button>
+      <div id="status" role="status" aria-live="polite"></div>
+      <button class="pb mode" id="auto" aria-label="Automatic or manual sending"></button>
+      <button class="pb" id="send" aria-label="Send to the manuscript"><svg class="i" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>Send</button>
+      <button class="pb grip" id="size" aria-label="Resize pad" title="Drag to resize"><svg class="i" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
+    </div>
+    <div id="ink-wrap">
+      <canvas id="ink"></canvas>
+      <textarea id="scribble" aria-label="Scribble writing area" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false" inputmode="none"></textarea>
+      <div id="hint"></div>
+    </div>
+  </div>
+  <div id="nosc" hidden><div class="card"><h2>Pick a scene to write</h2><p>Your words go into that scene's manuscript, with its beats beside you to tick off as you go.</p><button class="big" id="pickBig">Choose a scene</button></div></div>
+</section>
+
+<section class="sheet" id="scenes" hidden aria-label="Scenes">
+  <div class="sh-head"><h2 id="scenesTitle">Scenes</h2><button class="btn primary" id="scenesDone">Done</button></div>
+  <div class="sh-body"><div id="sceneList"></div></div>
+</section>
+
+<section class="sheet" id="review" hidden aria-label="Review">
+  <div class="sh-head"><h2>Review · fix any misreads</h2><button class="btn primary" id="rvDone">Done</button></div>
+  <div class="sh-body"><textarea id="rv-text" aria-label="Manuscript text" spellcheck="true"></textarea></div>
+  <div class="sh-foot"><span class="count" id="rvCount"></span><button class="btn" id="rvCopy">Copy text</button><button class="btn" id="rvTxt">Save .txt</button><div id="rv-msg" role="status"></div></div>
+</section>
+
+<section class="sheet" id="settings" hidden aria-label="Settings">
+  <div class="sh-head"><h2>Writing room settings</h2><button class="btn primary" id="stDone">Done</button></div>
+  <div class="sh-body"><div class="set">
+    <div class="row"><label for="st-engine">Handwriting reader</label>
+      <select id="st-engine"><option value="scribble">Apple Scribble</option><option value="google">Google</option></select>
+      <div class="note">Apple Scribble reads on the iPad itself and works offline. Turn it on in iPad Settings › Apple Pencil › Scribble. Google's free reader shows your ink and turns it into text after the pause; it needs an internet connection.</div></div>
+    <div class="row"><label for="st-auto">Send automatically</label><input type="checkbox" class="sw" id="st-auto">
+      <div class="note">On: text moves up into the manuscript by itself after the pause. Off (manual): it waits in the pad until you tap Send or New ¶. The Auto / Manual button on the pad does the same.</div></div>
+    <div class="row"><label for="st-spause">Scribble pause</label><output id="st-spause-out"></output>
+      <div class="rng"><input type="range" id="st-spause" min="0.25" max="3" step="0.25"></div>
+      <div class="note">How long converted text stays in the pad before it moves up.</div></div>
+    <div class="row"><label for="st-pause">Ink pause (Google reader)</label><output id="st-pause-out"></output>
+      <div class="rng"><input type="range" id="st-pause" min="1" max="5" step="0.5"></div></div>
+    <div class="row"><label for="st-pencil">Apple Pencil only</label><input type="checkbox" class="sw" id="st-pencil">
+      <div class="note">Fingers and palms never write on the pad. Turn off to write with a finger.</div></div>
+    <div class="row"><label for="st-rules">Guide lines</label><input type="checkbox" class="sw" id="st-rules"></div>
+    <div class="row"><label for="st-ink">Ink thickness</label><output id="st-ink-out"></output>
+      <div class="rng"><input type="range" id="st-ink" min="1.5" max="5" step="0.5"></div></div>
+    <div class="row"><label for="st-size">Manuscript text size</label><output id="st-size-out"></output>
+      <div class="rng"><input type="range" id="st-size" min="16" max="32" step="1"></div></div>
+    <div class="row"><label for="st-side">Beat panel side</label>
+      <select id="st-side"><option value="left">Left</option><option value="right">Right</option></select>
+      <div class="note">Put it on the side away from your writing hand so your palm doesn't tap it.</div></div>
+    <div class="row"><label>Writing pad</label><button class="btn" id="st-reset">Reset pad</button>
+      <div class="note">Puts the pad back in the middle of the desk at its usual size.</div></div>
+  </div></div>
+</section>
+<div id="toast" role="status"><span id="toastMsg"></span><button id="toastBtn" hidden></button></div>
+
+<script src="manuscripts.js"></script>
+<script>
+(() => {
+'use strict';
+/* =====================================================================
+   iStory writing room: Scribe Pad at the desk.
+   Writing goes into the open scene's manuscript in the studio's own store (rooms/manuscripts.js),
+   so word counts, the Beat room and Drive sync all see it, and the laptop's writing room opens it as typed sheets.
+   ===================================================================== */
+const Story = parent.Story, Shell = parent.Shell, WS = parent.WritingStore, MS = window.IStoryMS;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const OWNER = 'istory-' + MS.uid();
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const plural = (n, w) => `${n.toLocaleString()} ${w}${n === 1 ? '' : 's'}`;
+
+/* ---------------- state ---------------- */
+const DEFAULTS = { auto: true, pause: 2.5, spause: 0.25, pencilOnly: true, rules: true, ink: 2.5, size: 21, engine: 'scribble', side: 'left' };
+const S = {
+  set: Object.assign({}, DEFAULTS, LS.get('istory_write', {})),
+  box: LS.get('istory_pad', null),
+  panelOpen: LS.get('istory_panel', { landscape: true, portrait: false }),
+  sceneId: null, entryId: null, lines: [], baseRaw: '', loaded: false,
+  strokes: [], live: new Map(), queue: [], seq: 0, history: [],
+  dirty: false, saving: null, again: false, beatView: null
+};
+const portrait = () => innerHeight > innerWidth;
+const panelOpen = () => !!S.panelOpen[portrait() ? 'portrait' : 'landscape'];
+const sc = () => S.sceneId ? Story.scene(S.sceneId) : null;
+function sceneLabel(s) { const n = Story.numbers().scene.get(s.id); return (n ? `Scene ${n}: ` : s.wip ? 'WIP: ' : '') + (s.title || 'Untitled scene'); }
+
+/* ---------------- layout ---------------- */
+const box = $('box'), desk = $('desk'), docEl = $('doc'), wrap = $('ink-wrap'), cv = $('ink'), ctx = cv.getContext('2d');
+function deskSize() { const r = desk.getBoundingClientRect(); return { W: r.width, H: r.height }; }
+function defaultBox() {
+  const { W, H } = deskSize();
+  const w = Math.round(Math.min(W - 48, 1000)), h = Math.round(Math.min(Math.max(H * .34, 230), 400));
+  return { x: Math.round((W - w) / 2), y: Math.round(H * .42), w, h };
+}
+function clampBox() {
+  const { W, H } = deskSize(), b = S.box;
+  b.w = Math.max(300, Math.min(b.w, W - 16));
+  b.h = Math.max(170, Math.min(b.h, H - 60));
+  b.x = Math.max(8, Math.min(b.x, W - b.w - 8));
+  b.y = Math.max(40, Math.min(b.y, H - b.h - 8));
+}
+function layout() {
+  document.body.classList.toggle('panel', panelOpen());
+  document.body.classList.toggle('side-left', S.set.side !== 'right');
+  document.body.classList.toggle('side-right', S.set.side === 'right');
+  $('panel').hidden = !panelOpen();
+  $('beatsBtn').setAttribute('aria-pressed', String(panelOpen()));
+  if (!S.box) S.box = defaultBox();
+  clampBox();
+  const b = S.box, { H } = deskSize();
+  box.style.left = b.x + 'px'; box.style.top = b.y + 'px'; box.style.width = b.w + 'px'; box.style.height = b.h + 'px';
+  docEl.style.bottom = Math.max(0, H - b.y + 12) + 'px';
+  const col = docEl.firstElementChild; col.style.marginLeft = b.x + 'px'; col.style.width = b.w + 'px';
+}
+function applySettings() {
+  document.body.classList.toggle('no-rules', !S.set.rules);
+  document.documentElement.style.setProperty('--doc-size', S.set.size + 'px');
+}
+
+/* ---------------- ink ---------------- */
+let dpr = 1;
+function sizeCanvas() {
+  dpr = window.devicePixelRatio || 1;
+  const r = wrap.getBoundingClientRect();
+  cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+  redraw();
+}
+const strokeColor = () => getComputedStyle(document.documentElement).getPropertyValue('--stroke').trim() || '#c9d6f7';
+function seg(c, a, b, scale, base) { c.lineWidth = base * (0.55 + 0.9 * (b[3] ?? .5)) * scale; c.beginPath(); c.moveTo(a[0] * scale, a[1] * scale); c.lineTo(b[0] * scale, b[1] * scale); c.stroke(); }
+function drawStroke(c, st, scale, base) {
+  const p = st.pts;
+  if (p.length === 1) { c.beginPath(); c.arc(p[0][0] * scale, p[0][1] * scale, base * .7 * scale, 0, 7); c.fill(); return; }
+  for (let i = 1; i < p.length; i++) seg(c, p[i - 1], p[i], scale, base);
+}
+function prep(c, color) { c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = color; c.fillStyle = color; }
+function redraw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  prep(ctx, strokeColor());
+  for (const st of S.strokes) drawStroke(ctx, st, dpr, S.set.ink);
+  for (const st of S.live.values()) drawStroke(ctx, st, dpr, S.set.ink);
+}
+const pt = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top, e.timeStamp || performance.now(), e.pressure || .5]; };
+const accepts = (e) => !S.set.pencilOnly || e.pointerType === 'pen' || e.pointerType === 'mouse';
+let fuseTimer = null;
+function stopFuse() { clearTimeout(fuseTimer); fuseTimer = null; }
+function runFuse(ms, fn) { stopFuse(); fuseTimer = setTimeout(fn, ms); }
+function startFuse() { stopFuse(); if (!S.strokes.length || !S.set.auto) return; runFuse(S.set.pause * 1000, flushInk); }
+cv.addEventListener('pointerdown', (e) => {
+  if (!accepts(e) || !S.sceneId) return;
+  e.preventDefault(); stopFuse();
+  try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+  S.live.set(e.pointerId, { pts: [pt(e)] });
+  $('hint').hidden = true; redraw();
+});
+cv.addEventListener('pointermove', (e) => {
+  const st = S.live.get(e.pointerId); if (!st) return;
+  e.preventDefault();
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  prep(ctx, strokeColor());
+  for (const ev of (evs.length ? evs : [e])) {
+    const p = pt(ev), prev = st.pts[st.pts.length - 1];
+    if (Math.abs(p[0] - prev[0]) + Math.abs(p[1] - prev[1]) < .4) continue;
+    st.pts.push(p); seg(ctx, prev, p, dpr, S.set.ink);
+  }
+});
+function endStroke(e) { const st = S.live.get(e.pointerId); if (!st) return; S.live.delete(e.pointerId); S.strokes.push(st); if (!S.live.size) startFuse(); }
+cv.addEventListener('pointerup', endStroke);
+cv.addEventListener('pointercancel', endStroke);
+
+/* ---------------- Scribble: Apple's reader fills an always-empty text field ---------------- */
+const sb = $('scribble');
+let composing = false;
+const mode = () => S.set.engine === 'google' ? 'ink' : 'scribble';
+function applyMode() {
+  const m = mode(), was = document.body.classList.contains('mode-scribble');
+  if (was && m !== 'scribble') sbFlush();
+  if (!was && m === 'scribble' && S.strokes.length) flushInk();
+  document.body.classList.toggle('mode-scribble', m === 'scribble');
+  $('hint').textContent = m === 'scribble' ? 'Write with Apple Pencil. Scribble turns it into text.' : (S.set.pencilOnly ? 'Write anywhere in here with Apple Pencil' : 'Write anywhere in here');
+  sb.disabled = !S.sceneId;
+}
+function sbSchedule() { stopFuse(); if (!sb.value || !S.set.auto) return; runFuse(S.set.spause * 1000, sbFlush); }
+function sbFlush() {
+  stopFuse();
+  if (composing) { sbSchedule(); return; }
+  const v = sb.value; sb.value = '';
+  if (!v || !S.sceneId) return;
+  v.split('\n').forEach((t, i) => {
+    if (i > 0) S.queue.push({ seq: ++S.seq, kind: 'break', status: 'done' });
+    t = t.replace(/\s+/g, ' ').trim();
+    if (t) S.queue.push({ seq: ++S.seq, kind: 'ink', status: 'done', text: t });
+  });
+  drain();
+}
+sb.addEventListener('input', () => { $('hint').hidden = true; sbSchedule(); });
+sb.addEventListener('compositionstart', () => { composing = true; stopFuse(); });
+sb.addEventListener('compositionend', () => { composing = false; sbSchedule(); });
+sb.addEventListener('touchstart', (e) => {
+  if (!S.set.pencilOnly) return;
+  const ts = Array.from(e.changedTouches);
+  if (ts.length && ts.every(t => t.touchType !== 'stylus')) e.preventDefault();   // palm and fingers stay out
+}, { passive: false });
+
+/* ---------------- queue: writing → manuscript, in the order it was written ---------------- */
+function flushInk() {
+  stopFuse();
+  if (!S.strokes.length) return;
+  const r = wrap.getBoundingClientRect();
+  const item = { seq: ++S.seq, kind: 'ink', strokes: S.strokes, w: r.width, h: r.height, status: 'pending', text: '' };
+  S.strokes = []; redraw();
+  S.queue.push(item); renderDoc();
+  recognizeItem(item);
+}
+function sendNow() { if (mode() === 'scribble') sbFlush(); else flushInk(); }
+function addBreak() {
+  if (S.strokes.length) flushInk();
+  if (sb.value) sbFlush();
+  S.queue.push({ seq: ++S.seq, kind: 'break', status: 'done' });
+  drain();
+}
+async function recognizeItem(item) {
+  item.status = 'pending'; item.err = null; renderDoc(); setStatus('Reading your handwriting…');
+  try { item.text = await recognizeGoogle(item); item.status = 'done'; }
+  catch (err) { item.status = 'error'; item.err = err && err.userMessage || 'Couldn’t read this'; }
+  drain();
+}
+function lastLine() {
+  if (!S.lines.length) S.lines.push({ ind: MS.usualIndent(S.lines), text: '' });
+  return S.lines[S.lines.length - 1];
+}
+function joinText(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  if (/^[.,;:!?)\]”’'"…]/.test(b) && !/^["“]\s?\w/.test(b)) return a + b;
+  if (/\w-$/.test(a) && /^[a-z]/.test(b)) return a.slice(0, -1) + b;
+  return a + ' ' + b;
+}
+function drain() {
+  let changed = false;
+  while (S.queue.length && S.queue[0].status === 'done') {
+    const it = S.queue.shift();
+    if (it.kind === 'break') {
+      const l = lastLine();
+      if (l.text.trim()) { S.lines.push({ ind: MS.usualIndent(S.lines), text: '' }); S.history.push({ type: 'break', i: S.lines.length - 1 }); changed = true; }
+    } else if (it.text) {
+      const l = lastLine(), i = S.lines.length - 1;
+      S.history.push({ type: 'text', i, prev: l.text });
+      l.text = joinText(l.text, it.text); changed = true;
+    }
+  }
+  if (changed) touch(true);
+  const errs = S.queue.filter(q => q.status === 'error').length, pend = S.queue.filter(q => q.status === 'pending').length;
+  setStatus(errs ? 'A line couldn’t be read. See the manuscript.' : pend ? 'Reading your handwriting…' : '', !!errs);
+  renderDoc(changed);
+}
+function undo() {
+  if (S.live.size) return;
+  if (sb.value) { sb.value = sb.value.replace(/\s*\S+\s*$/, ''); sbSchedule(); return; }
+  if (S.strokes.length) { S.strokes.pop(); redraw(); if (S.strokes.length) startFuse(); else stopFuse(); return; }
+  const h = S.history.pop();
+  if (!h) { setStatus('Nothing to undo'); setTimeout(() => setStatus(''), 1400); return; }
+  if (h.type === 'text' && S.lines[h.i]) S.lines[h.i].text = h.prev;
+  if (h.type === 'break' && S.lines[h.i] && !S.lines[h.i].text.trim()) S.lines.splice(h.i, 1);
+  touch(); renderDoc();
+}
+
+/* ---------------- Google's reader (ink mode) ---------------- */
+function bbox(strokes) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of strokes) for (const p of s.pts) { x0 = Math.min(x0, p[0]); y0 = Math.min(y0, p[1]); x1 = Math.max(x1, p[0]); y1 = Math.max(y1, p[1]); }
+  return { x0, y0, x1, y1 };
+}
+function inkImage(item, maxW) {
+  const b = bbox(item.strokes), pad = 28, w = b.x1 - b.x0 + pad * 2, h = b.y1 - b.y0 + pad * 2, sc2 = Math.min(2, (maxW || 1600) / w);
+  const c = document.createElement('canvas'); c.width = Math.max(8, Math.round(w * sc2)); c.height = Math.max(8, Math.round(h * sc2));
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.translate((pad - b.x0) * sc2, (pad - b.y0) * sc2); prep(g, '#000');
+  for (const s of item.strokes) drawStroke(g, s, sc2, Math.max(2.4, S.set.ink));
+  return c;
+}
+function splitLines(strokes) {
+  const rows = [];
+  for (const it of strokes.map(s => ({ s, b: bbox([s]) })).sort((a, b) => a.b.y0 - b.b.y0)) {
+    const cy = (it.b.y0 + it.b.y1) / 2;
+    let row = rows.find(r => cy >= r.y0 - 6 && cy <= r.y1 + 6);
+    if (!row) { row = { y0: it.b.y0, y1: it.b.y1, items: [] }; rows.push(row); }
+    row.items.push(it); row.y0 = Math.min(row.y0, it.b.y0); row.y1 = Math.max(row.y1, it.b.y1);
+  }
+  return rows.sort((a, b) => a.y0 - b.y0).map(r => r.items.map(i => i.s).sort((a, b) => a.pts[0][2] - b.pts[0][2]));
+}
+const fail = (msg) => Object.assign(new Error(msg), { userMessage: msg });
+async function recognizeGoogle(item) {
+  let out = '', ctxText = MS.serialize(S.lines).slice(-200);
+  for (const line of splitLines(item.strokes)) {
+    const t0 = line[0].pts[0][2];
+    const ink = line.map(s => [s.pts.map(p => Math.round(p[0])), s.pts.map(p => Math.round(p[1])), s.pts.map(p => Math.round(p[2] - t0))]);
+    let res;
+    try {
+      const r = await fetch('https://inputtools.google.com/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ options: 'enable_pre_space', requests: [{ writing_guide: { writing_area_width: Math.round(item.w), writing_area_height: Math.round(item.h) }, ink, language: 'en', pre_context: ctxText.slice(-20) }] })
+      });
+      res = await r.json();
+    } catch (e) { throw fail('Couldn’t reach Google’s handwriting reader'); }
+    if (!res || res[0] !== 'SUCCESS') throw fail('Google’s reader returned an error');
+    const cand = (res[1] && res[1][0] && res[1][0][1] && res[1][0][1][0]) || '';
+    out = joinText(out, cand.trim()); ctxText = joinText(ctxText, cand.trim());
+  }
+  return out;
+}
+
+/* ---------------- the manuscript on screen ---------------- */
+const textEl = $('text');
+function el(tag, cls, txt) { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
+function renderDoc(scroll) {
+  const s = sc();
+  $('msHead').textContent = s ? sceneLabel(s) : '';
+  textEl.textContent = '';
+  if (!s) return;
+  const lines = S.lines, usual = MS.usualIndent(lines);
+  if (!lines.some(l => l.text) && !S.queue.length) {
+    const e = el('div', 'empty-ms');
+    e.append(el('b', null, 'This scene’s pages start here. '), document.createTextNode(mode() === 'scribble'
+      ? (S.set.auto ? 'Write in the pad below with Apple Pencil. Scribble turns your writing into text, and a moment later it moves up here, like paper feeding through a typewriter.'
+        : 'Write in the pad below with Apple Pencil. Scribble turns your writing into text; tap Send when you’re ready and it moves up here.')
+      : `Write in the pad below, then lift your Pencil. After a ${S.set.pause}-second pause the ink turns into text and moves up here.`));
+    textEl.append(e);
+    return;
+  }
+  let p = null;
+  for (const l of lines) {
+    const centered = l.text && l.ind >= 12 && l.text.length < 30;
+    p = el('p', !l.text ? 'blank' : centered ? 'center' : l.ind > 0 ? 'ind' : '', l.text);
+    textEl.append(p);
+  }
+  if (!p) { p = el('p', 'ind'); textEl.append(p); }
+  if (lines.length && !lines[lines.length - 1].text) { p.className = 'ind'; p.append(el('span', 'para-mark', '¶')); }
+  for (const it of S.queue) {
+    if (it.kind === 'break') { p = el('p', 'ind'); p.append(el('span', 'para-mark', '¶')); textEl.append(p); continue; }
+    if (it.status === 'pending') { const c = el('span', 'chip'), d = el('span', 'dots'); d.append(el('i'), el('i'), el('i')); c.append(d); p.append(c); }
+    else if (it.status === 'error') {
+      const c = el('span', 'chip err'), img = new Image(); img.alt = 'Your handwriting'; img.src = inkImage(it, 360).toDataURL('image/png');
+      const retry = el('button', null, 'Retry'), drop = el('button', null, 'Discard');
+      retry.onclick = () => recognizeItem(it);
+      drop.onclick = () => { S.queue.splice(S.queue.indexOf(it), 1); drain(); };
+      c.append(img, document.createTextNode(it.err), retry, drop); p.append(c);
+    } else if (it.status === 'done' && it.text) p.append(document.createTextNode((p.textContent ? ' ' : '') + it.text));
+  }
+  if (scroll !== false) requestAnimationFrame(() => { docEl.scrollTop = docEl.scrollHeight; });
+}
+function setStatus(msg, warn) { const s = $('status'); s.textContent = msg || ''; s.classList.toggle('warn', !!warn); }
+let metaState = '';
+function renderMeta(state) {
+  if (state !== undefined) metaState = state;
+  const m = $('meta');
+  if (!S.sceneId) { m.textContent = ''; return; }
+  const w = MS.words(MS.serialize(S.lines));
+  m.textContent = `${plural(w, 'word')}${metaState ? ' · ' + metaState : ''}`;
+  m.classList.toggle('warn', /Not saved/.test(metaState));
+}
+
+/* ---------------- saving into the studio's manuscripts ---------------- */
+let saveT = 0;
+function touch(soon) { S.dirty = true; renderMeta('Saving…'); clearTimeout(saveT); saveT = setTimeout(save, soon ? 600 : 900); }
+async function save() {
+  clearTimeout(saveT);
+  if (!S.dirty || !S.sceneId) return;
+  if (S.saving) { S.again = true; return S.saving; }
+  if (parent.__kotwReplacing) return;   // a newer copy from Drive is replacing the manuscripts
+  S.dirty = false;
+  const raw = MS.serialize(S.lines), sceneId = S.sceneId, scene = Story.scene(sceneId);
+  S.saving = (async () => {
+    try {
+      const w = await WS.read();
+      const meta = w.meta || { format: 6, settings: {}, current: null, rev: 0, owner: OWNER, savedAt: 0, pendingActions: { manuscriptId: null, actions: [] }, manuscripts: [] };
+      if (!Array.isArray(meta.manuscripts)) meta.manuscripts = [];
+      let entry = (S.entryId && meta.manuscripts.find(m => m.id === S.entryId)) || MS.sceneEntry(meta, sceneId);
+      if (!entry) {
+        if (!raw) { renderMeta(''); return; }
+        entry = { id: MS.uid(), title: '', note: '', sceneId, stage: 'rough', exportLog: [], created: Date.now(), updated: Date.now(), pageIndex: 0, pageIds: [], longhand: null };
+        meta.manuscripts.push(entry);
+        if (!meta.current) meta.current = entry.id;
+      }
+      if (sceneId === S.sceneId) S.entryId = entry.id;
+      const pl = MS.plan(entry, w.pages, raw, meta.settings);
+      entry.pageIds = pl.pageIds; entry.pageIndex = Math.max(0, pl.pageIds.length - 1); entry.updated = Date.now();
+      if (scene) entry.title = sceneLabel(scene);
+      // keystrokes the laptop's typewriter still had waiting for this manuscript belonged to its old sheets
+      if (meta.pendingActions && meta.pendingActions.manuscriptId === entry.id) meta.pendingActions = { manuscriptId: entry.id, actions: [] };
+      meta.format = 6; meta.rev = (+meta.rev || 0) + 1; meta.owner = OWNER; meta.savedAt = Date.now();
+      await WS.write(meta, Object.fromEntries(pl.fresh.map(p => [p.id, p])), pl.removed, false);
+      if (sceneId === S.sceneId) S.baseRaw = raw;
+      Story.setDraftWords(sceneId, MS.words(raw), 'write');
+      try { parent.CloudSync.changed(); } catch (e) {}
+      if (sceneId === S.sceneId) renderMeta(S.dirty ? 'Saving…' : 'Saved');
+    } catch (e) {
+      S.dirty = true;
+      renderMeta('Not saved — use More › Download a backup');
+      toast('Your writing couldn’t be saved: ' + ((e && e.message) || 'unknown problem') + '. Download a backup from More.', null, null, 9000);
+    } finally {
+      S.saving = null;
+      if (S.again) { S.again = false; save(); }
+    }
+  })();
+  return S.saving;
+}
+// put anything still in the pad into the manuscript and save it
+async function settle() {
+  if (S.strokes.length) flushInk();
+  if (sb.value) sbFlush();
+  for (let i = 0; i < 60 && S.queue.some(q => q.status === 'pending'); i++) await new Promise(r => setTimeout(r, 150));
+  S.queue = S.queue.filter(q => q.status === 'done'); drain();
+  await save();
+  if (S.saving) await S.saving;
+}
+
+/* ---------------- opening a scene ---------------- */
+async function openScene(id, quiet) {
+  const s = Story.scene(id); if (!s) return;
+  if (S.sceneId === id && S.loaded) return;
+  await settle();
+  if (s.bookId !== Story.bookId) Story.setBook(s.bookId);
+  let w = { meta: null, pages: {} };
+  try { w = await WS.read(); } catch (e) { toast('The manuscripts couldn’t be opened: ' + e.message); }
+  const entry = MS.sceneEntry(w.meta, s.id), r = MS.readEntry(entry, w.pages);
+  S.sceneId = id; S.entryId = entry ? entry.id : null; S.baseRaw = r.raw; S.loaded = true;
+  S.lines = r.raw ? MS.parse(r.raw) : [];
+  S.history = []; S.queue = []; S.beatView = null; S.dirty = false;
+  LS.set('istory_write_scene', id);
+  $('nosc').hidden = true; box.hidden = false; docEl.hidden = false;
+  renderAll();
+  renderMeta(r.raw ? 'Saved' : '');
+  if (!quiet) toast(`Writing “${s.title}”`, null, null, 2200);
+}
+// the store changed in another window (another iStory, or the studio): show it if nothing is waiting here
+async function reloadFromStore() {
+  if (!S.sceneId || S.dirty || S.saving || S.queue.length || sb.value || S.strokes.length) return;
+  const w = await WS.read(), entry = MS.sceneEntry(w.meta, S.sceneId), r = MS.readEntry(entry, w.pages);
+  if (r.raw === S.baseRaw) return;
+  S.entryId = entry ? entry.id : null; S.baseRaw = r.raw; S.lines = r.raw ? MS.parse(r.raw) : []; S.history = [];
+  renderDoc(); renderMeta('Updated');
+}
+try { const bc = new BroadcastChannel('underwood-quiet-v1'); bc.onmessage = (e) => { if (e.data && e.data.owner && e.data.owner !== OWNER) reloadFromStore().catch(() => {}); }; } catch (e) {}
+
+/* ---------------- the beat panel ---------------- */
+function curBeat(bs) {
+  const nx = bs.findIndex(b => !b.done), v = S.beatView;
+  if (v && v.scene === S.sceneId && v.i < bs.length) return v.i;
+  S.beatView = null; return nx;
+}
+function renderBeats() {
+  const s = sc(), list = $('beats');
+  if (!s) { $('beatCount').textContent = ''; $('meterFill').style.width = '0'; list.innerHTML = ''; return; }
+  const bs = s.beats || [], done = bs.filter(b => b.done).length, i = curBeat(bs);
+  $('beatCount').textContent = bs.length ? `${done} of ${bs.length} written` : '';
+  $('meterFill').style.width = bs.length ? (done / bs.length * 100) + '%' : '0';
+  if (!bs.length) {
+    list.innerHTML = `<li class="p-empty">No beats planned for this scene yet.<div class="row"><button class="pill-btn" data-go="beats">Plan beats</button><button class="pill-btn" data-go="sheets">Use a sheet</button></div></li>`;
+    return;
+  }
+  list.innerHTML = bs.map((b, k) => {
+    const cur = k === i, more = cur ? `<div class="bt-more">${b.notes && b.notes.trim() ? `<div class="note">${esc(b.notes.trim())}</div>` : ''}${(b.dialogue || []).filter(d => (d.line || '').trim()).map(d => `<div class="dl">${d.speaker ? `<b>${esc(d.speaker)}</b>` : ''}${esc(d.line)}</div>`).join('')}</div>` : '';
+    return `<li class="bt${b.done ? ' done' : ''}${cur ? ' cur' : ''}" data-i="${k}">
+      <button class="tick" data-tick="${k}" aria-label="Beat ${k + 1}: ${b.done ? 'written, tap to undo' : 'mark written'}">${b.done ? '✓' : k + 1}</button>
+      <div><button class="bt-body" data-view="${k}"><b>${esc(b.label || 'Beat ' + (k + 1))}</b><span>${esc(b.text || b.prompt || '')}</span>${more}</button>
+      ${cur ? `<button class="next-btn${b.done ? ' undo' : ''}" data-tick="${k}">${b.done ? 'Written · tap to undo' : (k < bs.length - 1 ? '✓ Written · next beat' : '✓ Written · last beat')}</button>` : ''}</div>
+    </li>`;
+  }).join('') + (i < 0 ? `<li class="p-empty">All ${bs.length} beats are written.</li>` : '');
+  const curEl = list.querySelector('.bt.cur'); if (curEl) curEl.scrollIntoView({ block: 'nearest' });
+}
+$('beats').addEventListener('click', (e) => {
+  const s = sc(); if (!s) return;
+  const go = e.target.closest('[data-go]'); if (go) { go.dataset.go === 'beats' ? Shell.beats(s.id) : Shell.sheets(); return; }
+  const t = e.target.closest('[data-tick]'), v = e.target.closest('[data-view]');
+  if (t) {
+    const b = s.beats[+t.dataset.tick]; if (!b) return;
+    b.done = !b.done;
+    if (b.done) S.beatView = null;   // move on to the next unwritten beat
+    Story.changed('write', { beats: true });
+    renderBeats();
+    if (b.done) toast('Beat marked written.', null, null, 1400);
+  } else if (v) { S.beatView = { scene: s.id, i: +v.dataset.view }; renderBeats(); }
+});
+$('editBeats').onclick = () => { if (S.sceneId) Shell.beats(S.sceneId); };
+
+/* ---------------- scenes ---------------- */
+function renderScenes() {
+  const T = Story.tree(Story.bookId), N = Story.numbers(), drafts = Story.data.drafts || {};
+  $('scenesTitle').textContent = T.book ? Story.bookLabel(T.book) : 'Scenes';
+  const row = (s) => {
+    const w = drafts[s.id] || 0, sub = [s.pov, s.location].filter(Boolean).join(' · ');
+    return `<button class="sc" data-scene="${esc(s.id)}" aria-current="${s.id === S.sceneId}"><span class="n">${N.scene.get(s.id) || (s.wip ? 'WIP' : '')}</span>
+      <span class="t">${esc(s.title || 'Untitled scene')}${sub ? `<small>${esc(sub)}</small>` : ''}</span>
+      <span class="st ${s.status}">${s.status === 'locked' ? 'LOCKED' : s.status === 'leaning' ? 'LEANING' : 'OPEN'}</span>
+      <span class="w">${w ? plural(w, 'word') : '—'}</span></button>`;
+  };
+  let h = '';
+  for (const p of T.parts) {
+    const any = p.acts.some(a => a.sequences.some(q => q.scenes.length));
+    if (!any) continue;
+    h += `<div class="g-part">${esc(Story.partLabel(p.part))}</div>`;
+    for (const a of p.acts) {
+      if (!a.sequences.some(q => q.scenes.length)) continue;
+      h += `<div class="g-act">${esc(Story.actLabel(a.act))}</div>`;
+      for (const q of a.sequences) if (q.scenes.length) h += `<div class="g-seq">${esc(Story.seqLabel(q.seq))}</div>` + q.scenes.map(row).join('');
+    }
+  }
+  if (T.unfiled.length) h += `<div class="g-act">Unfiled</div>` + T.unfiled.map(row).join('');
+  if (!h) h = `<div class="sc-empty">This book has no scenes yet. Add one here, or plan them on the Board.</div>`;
+  h += `<button class="btn new-sc" id="newScene">+ New scene</button>`;
+  $('sceneList').innerHTML = h;
+}
+function openScenes() { renderScenes(); $('scenes').hidden = false; const cur = $('sceneList').querySelector('[aria-current="true"]'); if (cur) cur.scrollIntoView({ block: 'center' }); }
+$('scenesBtn').onclick = openScenes;
+$('pickBig').onclick = openScenes;
+$('scenesDone').onclick = () => { $('scenes').hidden = true; };
+$('sceneList').addEventListener('click', (e) => {
+  if (e.target.closest('#newScene')) {
+    const title = prompt('Title of the new scene (it goes in Unfiled; file it from the Board or Beats):', '');
+    if (title === null) return;
+    const s = Story.addScene({ title: title.trim() || 'Untitled Scene' }, { byPosition: true }, 'write');
+    $('scenes').hidden = true; openScene(s.id); return;
+  }
+  const b = e.target.closest('[data-scene]'); if (!b) return;
+  $('scenes').hidden = true; openScene(b.dataset.scene);
+});
+
+/* ---------------- review: fix misreads in the whole scene ---------------- */
+const rv = $('rv-text');
+function rvCount() { const t = rv.value, n = (t.match(/\S+/g) || []).length, p = t.split(/\n+/).filter(x => x.trim()).length; $('rvCount').textContent = `${plural(n, 'word')} · ${plural(p, 'paragraph')}`; }
+async function openReview() {
+  if (!S.sceneId) { openScenes(); return; }
+  await settle();
+  rv.value = S.lines.map(l => l.text).join('\n');
+  rvCount(); $('rv-msg').textContent = '';
+  $('review').hidden = false;
+}
+function commitReview() {
+  const old = S.lines, usual = MS.usualIndent(old), pool = new Map();
+  old.forEach(l => { if (l.text) { const k = l.text.trim(); if (!pool.has(k)) pool.set(k, []); pool.get(k).push(l.ind); } });
+  const next = rv.value.replace(/\r/g, '').split('\n').map(t => {
+    const text = t.trim(); if (!text) return { ind: 0, text: '' };
+    const q = pool.get(text); return { ind: q && q.length ? q.shift() : usual, text };
+  });
+  while (next.length && !next[next.length - 1].text) next.pop();
+  if (MS.serialize(next) !== MS.serialize(old)) { S.lines = next; S.history = []; touch(); }
+  renderDoc();
+}
+rv.addEventListener('input', rvCount);
+$('reviewBtn').onclick = openReview;
+$('rvDone').onclick = () => { commitReview(); $('review').hidden = true; };
+$('rvCopy').onclick = async () => {
+  try { await navigator.clipboard.writeText(rv.value); $('rv-msg').textContent = 'Text copied.'; }
+  catch (e) { rv.focus(); rv.select(); $('rv-msg').textContent = 'Copying was blocked. The text is selected; use Copy from the menu.'; }
+};
+$('rvTxt').onclick = () => {
+  commitReview();
+  const s = sc(), name = (s ? sceneLabel(s) : 'scene').replace(/[\\/:*?"<>|]+/g, '-').slice(0, 80) + '.txt';
+  const text = (s ? sceneLabel(s) + '\n\n' : '') + S.lines.map(l => l.text).join('\n') + '\n';
+  try { parent.download(text, name, 'text/plain'); $('rv-msg').textContent = 'Choose “Save to Files” to keep it.'; } catch (e) { $('rv-msg').textContent = 'The file couldn’t be made.'; }
+};
+
+/* ---------------- settings ---------------- */
+const st = { engine: $('st-engine'), auto: $('st-auto'), spause: $('st-spause'), pause: $('st-pause'), pencil: $('st-pencil'), rules: $('st-rules'), ink: $('st-ink'), size: $('st-size'), side: $('st-side') };
+function fillSettings() {
+  const s = S.set;
+  st.engine.value = s.engine; st.auto.checked = s.auto; st.spause.value = s.spause; st.pause.value = s.pause; st.pencil.checked = s.pencilOnly;
+  st.rules.checked = s.rules; st.ink.value = s.ink; st.size.value = s.size; st.side.value = s.side;
+  $('st-spause-out').textContent = s.spause + ' s'; $('st-pause-out').textContent = s.pause + ' s';
+  $('st-ink-out').textContent = s.ink + ' pt'; $('st-size-out').textContent = s.size + ' px';
+}
+function readSettings() {
+  const s = S.set;
+  s.engine = st.engine.value; s.auto = st.auto.checked; s.spause = +st.spause.value; s.pause = +st.pause.value; s.pencilOnly = st.pencil.checked;
+  s.rules = st.rules.checked; s.ink = +st.ink.value; s.size = +st.size.value; s.side = st.side.value;
+  LS.set('istory_write', s); setAuto(s.auto); applySettings(); applyMode(); fillSettings(); layout(); sizeCanvas();
+}
+Object.values(st).forEach(i => { i.addEventListener('input', readSettings); i.addEventListener('change', readSettings); });
+$('st-reset').onclick = () => { S.box = defaultBox(); LS.set('istory_pad', S.box); layout(); sizeCanvas(); toast('Pad back in the middle.', null, null, 1600); };
+$('settingsBtn').onclick = () => { fillSettings(); $('settings').hidden = false; };
+$('stDone').onclick = () => { $('settings').hidden = true; renderDoc(false); };
+
+/* ---------------- pad: move, resize, buttons ---------------- */
+function dragHandle(elm, onMove) {
+  let start = null;
+  elm.addEventListener('pointerdown', (e) => { e.preventDefault(); start = { x: e.clientX, y: e.clientY, b: { ...S.box }, id: e.pointerId }; try { elm.setPointerCapture(e.pointerId); } catch (_) {} elm.classList.add('on'); });
+  elm.addEventListener('pointermove', (e) => { if (!start || e.pointerId !== start.id) return; onMove(start.b, e.clientX - start.x, e.clientY - start.y); layout(); });
+  const end = (e) => { if (!start || e.pointerId !== start.id) return; start = null; elm.classList.remove('on'); LS.set('istory_pad', S.box); sizeCanvas(); };
+  elm.addEventListener('pointerup', end); elm.addEventListener('pointercancel', end);
+}
+dragHandle($('move'), (b, dx, dy) => { S.box.x = b.x + dx; S.box.y = b.y + dy; });
+dragHandle($('size'), (b, dx, dy) => { S.box.w = b.w + dx; const nh = Math.max(170, b.h - dy); S.box.y = b.y + (b.h - nh); S.box.h = nh; });
+function paintAuto() {
+  const b = $('auto'), on = S.set.auto;
+  b.textContent = on ? 'Auto' : 'Manual'; b.classList.toggle('auto', on); b.setAttribute('aria-pressed', String(on));
+  b.title = on ? 'Text sends itself after a pause. Tap for manual.' : 'Text waits for Send. Tap for automatic.';
+}
+function setAuto(on) {
+  S.set.auto = on; LS.set('istory_write', S.set); paintAuto();
+  if (on) { if (sb.value) sbSchedule(); else if (S.strokes.length) startFuse(); } else stopFuse();
+}
+$('auto').onclick = () => setAuto(!S.set.auto);
+$('undo').onclick = undo;
+$('para').onclick = () => { if (S.sceneId) addBreak(); };
+$('send').onclick = sendNow;
+
+/* ---------------- bar ---------------- */
+$('beatsBtn').onclick = () => { S.panelOpen[portrait() ? 'portrait' : 'landscape'] = !panelOpen(); LS.set('istory_panel', S.panelOpen); layout(); sizeCanvas(); };
+function paintFocus() { $('focusBtn').setAttribute('aria-pressed', String(!!(Shell && Shell.quiet))); }
+$('focusBtn').onclick = () => { Shell.setQuiet(!Shell.quiet); paintFocus(); };
+
+/* ---------------- toast ---------------- */
+let toastT = 0, toastFn = null;
+function toast(msg, btn, fn, ms) {
+  $('toastMsg').textContent = msg; const b = $('toastBtn'); b.hidden = !btn; b.textContent = btn || ''; toastFn = fn || null;
+  $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), ms || (btn ? 6000 : 3000));
+}
+$('toastBtn').onclick = () => { const f = toastFn; toastFn = null; $('toast').classList.remove('on'); f && f(); };
+
+/* ---------------- everything together ---------------- */
+function renderTitle() {
+  const s = sc();
+  $('sceneNo').textContent = s ? (Story.numbers().scene.get(s.id) ? 'SCENE ' + Story.numbers().scene.get(s.id) : s.wip ? 'WIP' : '') : '';
+  $('sceneTitle').textContent = s ? (s.title || 'Untitled scene') : 'Choose a scene';
+}
+function renderAll() { renderTitle(); renderBeats(); renderDoc(); renderMeta(); applyMode(); }
+Story.subscribe((src, info) => {
+  if (src === 'write' || info.view) return;
+  if (info.drafts && !info.structure) { if (!$('scenes').hidden) renderScenes(); return; }
+  if (S.sceneId && !Story.scene(S.sceneId)) {   // the scene was deleted elsewhere
+    S.sceneId = null; S.loaded = false; S.lines = []; showNoScene(); return;
+  }
+  renderTitle(); renderBeats(); renderDoc(false);
+  if (!$('scenes').hidden) renderScenes();
+});
+function showNoScene() { $('nosc').hidden = false; box.hidden = true; docEl.hidden = true; renderTitle(); renderBeats(); renderMeta(); }
+
+window.__view = {
+  shown(opts = {}) {
+    paintFocus();
+    if (opts.sceneId) { $('scenes').hidden = true; openScene(opts.sceneId); }
+    layout(); sizeCanvas();
+  },
+  openScene, settle,
+  get state() { return S; }
+};
+window.addEventListener('pagehide', () => { if (S.strokes.length || sb.value) settle(); else save(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (sb.value) sbFlush(); save(); } });
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+addEventListener('resize', () => { layout(); });
+new ResizeObserver(sizeCanvas).observe(wrap);
+
+applySettings(); paintAuto(); layout(); fillSettings();
+const last = LS.get('istory_write_scene', null);
+if (last && Story.scene(last)) openScene(last, true); else showNoScene();
+applyMode();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>iStory</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="iStory">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#090b10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Literata:ital,opsz,wght@0,7..72,500;1,7..72,500&display=swap">
+<style>
+/* iStory shell: a slim room rail on the left edge; each room fills the rest of the screen.
+   The rooms keep the studio's dark slate; the rail is the darkest layer so the rooms read as the work surface. */
+:root {
+  --rail-w: 84px;
+  --rail: #090b10; --rail-line: rgba(255,255,255,0.07);
+  --bg: #0c0e14; --surface: #161922; --card: #1e222e; --border: rgba(255,255,255,0.08); --border-hi: rgba(255,255,255,0.22);
+  --text: #f1f3f9; --muted: #9aa2b6; --faint: #636b80; --accent: #38bdf8; --accent-soft: rgba(56,189,248,0.14);
+  --ok: #34d399; --warn: #f59e0b; --danger: #f43f5e;
+  --ui: 'Inter', -apple-system, 'Helvetica Neue', system-ui, sans-serif;
+  --serif: 'Literata', 'Iowan Old Style', Georgia, serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font: 14px/1.4 var(--ui);
+  -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; touch-action: manipulation; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+[hidden] { display: none !important; }
+
+/* ---------- the rail ---------- */
+#rail { position: fixed; z-index: 30; left: 0; top: 0; bottom: 0; width: var(--rail-w); background: var(--rail); border-right: 1px solid var(--rail-line);
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 8px max(12px, env(safe-area-inset-bottom, 0px));
+  transition: transform .28s ease; -webkit-user-select: none; user-select: none; }
+.mark { font: italic 500 19px/1 var(--serif); letter-spacing: .01em; color: var(--text); padding: 6px 0 14px; }
+.mark b { font-style: normal; font-weight: 500; color: var(--accent); }
+.room, .tool { width: 68px; min-height: 62px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .02em; text-align: center; padding: 6px 2px; }
+.room:active, .tool:active { background: rgba(255,255,255,0.06); }
+.room[aria-selected="true"] { background: var(--accent-soft); color: #e0f2fe; }
+.room[aria-selected="true"] svg { color: var(--accent); }
+.spacer { flex: 1; }
+.tool { min-height: 58px; font-weight: 500; }
+.tool .lbl { display: block; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
+#btnBook .lbl { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+#btnCloud.synced svg { color: var(--ok); }
+#btnCloud.reconnect svg { color: var(--warn); }
+#btnCloud.reconnect { color: #fcd34d; }
+.save { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--faint); padding-top: 4px; max-width: 72px; }
+.save span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
+.dot.saving { background: var(--warn); } .dot.error { background: var(--danger); }
+
+/* ---------- rooms ---------- */
+.view { position: fixed; top: 0; bottom: 0; left: var(--rail-w); width: calc(100% - var(--rail-w)); height: 100%; border: 0;
+  visibility: hidden; pointer-events: none; background: var(--bg); transition: left .28s ease, width .28s ease; }
+.view.active { visibility: visible; pointer-events: auto; }
+/* the writing room can put the rail away for a clear desk */
+body.quiet #rail { transform: translateX(-100%); }
+body.quiet .view { left: 0; width: 100%; }
+
+/* ---------- menus, dialogs, toast ---------- */
+.menu { position: fixed; z-index: 60; min-width: 240px; max-width: min(360px, calc(100vw - 110px)); background: var(--card); border: 1px solid var(--border-hi); border-radius: 14px;
+  padding: 6px; display: flex; flex-direction: column; box-shadow: 0 18px 50px rgba(0,0,0,0.55); max-height: calc(100vh - 24px); overflow-y: auto; }
+.menu button { text-align: left; padding: 13px 14px; border-radius: 9px; font-size: 15px; display: flex; align-items: center; gap: 10px; min-height: 46px; }
+.menu button:active { background: rgba(255,255,255,0.07); }
+.menu button[aria-checked="true"] { color: #e0f2fe; background: var(--accent-soft); }
+.menu button[aria-checked="true"]::after { content: "✓"; margin-left: auto; color: var(--accent); }
+.menu hr { border: 0; border-top: 1px solid var(--border); margin: 6px 4px; }
+.menu .head { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 10px 14px 4px; }
+.menu .ver { padding: 8px 14px 6px; font-size: 11px; color: var(--faint); border-top: 1px solid var(--border); margin-top: 4px; }
+.menu button.danger { color: #fda4af; }
+#cloudDlg { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; }
+#cloudDlg .box { background: var(--surface); border: 1px solid var(--border-hi); border-radius: 16px; padding: 22px 24px; max-width: 480px; width: 100%; box-shadow: 0 18px 60px rgba(0,0,0,0.6); }
+#cloudDlg h3 { font-size: 17px; margin-bottom: 10px; }
+#cloudDlg p { color: var(--muted); font-size: 14px; line-height: 1.55; white-space: pre-line; margin-bottom: 18px; }
+#cloudDlg .row { display: flex; gap: 10px; flex-wrap: wrap; }
+#cloudDlg button { min-height: 46px; padding: 10px 16px; border-radius: 10px; border: 1px solid var(--border-hi); background: var(--card); font-weight: 600; }
+#cloudDlg button.primary { background: var(--accent); border-color: var(--accent); color: #04121c; }
+#shellToast { position: fixed; z-index: 70; bottom: 26px; left: calc(var(--rail-w) + (100% - var(--rail-w)) / 2); transform: translateX(-50%);
+  background: var(--card); border: 1px solid var(--border-hi); border-radius: 12px; padding: 11px 16px; font-size: 14px; display: none;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: min(560px, calc(100vw - 120px)); text-align: center; }
+body.quiet #shellToast { left: 50%; }
+#loading { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; gap: 10px; align-items: center; justify-content: center; background: var(--bg); color: var(--muted); }
+#loading .mark { font-size: 34px; padding: 0; }
+@media (prefers-reduced-motion: reduce) { #rail, .view { transition: none; } }
+</style>
+</head>
+<body>
+<nav id="rail" aria-label="Rooms">
+  <div class="mark" aria-label="iStory"><b>i</b>Story</div>
+  <button class="room" data-view="board" role="tab" aria-selected="false" title="Board (⌘1)">
+    <svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="7.5" height="6" rx="1.5"/><rect x="13.5" y="4" width="7.5" height="6" rx="1.5"/><rect x="8" y="14" width="7.5" height="6" rx="1.5"/><path d="M10.5 7h3M12 10v4"/></svg>Board</button>
+  <button class="room" data-view="beats" role="tab" aria-selected="false" title="Beats (⌘2)">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><path d="M6 8v2M6 14v2M11 6h9M11 12h9M11 18h6"/></svg>Beats</button>
+  <button class="room" data-view="sheets" role="tab" aria-selected="false" title="Sheets: make beat sheets (⌘3)">
+    <svg class="i" viewBox="0 0 24 24"><path d="M7 3h9l4 4v12a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M15 3v5h5M9 12h7M9 16h5"/><path d="M3 7v12a4 4 0 004 4h9" opacity=".55"/></svg>Sheets</button>
+  <button class="room" data-view="write" role="tab" aria-selected="false" title="Write with Scribe Pad (⌘4)">
+    <svg class="i" viewBox="0 0 24 24"><path d="M15.5 4.5l4 4L9 19l-5 1 1-5z"/><path d="M13.5 6.5l4 4"/><path d="M4 23h16" opacity=".55"/></svg>Write</button>
+  <div class="spacer"></div>
+  <button class="tool" id="btnBook" title="The book you're working on">
+    <svg class="i" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 016.5 3H20v15H6.5A2.5 2.5 0 004 20.5z"/><path d="M4 20.5A2.5 2.5 0 006.5 23H20v-5"/></svg><span class="lbl" id="bookLbl">Book</span></button>
+  <button class="tool" id="btnCloud" title="Sign in with Google to keep your story in the cloud">
+    <svg class="i" viewBox="0 0 24 24"><path d="M7 18h10.5a4 4 0 00.6-7.96A6 6 0 006.3 9.2 4.5 4.5 0 007 18z"/></svg><span class="lbl" id="cloudLbl">Sign in</span></button>
+  <button class="tool" id="btnMore" title="Backup, restore and more">
+    <svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span class="lbl">More</span></button>
+  <div class="save" title="Saved on this iPad"><span class="dot" id="dot"></span><span id="statusText">Opening…</span></div>
+</nav>
+
+<iframe class="view" id="viewBoard" title="Board" allow="microphone"></iframe>
+<iframe class="view" id="viewBeats" title="Beats" allow="microphone; clipboard-read; clipboard-write"></iframe>
+<iframe class="view" id="viewSheets" title="Sheets"></iframe>
+<iframe class="view" id="viewWrite" title="Write" allow="clipboard-write"></iframe>
+
+<div id="bookMenu" class="menu" hidden role="menu" aria-label="Books"></div>
+<div id="cloudMenu" class="menu" hidden role="menu" aria-label="Cloud sync">
+  <button data-do="now">Sync now</button>
+  <button data-do="back">Put back an earlier copy…</button>
+  <button data-do="out">Sign out of cloud sync</button>
+  <button data-do="id">Use a different Client ID…</button>
+</div>
+<div id="moreMenu" class="menu" hidden role="menu" aria-label="More">
+  <button data-do="backup">Download a backup</button>
+  <button data-do="restore">Restore from a backup…</button>
+  <hr>
+  <button data-do="reload">Reload iStory</button>
+  <div class="ver" id="appVer"></div>
+</div>
+<input type="file" id="restoreInput" accept=".json,application/json" hidden>
+<div id="cloudDlg" hidden role="dialog" aria-modal="true"><div class="box"><h3 id="cdTitle"></h3><p id="cdBody"></p><div class="row" id="cdRow"></div></div></div>
+<div id="shellToast" role="status"></div>
+<div id="loading"><div class="mark"><b>i</b>Story</div><div>Opening your story…</div></div>
+
+<script src="engine.js"></script>
+<script>
+/* =====================================================================
+   The iStory shell: four rooms in their own frames, switched from the rail.
+   Board and Beats are the studio's rooms; Sheets and Write are iStory's own.
+   ===================================================================== */
+const BUILD = 'Nov 7 · 8b443';
+const VIEWS = { board: 'viewBoard', beats: 'viewBeats', sheets: 'viewSheets', write: 'viewWrite' };
+const ORDER = ['board', 'beats', 'sheets', 'write'];
+const SRC = { board: 'rooms/board.html', beats: 'rooms/beats.html', sheets: 'rooms/sheets.html', write: 'rooms/write.html' };
+const loaded = new Set();
+let current = null;
+$('appVer').textContent = 'iStory · Version ' + BUILD;
+
+function ui() { try { return JSON.parse(localStorage.getItem(UI_KEY) || '{}'); } catch (e) { return {}; } }
+function setUi(patch) { try { localStorage.setItem(UI_KEY, JSON.stringify({ ...ui(), ...patch })); } catch (e) {} }
+
+function load(view) {
+  if (loaded.has(view)) return;
+  loaded.add(view);
+  $(VIEWS[view]).src = SRC[view] + '?v=' + encodeURIComponent(BUILD);
+}
+const frame = (view) => $(VIEWS[view]).contentWindow;
+// a tap anywhere inside a room counts as a tap for the shell (Google needs one to reconnect, menus close)
+Object.values(VIEWS).forEach((id) => $(id).addEventListener('load', () => {
+  try { $(id).contentDocument.addEventListener('pointerdown', (e) => { CloudSync.gesture(e); closeMenus(); }, true); } catch (e) {}
+}));
+
+const Shell = {
+  show(view, opts = {}) {
+    if (!VIEWS[view]) return;
+    load(view);
+    current = view;
+    for (const [v, id] of Object.entries(VIEWS)) $(id).classList.toggle('active', v === view);
+    document.querySelectorAll('.room').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === view)));
+    if (view !== 'write') document.body.classList.remove('quiet');
+    setUi({ view });
+    closeMenus();
+    const focus = () => { try { const w = frame(view); w.focus(); w.__view && w.__view.shown && w.__view.shown(opts); } catch (e) {} };
+    if ($(VIEWS[view]).contentWindow?.__view) focus(); else $(VIEWS[view]).addEventListener('load', () => setTimeout(focus, 50), { once: true });
+  },
+  // open a scene's manuscript at the Scribe Pad
+  write(sceneId) { Shell.show('write', { sceneId }); },
+  // open a scene in the beat room
+  beats(sceneId) { Shell.show('beats', { sceneId }); },
+  // open a beat sheet in the Sheets room
+  sheets(templateId) { Shell.show('sheets', { templateId }); },
+  // the writing room's clear desk: the rail slides away
+  setQuiet(q) { document.body.classList.toggle('quiet', !!q && current === 'write'); },
+  get quiet() { return document.body.classList.contains('quiet'); },
+  get current() { return current; },
+  toast: shellToast
+};
+window.Story = Story;
+window.MediaStore = MediaStore;
+window.CloudSync = CloudSync;
+window.WritingStore = WritingStore;
+window.Shell = Shell;
+// Google Docs links are not part of iStory: rooms that look for them find nothing
+window.DocLink = null;
+
+document.querySelectorAll('.room').forEach(b => b.onclick = () => Shell.show(b.dataset.view));
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && ['1', '2', '3', '4'].includes(e.key)) { e.preventDefault(); Shell.show(ORDER[+e.key - 1]); }
+});
+
+/* ---------- menus that open beside the rail ---------- */
+function placeMenu(m, b) {
+  m.style.visibility = 'hidden'; m.hidden = false;
+  const r = b.getBoundingClientRect(), h = m.offsetHeight;
+  m.style.left = (r.right + 8) + 'px';
+  m.style.top = Math.max(12, Math.min(innerHeight - h - 12, r.bottom - h)) + 'px';
+  m.style.right = 'auto';
+  m.style.visibility = '';
+}
+window.placeMenu = placeMenu;
+function closeMenus(except) { ['bookMenu', 'cloudMenu', 'moreMenu'].forEach(id => { if (id !== except) $(id).hidden = true; }); }
+function toggleMenu(id, btn, fill) {
+  const m = $(id);
+  if (!m.hidden) { m.hidden = true; return; }
+  closeMenus(id);
+  if (fill) fill();
+  placeMenu(m, btn);
+}
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('.menu, #btnBook, #btnMore, #btnCloud')) closeMenus(); }, true);
+
+/* ---------- the cloud button ---------- */
+window.paintCloud = (b, mode, label) => {
+  $('cloudLbl').textContent = mode === 'idle' ? 'Synced' : label.replace(/ · will sync$/, '');
+  b.title = label;
+};
+
+/* ---------- books ---------- */
+function bookShort(b) { const n = Story.numbers().book.get(b.id); return b.name ? b.name : 'Book ' + n; }
+function renderBooks() {
+  const b = Story.book(Story.bookId);
+  $('bookLbl').textContent = b ? bookShort(b) : 'Book';
+  $('btnBook').title = b ? Story.bookLabel(b) : 'Book';
+}
+function fillBookMenu() {
+  const m = $('bookMenu'), cur = Story.bookId;
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  m.innerHTML = '<div class="head">Book</div>' + Story.data.books.map(b => `<button role="menuitemradio" data-book="${b.id}" aria-checked="${b.id === cur}">${esc(Story.bookLabel(b))}</button>`).join('') +
+    '<hr><button data-do="new">New book…</button><button data-do="rename">Rename this book…</button>' + (Story.data.books.length > 1 ? '<button data-do="delete" class="danger">Delete this book…</button>' : '');
+}
+const Books = {
+  add() {
+    const name = prompt('Name of the new book (you can change it later):', '');
+    if (name === null) return;
+    const b = Story.addBook(name, 'shell');
+    Story.setBook(b.id);
+    shellToast(`${Story.bookLabel(b)} added, with Part 1 ready for acts.`);
+  },
+  rename() {
+    const b = Story.book(Story.bookId);
+    const name = prompt(`Name for ${Story.bookLabel(b).split(':')[0]}:`, b.name);
+    if (name !== null) Story.renameBook(b.id, name, 'shell');
+  },
+  remove() {
+    const b = Story.book(Story.bookId), n = Story.scenesOf(b.id).length;
+    if (!confirm(`Delete ${Story.bookLabel(b)}? Its parts, acts and sequences are removed${n ? `, and its ${n} scene${n === 1 ? '' : 's'} move to Unfiled in ${Story.bookLabel(Story.data.books.find(x => x.id !== b.id))}` : ''}.`)) return;
+    Story.deleteBook(b.id, 'shell');
+    shellToast('Book deleted. Restore a backup if you need it back.');
+  }
+};
+Shell.books = Books;
+$('btnBook').onclick = () => toggleMenu('bookMenu', $('btnBook'), fillBookMenu);
+$('bookMenu').onclick = (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  closeMenus();
+  if (t.dataset.book) Story.setBook(t.dataset.book);
+  else if (t.dataset.do === 'new') Books.add(); else if (t.dataset.do === 'rename') Books.rename(); else if (t.dataset.do === 'delete') Books.remove();
+};
+
+/* ---------- backup and restore ---------- */
+$('btnMore').onclick = () => toggleMenu('moreMenu', $('btnMore'));
+$('moreMenu').onclick = async (e) => {
+  const t = e.target.closest('button'); if (!t) return;
+  closeMenus();
+  if (t.dataset.do === 'backup') { download(JSON.stringify(await exportAll()), `istory-backup-${stamp()}.json`); shellToast('Backup ready: the story and every manuscript. Choose “Save to Files” to keep it.'); }
+  else if (t.dataset.do === 'restore') $('restoreInput').click();
+  else if (t.dataset.do === 'reload') { await Story.flush(); location.reload(); }
+};
+$('restoreInput').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  let next;
+  try {
+    const raw = JSON.parse(await f.text());
+    if (raw.app === 'kotw-studio-backup') {
+      if (!raw.story) throw new Error('this backup has no story in it');
+      const ms = ((raw.meta && raw.meta.manuscripts) || []).length;
+      if (!confirm(`Replace everything (the story and all manuscripts) with "${f.name}"? It has ${raw.story.scenes.length} scenes and ${ms} manuscripts. Download a backup first if you're unsure.`)) return;
+      await importAll(raw, 'shell'); reloadWithToast('Restored from backup.'); return;
+    }
+    if (raw.app !== 'kotw-story') throw new Error('choose an iStory or Story Studio backup');
+    next = Story.normalize(raw);
+  } catch (err) { alert(`"${f.name}" couldn't be loaded: ${err.message}. Nothing was changed.`); return; }
+  if (!confirm(`Replace the current story (${Story.data.scenes.length} scenes) with "${f.name}" (${next.scenes.length} scenes)? Download a backup first if you're unsure.`)) return;
+  Story.replace(next, 'shell');
+  shellToast(`Restored ${next.scenes.length} scenes.`);
+};
+window.addEventListener('pagehide', () => Story.flush());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') Story.flush(); });
+
+/* ---------- opening ---------- */
+(async () => {
+  const r = await Story.init();
+  if (r.unreadable) {
+    if (confirm(`Your saved story couldn't be read (${r.unreadable.message}). Nothing was overwritten and saving is paused.\n\nDownload a copy of the unreadable data now? Then use More › Restore to load a backup.`))
+      download(JSON.stringify(r.raw), `story-unreadable-${stamp()}.json`);
+  }
+  renderBooks();
+  Story.subscribe((src, info) => { if (info.structure || info.book || info.replaced || src === 'remote') renderBooks(); });
+  $('loading').remove();
+  const want = ORDER.includes(location.hash.slice(1)) ? location.hash.slice(1) : (ORDER.includes(ui().view) ? ui().view : 'board');
+  Shell.show(want);
+  // the other rooms get ready in the background
+  setTimeout(() => ORDER.forEach(load), 700);
+  // ask the iPad to keep this app's data
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  try { const t = sessionStorage.getItem('kotw_toast'); if (t) { sessionStorage.removeItem('kotw_toast'); shellToast(t, 5000); } } catch (e) {}
+  CloudSync.start();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    const had = !!navigator.serviceWorker.controller; let reloading = false;
+    navigator.serviceWorker.addEventListener('controllerchange', async () => { if (had && !reloading) { reloading = true; await Story.flush(); reloadWithToast('iStory updated to the newest version.'); } });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+      reg.update().catch(() => {});
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    }).catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<!-- iStory room: carried over from Story Studio (board/index.html). It uses the shell's parent.Story, parent.Shell, parent.MediaStore and parent.CloudSync. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Beat Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0e14;
+    --surface: #161922;
+    --card: #1e222e;
+    --card-hi: #252a38;
+    --border: rgba(255,255,255,0.08);
+    --border-hi: rgba(255,255,255,0.22);
+    --text: #f1f3f9;
+    --muted: #9aa2b6;
+    --faint: #636b80;
+    --accent: #38bdf8;
+    --written: #34d399;
+    --wip: #f59e0b;
+    --danger: #f43f5e;
+    --prose: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; overflow: hidden; }
+  button { font: inherit; font-size: 0.78rem; font-weight: 500; cursor: pointer; padding: 6px 11px; border-radius: 6px; white-space: nowrap;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text); transition: background 0.15s, border-color 0.15s; }
+  button:hover { background: var(--card); border-color: var(--border-hi); }
+  button:disabled { opacity: 0.35; cursor: default; }
+  button.primary { background: #e11d48; border-color: #be123c; color: #fff; }
+  button.primary:hover { background: #f43f5e; }
+  button.success { background: #059669; border-color: #047857; color: #fff; }
+  button.success:hover { background: #10b981; }
+  button.danger { background: rgba(225,29,72,0.15); border-color: rgba(225,29,72,0.4); color: #fb7185; }
+  button.danger:hover { background: #e11d48; color: #fff; }
+  button.synced { border-color: #10b981; background: rgba(16,185,129,0.15); color: #6ee7b7; }
+  button.reconnect { border-color: #f59e0b; background: rgba(245,158,11,0.15); color: #fcd34d; }
+  .icon { background: transparent; border: none; padding: 4px 7px; color: var(--muted); line-height: 1; }
+  .icon:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type="text"], textarea, select {
+    font: inherit; font-size: 0.86rem; color: var(--text); background: var(--card);
+    border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; outline: none;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; line-height: 1.5; }
+
+  /* Toolbar */
+  #toolbar { height: 48px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--border); background: rgba(12,14,20,0.95); overflow-x: auto; }
+  .brand { font-family: 'Cinzel', serif; font-size: 1.05rem; letter-spacing: 0.05em; white-space: nowrap; margin-right: 6px; }
+  .brand small { font-family: 'Inter', sans-serif; font-size: 0.72rem; color: var(--faint); letter-spacing: 0; margin-left: 8px; font-weight: 500; }
+  .divider { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+  .spacer { flex: 1; }
+  .tb-note { font-size: 0.7rem; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .status { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--faint); white-space: nowrap; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #10b981; }
+  .dot.saving { background: #f59e0b; }
+  .dot.error { background: var(--danger); }
+
+  /* Layout */
+  #app { display: grid; grid-template-columns: 320px 1fr; height: calc(100vh - 48px); }
+  #sidebar { border-right: 1px solid var(--border); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+  .side-top { padding: 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--border); }
+  #search { width: 100%; }
+  #sceneList { overflow-y: auto; flex: 1; padding: 6px 0 20px; }
+  .group-title { font-size: 0.72rem; font-weight: 600; color: var(--faint); padding: 14px 14px 6px; }
+  .scene-item { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: start; padding: 8px 12px 8px 10px; cursor: pointer; border-left: 3px solid transparent; }
+  .scene-item:hover { background: rgba(255,255,255,0.03); }
+  .scene-item.active { background: rgba(56,189,248,0.08); border-left-color: var(--accent); }
+  .scene-item .no { font-size: 0.7rem; font-weight: 700; color: var(--faint); text-align: right; padding-top: 2px; }
+  .scene-item .no.wip { color: var(--wip); font-size: 0.6rem; padding-top: 3px; }
+  .scene-item .t { font-size: 0.86rem; font-weight: 600; line-height: 1.3; }
+  .scene-item .sub { font-size: 0.72rem; color: var(--faint); margin-top: 2px; }
+  .scene-item .gone { color: var(--wip); }
+  .mini { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 3px; }
+  .mini-bar { width: 42px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .mini-bar span { display: block; height: 100%; background: var(--written); }
+  .mini-n { font-size: 0.66rem; color: var(--faint); }
+  .side-empty { padding: 20px 16px; color: var(--muted); font-size: 0.82rem; line-height: 1.55; }
+
+  #main { overflow-y: auto; min-height: 0; }
+  .main-inner { max-width: 860px; margin: 0 auto; padding: 28px 32px 120px; }
+  .empty-main { max-width: 460px; margin: 18vh auto 0; text-align: center; color: var(--muted); line-height: 1.6; }
+  .empty-main h2 { font-family: var(--prose); font-weight: normal; font-size: 1.6rem; color: var(--text); margin-bottom: 10px; }
+  .empty-main .actions { display: flex; gap: 8px; justify-content: center; margin-top: 18px; }
+
+  /* Scene header */
+  .scene-head { margin-bottom: 22px; }
+  .scene-kicker { font-size: 0.76rem; color: var(--faint); margin-bottom: 6px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .chip { font-size: 0.72rem; color: #e2e8f0; background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 10px; }
+  .chip.wip { color: #fcd34d; background: rgba(245,158,11,0.14); }
+  .chip.gone { color: #fcd34d; background: rgba(245,158,11,0.1); }
+  .scene-title { font-family: var(--prose); font-size: 1.85rem; font-weight: normal; line-height: 1.2; }
+  input.scene-title { width: 100%; background: transparent; border: 1px solid transparent; padding: 2px 6px; margin-left: -7px; color: var(--text); }
+  input.scene-title:hover { border-color: var(--border); }
+  .objective { margin-top: 12px; padding: 8px 12px; background: rgba(56,189,248,0.07); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.86rem; color: #e0f2fe; line-height: 1.45; display: flex; gap: 8px; }
+  .scene-summary { margin-top: 10px; font-family: var(--prose); font-size: 0.95rem; color: var(--muted); line-height: 1.6; white-space: pre-wrap; }
+  .manual-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .manual-fields label, .field { display: flex; flex-direction: column; gap: 4px; font-size: 0.72rem; font-weight: 600; color: var(--muted); }
+  .manual-fields .full { grid-column: 1 / -1; }
+  .linked-note { font-size: 0.72rem; color: var(--faint); margin-top: 8px; }
+  .write-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .write-row button.primary { font-size: 0.84rem; padding: 8px 14px; }
+  .draft-words { font-size: 0.78rem; color: var(--muted); }
+  .arch-banner { display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 10px 14px; margin-bottom: 18px; border: 1px dashed rgba(148,163,184,0.4); border-radius: 8px; font-size: 0.82rem; color: var(--muted); }
+  button.group-title.arch-toggle { display: block; width: 100%; text-align: left; background: none; border: none; border-radius: 0; cursor: pointer; }
+  button.group-title.arch-toggle:hover { color: var(--text); background: none; }
+  .scene-item.archived .t, .scene-item.archived .no { color: var(--faint); }
+  .restore-deleted { display: block; margin: 18px 12px 0; width: calc(100% - 24px); background: none; border: 1px dashed var(--border); color: var(--faint); font-size: 0.72rem; white-space: normal; text-align: left; }
+  .restore-deleted:hover { color: var(--text); }
+  #ctxMenu { position: fixed; z-index: 260; display: none; flex-direction: column; min-width: 170px; padding: 4px; background: var(--surface); border: 1px solid var(--border-hi); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  #ctxMenu.open { display: flex; }
+  #ctxMenu button { background: none; border: none; text-align: left; padding: 8px 10px; font-size: 0.82rem; }
+  #ctxMenu button:hover { background: rgba(255,255,255,0.06); }
+  #ctxMenu button.del { color: #fb7185; }
+  #ctxMenu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 2px; }
+
+  /* Filing tree: acts → sequences → scenes */
+  .side-actions { display: flex; gap: 6px; }
+  .side-actions button { flex: 1; }
+  .part { margin: 4px 0 10px; }
+  .part-head { display: flex; align-items: center; gap: 4px; padding: 10px 8px 8px 4px; border-top: 1px solid var(--border-hi); background: rgba(255,255,255,0.025); }
+  .part:first-child .part-head { border-top: none; }
+  .part-head .nm { flex: 1; min-width: 0; font-size: 0.86rem; font-weight: 700; color: #e0f2fe; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.01em; }
+  .part-head .nm i { font-style: normal; color: var(--muted); font-weight: 600; }
+  .part-head:hover .more, .part-head:focus-within .more { opacity: 1; }
+  .part-body { padding-left: 8px; }
+  .add-act { margin: 2px 0 4px 26px; background: none; border: none; color: var(--faint); font-size: 0.74rem; padding: 4px 6px; }
+  .add-act:hover { color: var(--accent); background: none; }
+  .act { margin: 6px 0 2px; }
+  .act-head { display: flex; align-items: center; gap: 4px; padding: 8px 8px 8px 6px; border-top: 1px solid var(--border); }
+  .act:first-child .act-head { border-top: none; }
+  .act-head .nm { flex: 1; min-width: 0; font-size: 0.8rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: default; }
+  .act-head .nm i { font-style: normal; color: var(--muted); font-weight: 600; }
+  .tw { background: none; border: none; padding: 2px 4px; color: var(--faint); font-size: 0.7rem; width: 20px; }
+  .tw:hover { color: var(--text); background: none; }
+  .count { font-size: 0.66rem; color: var(--faint); padding: 0 4px; }
+  .more { opacity: 0; }
+  .act-head:hover .more, .seq-head:hover .more, .act-head:focus-within .more, .seq-head:focus-within .more { opacity: 1; }
+  .seq { margin: 0 0 2px 12px; border-left: 1px solid rgba(255,255,255,0.07); }
+  .seq-head { display: flex; align-items: center; gap: 4px; padding: 5px 8px 5px 2px; cursor: grab; border-radius: 0 6px 6px 0; }
+  .seq-head:active { cursor: grabbing; }
+  .seq-head .no { font-size: 0.68rem; font-weight: 700; color: #7dd3fc; background: rgba(56,189,248,0.1); border-radius: 4px; padding: 1px 5px; }
+  .seq-head .nm { flex: 1; min-width: 0; font-size: 0.8rem; font-weight: 600; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .seq .scene-item { padding-left: 14px; }
+  .seq-empty { margin: 2px 10px 6px 26px; padding: 7px 10px; border: 1px dashed var(--border); border-radius: 6px; font-size: 0.72rem; color: var(--faint); }
+  .add-seq { margin: 2px 0 6px 34px; background: none; border: none; color: var(--faint); font-size: 0.74rem; padding: 4px 6px; }
+  .add-seq:hover { color: var(--accent); background: none; }
+  .tray-head { display: flex; align-items: center; gap: 4px; padding: 12px 8px 6px 14px; font-size: 0.72rem; font-weight: 600; color: var(--faint); border-top: 1px solid var(--border); margin-top: 8px; }
+  .tray-head .help-i { font-weight: 400; margin-left: auto; font-size: 0.68rem; }
+  button.tray-head { display: flex; width: 100%; text-align: left; background: none; border-radius: 0; border: none; border-top: 1px solid var(--border); }
+  button.tray-head:hover { color: var(--text); background: none; }
+  .scene-item[draggable="true"] { cursor: grab; }
+  .scene-item.dragging, .seq.dragging { opacity: 0.4; }
+  .drop-before { box-shadow: inset 0 2px 0 0 var(--accent) !important; }
+  .drop-after { box-shadow: inset 0 -2px 0 0 var(--accent) !important; }
+  .drop-into { background: rgba(56,189,248,0.12) !important; outline: 1px dashed rgba(56,189,248,0.6); outline-offset: -1px; }
+  .rename { width: 100%; font-size: 0.8rem; padding: 3px 6px; }
+  .crumb { font-size: 0.66rem; color: var(--faint); padding: 10px 14px 2px; }
+  .side-empty b { color: var(--text); }
+
+  /* Scene header */
+  .head-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .num-wrap { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+  .num-input { width: 64px; padding: 4px 6px !important; font-weight: 700; text-align: center; }
+  .file-select { max-width: 340px; font-size: 0.8rem !important; padding: 5px 8px !important; }
+  .scene-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .scene-fields .full { grid-column: 1 / -1; }
+  .scene-fields textarea { min-height: 64px; font-family: var(--prose); font-size: 0.92rem; }
+  input.scene-title[type="text"] { font-family: var(--prose); font-size: 1.85rem; font-weight: normal; line-height: 1.2; width: 100%; background: transparent; border: 1px solid transparent; padding: 2px 6px; margin-left: -7px; color: var(--text); }
+  input.scene-title[type="text"]:hover { border-color: var(--border); }
+  input.scene-title[type="text"]:focus { border-color: var(--accent); background: var(--card); }
+  input[type="number"] { font: inherit; color: var(--text); background: var(--card); border: 1px solid var(--border); border-radius: 6px; outline: none; }
+  input[type="number"]:focus { border-color: var(--accent); }
+  .field input, .field textarea, .field select { font-weight: 400; }
+  .ks-mark { display: inline-block; flex: none; width: 12px; height: 9px; margin-right: 6px; vertical-align: 1px; background: #f5c451; clip-path: polygon(0 0, 100% 0, 78% 100%, 22% 100%); }
+  .ks-chip { display: inline-flex; align-items: center; font-size: 0.72rem; font-weight: 600; color: #fde9b5; background: rgba(245,196,81,0.12); border: 1px solid rgba(245,196,81,0.35); border-radius: 10px; padding: 2px 9px; }
+  .scene-item.keystone .t { color: #fde9b5; }
+  .wip-check { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--muted); margin-top: 10px; cursor: pointer; }
+
+  /* Template bar */
+  .template-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 22px; }
+  .template-bar label { font-size: 0.76rem; font-weight: 600; color: var(--muted); }
+  .template-bar select { min-width: 230px; }
+  .progress { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 0.76rem; color: var(--muted); }
+  .bar { width: 120px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--written); transition: width 0.3s; }
+  .template-desc { width: 100%; font-size: 0.76rem; color: var(--faint); line-height: 1.45; }
+
+  /* Beats: the thread */
+  #beats { position: relative; }
+  .beat { position: relative; display: grid; grid-template-columns: 36px 1fr; }
+  .beat::before { content: ''; position: absolute; left: 17px; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.08); }
+  .beat:first-child::before { top: 18px; }
+  .beat:last-child::before { bottom: calc(100% - 18px); }
+  .node {
+    position: relative; z-index: 1; width: 24px; height: 24px; margin: 7px 0 0 6px; border-radius: 50%;
+    background: var(--bg); border: 2px solid #475569; color: var(--muted);
+    font-size: 0.68rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.2s, border-color 0.2s, color 0.2s;
+  }
+  .node:hover { border-color: var(--written); }
+  .beat.done .node { background: var(--written); border-color: var(--written); color: #052e1f; }
+  .beat-card { margin: 0 0 10px 8px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; transition: border-color 0.15s; }
+  .beat-card:focus-within { border-color: rgba(56,189,248,0.45); }
+  .beat.drop-before .beat-card { box-shadow: 0 -3px 0 0 var(--accent); }
+  .beat.drop-after .beat-card { box-shadow: 0 3px 0 0 var(--accent); }
+  .beat.dragging { opacity: 0.4; }
+  .beat.file-over .beat-card { border-color: var(--accent); background: var(--card-hi); }
+  .beat-row { display: flex; align-items: flex-start; gap: 6px; padding: 6px 6px 6px 8px; }
+  .grip { cursor: grab; color: var(--faint); padding: 8px 2px; font-size: 0.8rem; line-height: 1; user-select: none; }
+  .grip:active { cursor: grabbing; }
+  .beat-texts { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  input.b-label { background: transparent; border: none; padding: 3px 4px; font-size: 0.72rem; font-weight: 600; color: var(--accent); width: 100%; }
+  input.b-label::placeholder { color: var(--faint); font-weight: 500; }
+  textarea.b-line {
+    background: transparent; border: none; padding: 2px 4px 4px; resize: none; overflow: hidden;
+    font-family: var(--prose); font-size: 1.02rem; line-height: 1.45; color: var(--text); min-height: 28px;
+  }
+  textarea.b-line::placeholder { color: var(--faint); font-style: italic; }
+  .beat.done textarea.b-line { color: #c7d2e0; }
+  .badges { display: flex; gap: 4px; padding-top: 6px; }
+  .badge { font-size: 0.68rem; color: var(--muted); background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
+  .expand { font-size: 0.8rem; padding-top: 7px; }
+  .beat.open .expand { color: var(--accent); }
+  .b-del { opacity: 0; padding-top: 7px; }
+  .beat-card:hover .b-del, .beat-card:focus-within .b-del { opacity: 1; }
+  .b-del:hover { color: #fb7185; }
+
+  .beat-body { border-top: 1px solid var(--border); padding: 12px 14px 14px 30px; display: none; flex-direction: column; gap: 14px; }
+  .beat.open .beat-body { display: flex; }
+  .prompt-hint { font-size: 0.78rem; color: var(--faint); font-style: italic; }
+  .sec-title { font-size: 0.72rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+  textarea.b-notes { width: 100%; min-height: 70px; font-family: var(--prose); font-size: 0.92rem; }
+  .dlg-row { display: grid; grid-template-columns: 150px 1fr 28px; gap: 6px; align-items: start; margin-bottom: 6px; }
+  .dlg-row textarea { min-height: 36px; font-family: var(--prose); font-size: 0.92rem; resize: vertical; }
+  .imgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .img-card { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+  .img-card img { width: 100%; height: 110px; object-fit: cover; cursor: zoom-in; display: block; }
+  .img-card .cap-row { display: flex; gap: 2px; padding: 4px; }
+  .img-card input { flex: 1; min-width: 0; font-size: 0.74rem; padding: 4px 6px; }
+  .drop-hint { font-size: 0.74rem; color: var(--faint); }
+  .add-row { display: flex; gap: 8px; align-items: center; }
+
+  .add-beat { margin-left: 44px; margin-top: 2px; }
+  .beat-tip { margin: 10px 0 0 44px; font-size: 0.72rem; color: var(--faint); line-height: 1.5; }
+
+  /* Modals, toast, lightbox */
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 200; }
+  .overlay.open { display: flex; }
+  .modal { width: 480px; max-width: 94vw; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,0.6); }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .modal-head h3 { font-size: 1.02rem; }
+  .modal-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; max-height: 70vh; overflow-y: auto; font-size: 0.86rem; line-height: 1.5; }
+  .modal-foot { display: flex; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.15); border-radius: 0 0 12px 12px; flex-wrap: wrap; }
+  .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .seg { display: flex; gap: 6px; }
+  .seg button { flex: 1; }
+  .seg button.on { border-color: var(--accent); background: rgba(56,189,248,0.15); color: #7dd3fc; }
+  .help { font-size: 0.76rem; color: var(--muted); line-height: 1.5; }
+  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); z-index: 300; background: var(--card); border: 1px solid var(--border-hi); border-radius: 8px; padding: 8px 12px; font-size: 0.8rem; display: none; align-items: center; gap: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+  #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 250; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 12px; cursor: zoom-out; padding: 30px; }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 92vw; max-height: 82vh; border-radius: 4px; }
+  #lightbox p { color: var(--muted); font-family: var(--prose); }
+
+  @media (max-width: 760px) {
+    #app { grid-template-columns: 1fr; }
+    #sidebar { max-height: 34vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .main-inner { padding: 20px 16px 100px; }
+    .manual-fields, .scene-fields { grid-template-columns: 1fr; }
+    .dlg-row { grid-template-columns: 1fr 28px; }
+    .dlg-row input { grid-column: 1 / -1; }
+  }
+
+  /* ================= iPad and touch ================= */
+  #btnScenes, #btnFocus, .scene-nav, #kbar, .b-more, .touch-only { display: none; }
+  body.touch .touch-only { display: inline-flex; }
+  body.touch .mouse-only { display: none !important; }
+  body.touch button { min-height: 40px; padding: 8px 13px; font-size: 0.86rem; }
+  body.touch .icon { min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+  body.touch input[type="text"], body.touch textarea, body.touch select, body.touch input[type="number"] { font-size: 16px; }
+  body.touch input.b-label { font-size: 15px; }
+  body.touch input.scene-title[type="text"] { font-size: 1.85rem; }
+  body.touch textarea.b-line { font-size: 1.1rem; min-height: 40px; }
+  body.touch textarea.b-notes { min-height: 110px; }
+  body.touch .more, body.touch .b-del { opacity: 1; }
+  body.touch .b-del { display: none; }
+  body.touch .b-more { display: inline-flex; }
+  body.touch #toolbar { height: 56px; }
+  body.touch #app { height: calc(100vh - 56px); }
+  body.touch #btnScenes, body.touch #btnFocus { display: inline-flex; }
+  body.touch:not(.focus):not(.drawer-mode) #btnScenes { display: none; }
+  body.touch .tb-note { display: none; }
+  body.touch .scene-item { padding: 12px 12px 12px 10px; }
+  body.touch .tw { width: 34px; min-height: 34px; font-size: 0.8rem; }
+  body.touch #ctxMenu { min-width: 230px; }
+  body.touch #ctxMenu button { padding: 13px 14px; font-size: 0.95rem; min-height: 0; }
+  body.touch .scene-item, body.touch .seq-head, body.touch .act-head, body.touch .part-head, body.touch .grip, body.touch .node, body.touch .scene-nav {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  body.touch .grip { padding: 10px 8px; font-size: 1.15rem; touch-action: none; }
+  body.touch .node { width: 30px; height: 30px; margin: 9px 0 0 3px; font-size: 0.74rem; }
+  body.touch .beat-row { padding: 6px 4px 6px 4px; align-items: center; }
+  body.touch .expand, body.touch .b-more { padding-top: 0; }
+  body.touch .badges { padding-top: 0; }
+  body.touch .add-beat { min-height: 44px; }
+  body.touch .seg button { min-height: 44px; }
+
+  /* lifted while dragging, and the copy that follows your finger */
+  .lifted { opacity: 0.35; }
+  .beat.lifted .beat-card { border: 1px dashed var(--accent); background: transparent; }
+  .beat.lifted .beat-card > * { visibility: hidden; }
+  #ghost { position: fixed; z-index: 280; pointer-events: none; transform: scale(1.03); box-shadow: 0 18px 40px rgba(0,0,0,0.55); border-radius: 8px; opacity: 0.95; background: var(--card); }
+  .holding { background: rgba(56,189,248,0.10) !important; transition: background .3s; }
+
+  /* swipe a beat: right = written, left = delete */
+  .beat .under { position: absolute; z-index: 0; left: 44px; right: 0; top: 0; bottom: 10px; border-radius: 8px; display: none; align-items: center; justify-content: space-between; padding: 0 20px; font-weight: 700; font-size: 0.9rem; }
+  .beat.swiping .under { display: flex; }
+  .beat .under .w { color: #052e1f; } .beat .under .d { color: #fff; }
+  .beat.swipe-r .under { background: var(--written); } .beat.swipe-l .under { background: var(--danger); }
+  .beat.swipe-r .under .d, .beat.swipe-l .under .w { visibility: hidden; }
+  .beat-card { position: relative; z-index: 1; }
+  .beat.swiping .beat-card { transition: none; }
+  .beat.snap .beat-card { transition: transform .25s ease; }
+  body.touch .beat .beat-card { touch-action: pan-y; }
+
+  /* the scene list as a drawer (iPad held upright), and focus mode */
+  .scene-nav { align-items: center; gap: 8px; margin: -6px 0 16px; padding: 6px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  .scene-nav .where { flex: 1; min-width: 0; text-align: center; font-size: 0.78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .scene-nav .where b { color: var(--text); }
+  .scene-nav button { min-width: 48px; font-size: 1.1rem; }
+  body.focus .scene-nav, body.drawer-mode .scene-nav { display: flex; }
+  body.focus #app { grid-template-columns: 1fr; }
+  body.focus #sidebar { display: none; }
+  body.focus .main-inner { max-width: 980px; }
+  #btnFocus.on { border-color: var(--accent); color: #7dd3fc; background: rgba(56,189,248,0.12); }
+  #scrim { position: fixed; inset: 0; z-index: 140; background: rgba(0,0,0,0.5); display: none; }
+  @media (max-width: 999px) {
+    body.touch #app { grid-template-columns: 1fr; }
+    body.touch #sidebar { position: fixed; z-index: 150; left: 0; top: 0; bottom: 0; width: min(380px, 86vw); max-height: none; transform: translateX(-102%); transition: transform .28s ease; border-right: 1px solid var(--border-hi); box-shadow: 18px 0 40px rgba(0,0,0,0.5); }
+    body.touch.drawer #sidebar { transform: none; }
+    body.touch.drawer #scrim { display: block; }
+    body.touch #btnFocus { display: none; }
+    body.touch .main-inner { padding: 20px 20px 140px; }
+  }
+  .slide-l { animation: slideL .28s ease; } .slide-r { animation: slideR .28s ease; }
+  @keyframes slideL { from { transform: translateX(40px); opacity: 0; } } @keyframes slideR { from { transform: translateX(-40px); opacity: 0; } }
+
+  /* the bar above the iPad's keyboard */
+  #kbar { position: fixed; z-index: 120; left: 0; right: 0; bottom: 0; gap: 6px; align-items: center; padding: 6px 10px; background: rgba(22,25,34,0.97); border-top: 1px solid var(--border-hi); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); overflow-x: auto; }
+  #kbar.on { display: flex; }
+  #kbar button { flex: none; min-height: 40px; }
+  #kbar .spacer { flex: 1; }
+
+  /* voice memo on a beat */
+  .memo-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .memo-row .info { font-size: 0.78rem; color: var(--muted); }
+  .play { min-width: 44px; }
+  .badge.memo { cursor: pointer; }
+  #recSheet, #sketch { position: fixed; inset: 0; z-index: 270; display: none; }
+  #recSheet { background: rgba(0,0,0,0.65); align-items: center; justify-content: center; }
+  #recSheet.open { display: flex; }
+  #recSheet .box { width: min(520px, 92vw); background: var(--surface); border: 1px solid var(--border-hi); border-radius: 14px; padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+  #recSheet h3 { font-size: 1rem; }
+  #recTime { font: 600 2.2rem 'Inter', sans-serif; font-variant-numeric: tabular-nums; text-align: center; }
+  .lvl { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; } .lvl span { display: block; height: 100%; width: 0; background: var(--danger); transition: width .15s; }
+  #recLive { min-height: 60px; max-height: 160px; overflow-y: auto; font-family: var(--prose); color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
+  #recNote { font-size: 0.78rem; color: #fcd34d; min-height: 1em; }
+  #recSheet .row { display: flex; gap: 10px; } #recSheet .row button { flex: 1; min-height: 48px; font-size: 0.95rem; }
+  #btnRecStop { background: var(--danger); border-color: var(--danger); color: #fff; font-weight: 700; }
+
+  /* sketch pad */
+  #sketch { background: #0c0e14; flex-direction: column; }
+  #sketch.open { display: flex; }
+  .sk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); flex: none; }
+  .sk-bar button { flex: none; min-height: 42px; }
+  .sk-bar .sw { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); padding: 0; min-height: 0; }
+  .sk-bar .sw.on, .sk-bar .tool.on { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .sk-bar label { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  #skWrap { flex: 1; position: relative; min-height: 0; margin: 10px; border-radius: 6px; overflow: hidden; background: #fbf8f1; }
+  #skCanvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+  .img-card.sketch img { object-fit: contain; background: #fbf8f1; }
+  .img-card .sk-tag { font-size: 0.66rem; color: var(--accent); padding: 0 6px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header id="toolbar">
+  <button id="btnScenes" title="Show the list of scenes">☰ Scenes</button>
+  <button id="btnAddPart" title="Add a part to this book">+ Part</button>
+  <button id="btnAddAct" title="Add an act to the last part">+ Act</button>
+  <button id="btnAddScene" title="Add a scene after the one you're viewing">+ Scene</button>
+  <span class="divider"></span>
+  <button class="success" id="btnExport">Export</button>
+  <button id="btnFocus" title="Hide the scene list and work on one scene; swipe sideways for the next one">Focus</button>
+  <span class="spacer"></span>
+  <span class="tb-note">Drag scenes and sequences to reorder. Numbers run through the whole book.</span>
+  <input type="file" id="imageInput" accept="image/*" multiple hidden>
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+</header>
+
+<div id="app">
+  <aside id="sidebar">
+    <div class="side-top"><input type="text" id="search" placeholder="Find a scene (type “keystone” for keystones)" autocomplete="off"></div>
+    <div id="sceneList"></div>
+  </aside>
+  <main id="main"><div class="main-inner" id="mainInner"></div></main>
+</div>
+
+<datalist id="speakers"></datalist>
+<div id="toast"></div>
+<div id="scrim"></div>
+<div id="kbar" role="toolbar" aria-label="Beat tools">
+  <button data-k="add">+ Beat</button><button data-k="line">💬 Line</button><button data-k="prev" aria-label="Previous beat">↑</button><button data-k="next" aria-label="Next beat">↓</button>
+  <button data-k="done">✓ Written</button><button data-k="open">Details</button><span class="spacer"></span><button data-k="hide">Done</button>
+</div>
+<div id="recSheet" role="dialog" aria-modal="true" aria-label="Record a voice memo">
+  <div class="box">
+    <h3 id="recTitle">Voice memo</h3>
+    <div id="recTime">0:00</div>
+    <div class="lvl"><span id="recLevel"></span></div>
+    <div id="recLive"></div>
+    <div id="recNote"></div>
+    <div class="row"><button id="btnRecCancel">Cancel</button><button id="btnRecStop">■ Stop and save</button></div>
+  </div>
+</div>
+<div id="sketch" role="dialog" aria-modal="true" aria-label="Sketch">
+  <div class="sk-bar">
+    <button id="skCancel">Cancel</button>
+    <span class="divider"></span>
+    <button class="sw on" data-c="#1f2937" style="background:#1f2937" aria-label="Ink"></button>
+    <button class="sw" data-c="#b91c1c" style="background:#b91c1c" aria-label="Red"></button>
+    <button class="sw" data-c="#1d4ed8" style="background:#1d4ed8" aria-label="Blue"></button>
+    <button class="sw" data-c="#15803d" style="background:#15803d" aria-label="Green"></button>
+    <button class="sw" data-c="#b45309" style="background:#b45309" aria-label="Ochre"></button>
+    <span class="divider"></span>
+    <button class="tool on" data-w="2.2">Fine</button><button class="tool" data-w="5">Bold</button><button class="tool" data-w="eraser">Eraser</button>
+    <span class="divider"></span>
+    <button id="skUndo">↶ Undo</button><button id="skClear">Clear</button>
+    <label><input type="checkbox" id="skPencil"> Pencil only</label>
+    <span class="spacer"></span>
+    <button class="primary" id="skSave">Save sketch</button>
+  </div>
+  <div id="skWrap"><canvas id="skCanvas"></canvas></div>
+</div>
+<div id="ctxMenu" role="menu"></div>
+<div id="lightbox"><img alt=""><p></p></div>
+
+<!-- Choice dialog -->
+<div class="overlay" id="choiceModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="choiceTitle"></h3></div>
+    <div class="modal-body" id="choiceBody"></div>
+    <div class="modal-foot" id="choiceFoot"></div>
+  </div>
+</div>
+
+<!-- Save template -->
+<div class="overlay" id="templateModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Save beats as a template</h3><button class="icon" data-close>✕</button></div>
+    <div class="modal-body">
+      <p class="help">Saves this scene's beat names as a template you can apply to other scenes. Beat text, notes and images aren't saved.</p>
+      <label class="field">Template name<input type="text" id="tplName" placeholder="e.g. Nephite war council"></label>
+    </div>
+    <div class="modal-foot"><span class="spacer"></span><button data-close>Cancel</button><button class="primary" id="btnSaveTpl">Save template</button></div>
+  </div>
+</div>
+
+<!-- Export -->
+<div class="overlay" id="exportModal">
+  <div class="modal">
+    <div class="modal-head"><h3>Export beat outline</h3><button class="icon" data-close>✕</button></div>
+    <div class="modal-body">
+      <label class="field">Document title<input type="text" id="expTitle" value="Keepers of the Word — Beat Outline"></label>
+      <div class="seg" id="expFormat"><button data-fmt="docx" class="on">Word (.docx)</button><button data-fmt="pdf">PDF</button></div>
+      <div class="seg" id="expScope"><button data-scope="all" class="on">All scenes</button><button data-scope="current">This scene</button></div>
+      <label class="check"><input type="checkbox" id="expDetails" checked> Include notes and dialogue</label>
+      <label class="check"><input type="checkbox" id="expImages" checked> Include images</label>
+      <label class="check"><input type="checkbox" id="expWip"> Include WIP scenes</label>
+      <p class="help" id="expNote"></p>
+    </div>
+    <div class="modal-foot"><span class="spacer"></span><button data-close>Cancel</button><button class="success" id="btnDoExport">Export</button></div>
+  </div>
+</div>
+
+<script>
+/* ================= Templates ================= */
+const BUILT_IN = [
+  { id: 'free', name: 'Free sheet', desc: 'Blank beats in whatever shape the scene needs.', beats: [] },
+  { id: 'goal', name: 'Goal · Conflict · Disaster', desc: 'The classic scene: someone wants something, is opposed, and ends worse off.', beats: [
+    ['Goal', 'What does the POV character want walking into this scene?'],
+    ['Conflict', 'Who or what stands in the way?'],
+    ['Escalation', 'How does the struggle get harder?'],
+    ['Disaster', 'How does it end badly, or with a twist that forces a new choice?']] },
+  { id: 'sequel', name: 'Reaction · Dilemma · Decision', desc: 'The aftermath scene that follows a disaster and sets the next goal.', beats: [
+    ['Reaction', 'How does the POV feel right after the last blow?'],
+    ['Dilemma', 'What are the options, and why are they all hard?'],
+    ['Decision', 'What do they choose? That becomes the next goal.']] },
+  { id: 'battle', name: 'Battle / action', desc: 'Armies, ambushes, sieges, duels.', beats: [
+    ['Stakes and ground', 'What is being fought over, and what does the field look like?'],
+    ['Opening move', 'Who strikes first, and how?'],
+    ['Complication', 'What goes wrong or changes?'],
+    ['Turning point', 'Who seizes the advantage, and how?'],
+    ['Climax', 'The decisive moment.'],
+    ['Cost', 'What was lost? Who is left standing?']] },
+  { id: 'confrontation', name: 'Dialogue / confrontation', desc: 'Two or more people want different things from each other.', beats: [
+    ['Positions', 'What does each side want from the other?'],
+    ['Opening', 'Who speaks first, and what is the first move?'],
+    ['Pushback', 'How does the other side resist?'],
+    ['Escalation', 'What gets said that can’t be unsaid?'],
+    ['Turn', 'What is revealed or conceded?'],
+    ['New footing', 'Where do they stand with each other now?']] },
+  { id: 'council', name: 'Council / planning', desc: 'Leaders deciding what to do next.', beats: [
+    ['The problem', 'What threat or need brings them together?'],
+    ['Proposals', 'What courses of action are put forward?'],
+    ['Dissent', 'Who objects, and why?'],
+    ['Decision', 'What is decided, and by whom?'],
+    ['Assignment', 'Who must do what, and what does it cost them?']] },
+  { id: 'discovery', name: 'Discovery / revelation', desc: 'A character learns something that changes things.', beats: [
+    ['Before', 'What does the POV believe going in?'],
+    ['Clue', 'What first hints that something is off?'],
+    ['Search', 'How do they dig for the truth?'],
+    ['Reveal', 'What do they find out?'],
+    ['Reaction', 'How do they take it?'],
+    ['Consequence', 'What must change now?']] },
+  { id: 'chase', name: 'Chase / escape', desc: 'Pursuit, flight, or a narrow getaway.', beats: [
+    ['Trigger', 'What sets the chase off?'],
+    ['Flight', 'Where do they run, and how?'],
+    ['Obstacle', 'What blocks the way?'],
+    ['Near miss', 'How close does the pursuer get?'],
+    ['Gambit', 'What risky choice breaks them free, or doesn’t?'],
+    ['Outcome', 'Where does it leave them?']] },
+  { id: 'character', name: 'Emotional / character moment', desc: 'An inner shift: grief, doubt, love, resolve.', beats: [
+    ['Trigger', 'What stirs the feeling?'],
+    ['Resistance', 'How do they avoid facing it?'],
+    ['Crack', 'What breaks through?'],
+    ['Vulnerability', 'What do they finally let show?'],
+    ['Shift', 'What do they understand or decide now?']] },
+  { id: 'spiritual', name: 'Prayer / vision / spiritual experience', desc: 'Seeking and receiving: a prayer answered, a vision, a visitation.', beats: [
+    ['Need', 'What drives them to seek?'],
+    ['Wrestle', 'The struggle, doubt, or long waiting.'],
+    ['Manifestation', 'What do they see, hear, or feel?'],
+    ['Message', 'What is made known to them?'],
+    ['Response', 'How do they answer, and what will it cost?']] },
+  { id: 'journey', name: 'Travel / transition', desc: 'Moving the story from one place to another.', beats: [
+    ['Departure', 'Who leaves, from where, and why now?'],
+    ['The way', 'The land, the weather, the company.'],
+    ['Encounter', 'What happens on the road?'],
+    ['Arrival', 'What is waiting at the end?']] }
+].map(t => ({ ...t, beats: t.beats.map(([label, prompt]) => ({ label, prompt })) }));
+
+/* ================= State =================
+   Scenes, acts, sequences and templates live in the studio's shared story. */
+const Story = parent.Story, Shell = parent.Shell;
+const PREFS_KEY = 'kotw_studio_beats';
+function prefs() { try { return JSON.parse(localStorage.getItem(PREFS_KEY) || '{}'); } catch (e) { return {}; } }
+function setPrefs(p) { try { localStorage.setItem(PREFS_KEY, JSON.stringify({ ...prefs(), ...p })); } catch (e) {} }
+const data = {
+  get scenes() { return Story.data.scenes; },
+  get templates() { return Story.data.templates; }, set templates(v) { Story.data.templates = v; },
+  _current: prefs().currentId || null,
+  get currentId() { return this._current; }, set currentId(v) { this._current = v; setPrefs({ currentId: v }); }
+};
+const collapsed = new Set(prefs().collapsed || []);
+let showArchived = false;
+let openBeats = new Set();
+let lastUndo = null;
+let exportFormat = 'docx', exportScope = 'all';
+let imageTargetBeat = null;
+let pendingRender = false;
+
+const $ = (id) => document.getElementById(id);
+const IPAD = parent.APP_MODE === 'ipad';
+const TOUCH = IPAD || matchMedia('(pointer: coarse)').matches;
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const fmtDur = (sec) => { sec = Math.max(0, Math.round(+sec || 0)); return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const str = (v) => (v === null || v === undefined) ? '' : String(v).trim();
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const stamp = () => new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+const scene = () => data.scenes.find(s => s.id === data.currentId) || null;
+const allTemplates = () => [...BUILT_IN, ...data.templates];
+const sceneNo = (s) => Story.numbers().scene.get(s.id);
+// scenes of the book chosen in the top bar
+const bookScenes = () => Story.scenesOf(Story.bookId);
+
+function newBeat(f = {}) { return Story.newBeat(f); }
+
+/* ================= Saving goes through the shared story ================= */
+// beats only matter here and in the writing room's cabinet; fields and structure matter everywhere
+function save(info = { beats: true }) { Story.changed('beats', info); }
+
+function download(content, name, type = 'application/json') {
+  const blob = content instanceof Blob ? content : new Blob([content], { type });
+  if (parent.shareFile && parent.shareFile(blob, name)) return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+let toastTimer = null;
+function toast(msg, undoFn) {
+  const t = $('toast');
+  t.innerHTML = `<span>${esc(msg)}</span>` + (undoFn ? '<button id="toastUndo">Undo</button>' : '');
+  t.style.display = 'flex';
+  if (undoFn) { lastUndo = undoFn; $('toastUndo').onclick = () => { runUndo(); t.style.display = 'none'; }; }
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 5000);
+}
+function runUndo() {
+  if (!lastUndo) return;
+  const f = lastUndo; lastUndo = null;
+  f(); renderAll();
+}
+
+function showChoice(title, html, buttons) {
+  return new Promise(resolve => {
+    $('choiceTitle').textContent = title;
+    $('choiceBody').innerHTML = html;
+    const foot = $('choiceFoot');
+    foot.innerHTML = '<span class="spacer"></span>';
+    buttons.forEach(b => {
+      const el = document.createElement('button');
+      if (b.cls) el.className = b.cls;
+      el.textContent = b.label;
+      el.onclick = () => { $('choiceModal').classList.remove('open'); resolve(b.value); };
+      foot.appendChild(el);
+    });
+    $('choiceModal').classList.add('open');
+  });
+}
+
+/* ================= Drafts and the writing room ================= */
+const draftWords = (id) => +(Story.data.drafts || {})[id] || 0;
+function writeScene(s) { Shell.write(s.id); }
+
+/* ================= Archive & delete ================= */
+function visibleOrder() { return bookScenes().filter(s => !s.archived); }
+function neighborOf(s) {
+  const all = visibleOrder(), i = all.indexOf(s);
+  return all[i + 1] || all[i - 1] || all.find(x => x !== s) || null;
+}
+function toggleArchive(s) {
+  if (!s.archived) {
+    const next = neighborOf(s);
+    Story.setArchived(s.id, true, 'beats');
+    if (data.currentId === s.id) data.currentId = next ? next.id : s.id;
+    renderAll();
+    toast(`Archived “${s.title}”.`, () => { Story.setArchived(s.id, false, 'beats'); data.currentId = s.id; });
+  } else {
+    Story.setArchived(s.id, false, 'beats');
+    data.currentId = s.id;
+    renderAll();
+    toast(`Unarchived “${s.title}”. It's back in its place in the story.`);
+  }
+}
+async function deleteScene(s) {
+  const n = s.beats.length;
+  const extras = s.beats.reduce((a, b) => a + b.dialogue.length + b.images.length + (b.notes.trim() ? 1 : 0), 0);
+  const what = n ? `its ${n} beat${n === 1 ? '' : 's'}${extras ? ', with their notes, dialogue and images' : ''}` : 'it';
+  const choice = await showChoice(`Delete “${s.title}”?`,
+    `<p>This removes the scene and ${what} from the whole story, including its card on the Board.</p>
+     ${draftWords(s.id) ? '<p class="help">Its draft in the writing room isn’t deleted.</p>' : ''}
+     <p class="help">To hide it without losing anything, archive it instead.</p>`,
+    [{ value: 'cancel', label: 'Cancel' }, ...(s.archived ? [] : [{ value: 'archive', label: 'Archive instead' }]), { value: 'delete', label: 'Delete', cls: 'danger' }]);
+  if (choice === 'archive') return toggleArchive(s);
+  if (choice !== 'delete') return;
+  const next = neighborOf(s), wasCurrent = data.currentId === s.id;
+  const undoFn = Story.deleteScenes([s.id], 'beats');
+  if (wasCurrent) data.currentId = next ? next.id : null;
+  renderAll();
+  toast(`Deleted “${s.title}”.`, () => { undoFn && undoFn(); data.currentId = s.id; });
+}
+
+/* ---------- Menus (⋯ buttons and right-click) ---------- */
+let menuItems = [];
+function openMenu(items, x, y) {
+  menuItems = items.filter(Boolean);
+  const m = $('ctxMenu');
+  m.innerHTML = menuItems.map((it, i) => it === '-' ? '<hr>' : `<button data-i="${i}" role="menuitem" class="${it.cls || ''}" ${it.disabled ? 'disabled' : ''}>${esc(it.label)}</button>`).join('');
+  m.classList.add('open');
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(4, Math.min(x, innerWidth - w - 8)) + 'px';
+  m.style.top = Math.max(4, Math.min(y, innerHeight - h - 8)) + 'px';
+  m.querySelector('button:not([disabled])')?.focus();
+}
+function closeCtx() { $('ctxMenu').classList.remove('open'); menuItems = []; }
+$('ctxMenu').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-i]');
+  if (!b) return;
+  const it = menuItems[+b.dataset.i];
+  closeCtx();
+  if (it && it.fn) it.fn();
+});
+document.addEventListener('pointerdown', (e) => { if (!e.target.closest('#ctxMenu')) closeCtx(); });
+window.addEventListener('blur', closeCtx);
+
+function partMenu(pt) {
+  const parts = Story.data.parts.filter(x => x.bookId === pt.bookId), i = parts.indexOf(pt);
+  return [
+    { label: 'Rename part…', fn: () => startRename('part', pt.id) },
+    { label: '+ Act in this part', fn: () => addAct(pt.id) },
+    '-',
+    { label: 'Move part up', fn: () => Story.movePart(pt.id, -1, 'beats') || renderAll(), disabled: i === 0 },
+    { label: 'Move part down', fn: () => Story.movePart(pt.id, 1, 'beats') || renderAll(), disabled: i === parts.length - 1 },
+    '-',
+    { label: 'Delete part…', cls: 'del', fn: () => deletePart(pt) }
+  ];
+}
+function actMenu(a) {
+  const siblings = Story.data.acts.filter(x => x.partId === a.partId), i = siblings.indexOf(a);
+  const pt = Story.part(a.partId), others = Story.data.parts.filter(x => x.bookId === pt.bookId && x.id !== pt.id);
+  return [
+    { label: 'Rename act…', fn: () => startRename('act', a.id) },
+    { label: '+ Sequence in this act', fn: () => addSequence(a.id) },
+    '-',
+    { label: 'Move act up', fn: () => Story.moveAct(a.id, -1, 'beats') || renderAll(), disabled: i === 0 },
+    { label: 'Move act down', fn: () => Story.moveAct(a.id, 1, 'beats') || renderAll(), disabled: i === siblings.length - 1 },
+    ...others.map(o => ({ label: `Move to ${Story.partLabel(o)}`, fn: () => { Story.moveActToPart(a.id, o.id, 'beats'); collapsed.delete('p:' + o.id); saveCollapsed(); renderAll(); } })),
+    '-',
+    { label: 'Delete act…', cls: 'del', fn: () => deleteAct(a) }
+  ];
+}
+function seqMenu(q) {
+  return [
+    { label: 'Rename sequence…', fn: () => startRename('seq', q.id) },
+    { label: 'Change number…', fn: () => {
+      const cur = Story.numbers().seq.get(q.id), max = Story.data.sequences.filter(x => Story.partOfAct(Story.act(x.actId))?.bookId === Story.bookId).length;
+      const v = prompt(`Sequence number (1–${max}). It moves into that place, and the others renumber.`, cur);
+      if (v && Number.isFinite(+v)) { Story.setSequenceNumber(q.id, +v, 'beats'); renderAll(); }
+    } },
+    { label: '+ Scene in this sequence', fn: () => addScene({ seqId: q.id }) },
+    '-',
+    { label: 'Delete sequence…', cls: 'del', fn: () => deleteSequence(q) }
+  ];
+}
+function sceneMenu(s) {
+  return [
+    { label: 'Open', fn: () => selectScene(s.id) },
+    { label: '✎ Write this scene', fn: () => writeScene(s) },
+    { label: 'Show on the Board', fn: () => Shell.show('board', { sceneId: s.id }) },
+    '-',
+    { label: s.archived ? 'Unarchive' : 'Archive', fn: () => toggleArchive(s) },
+    { label: 'Delete…', cls: 'del', fn: () => deleteScene(s) }
+  ];
+}
+
+/* ---------- Acts and sequences ---------- */
+function addPart() {
+  const pt = Story.addPart(Story.bookId, '', 'beats');
+  renderSidebar();
+  startRename('part', pt.id);
+}
+// into the given part, or the book's last part (making Part 1 if there is none)
+function addAct(partId) {
+  if (!partId || typeof partId !== 'string') {
+    const parts = Story.data.parts.filter(x => x.bookId === Story.bookId);
+    partId = parts.length ? parts[parts.length - 1].id : Story.addPart(Story.bookId, '', 'beats').id;
+  }
+  collapsed.delete('p:' + partId); saveCollapsed();
+  const a = Story.addAct(partId, '', 'beats');
+  renderSidebar();
+  startRename('act', a.id);
+}
+function addSequence(actId) {
+  if (!actId) {
+    const acts = Story.data.acts.filter(a => Story.part(a.partId)?.bookId === Story.bookId);
+    if (!acts.length) { addAct(); return; }
+    actId = acts[acts.length - 1].id;
+  }
+  collapsed.delete('a:' + actId); saveCollapsed();
+  const q = Story.addSequence(actId, '', 'beats');
+  renderSidebar();
+  startRename('seq', q.id);
+}
+function addScene(opts = {}) {
+  const cur = scene();
+  const seqId = 'seqId' in opts ? opts.seqId : (cur && !cur.archived ? cur.seqId : null);
+  let beforeId = null;
+  if (!('seqId' in opts) && cur && !cur.archived) {
+    const all = data.scenes, i = all.indexOf(cur), next = all.slice(i + 1).find(x => x.seqId === cur.seqId);
+    beforeId = next ? next.id : null;
+  }
+  const s = Story.addScene({ title: 'New Scene', beats: [newBeat()] }, { seqId, beforeId }, 'beats');
+  data.currentId = s.id;
+  if (s.seqId) openPathTo(s);
+  renderAll();
+  const t = document.querySelector('input.scene-title'); if (t) { t.focus(); t.select(); }
+}
+function deletePart(pt) {
+  const acts = Story.data.acts.filter(a => a.partId === pt.id), aIds = new Set(acts.map(a => a.id));
+  const qs = Story.data.sequences.filter(q => aIds.has(q.actId));
+  const n = data.scenes.filter(s => qs.some(q => q.id === s.seqId)).length;
+  if (!confirm(`Delete ${Story.partLabel(pt)}?${acts.length ? ` Its ${acts.length} act${acts.length === 1 ? '' : 's'} and ${qs.length} sequence${qs.length === 1 ? '' : 's'} go too${n ? `, and its ${n} scene${n === 1 ? '' : 's'} move to Unfiled` : ''}.` : ''}`)) return;
+  const undoFn = Story.deletePart(pt.id, 'beats');
+  renderAll();
+  toast(`Deleted ${pt.name ? '“' + pt.name + '”' : 'the part'}.`, undoFn);
+}
+function deleteAct(a) {
+  const qs = Story.data.sequences.filter(q => q.actId === a.id);
+  const scenes = data.scenes.filter(s => qs.some(q => q.id === s.seqId)).length;
+  if (!confirm(`Delete ${Story.actLabel(a)}?${qs.length ? ` Its ${qs.length} sequence${qs.length === 1 ? '' : 's'} go too, and ${scenes ? `its ${scenes} scene${scenes === 1 ? '' : 's'} move to Unfiled` : 'no scenes are lost'}.` : ''}`)) return;
+  const undoFn = Story.deleteAct(a.id, 'beats');
+  renderAll();
+  toast(`Deleted ${a.name ? '“' + a.name + '”' : 'the act'}.`, undoFn);
+}
+function deleteSequence(q) {
+  const n = data.scenes.filter(s => s.seqId === q.id).length;
+  if (n && !confirm(`Delete ${Story.seqLabel(q)}? Its ${n} scene${n === 1 ? '' : 's'} move to Unfiled.`)) return;
+  const undoFn = Story.deleteSequence(q.id, 'beats');
+  renderAll();
+  toast(`Deleted the sequence${q.name ? ' “' + q.name + '”' : ''}.`, undoFn);
+}
+function startRename(kind, id) {
+  const el = document.querySelector(`[data-rename="${kind}"][data-id="${CSS.escape(id)}"]`);
+  if (!el) return;
+  const item = kind === 'part' ? Story.part(id) : kind === 'act' ? Story.act(id) : Story.seq(id);
+  const input = document.createElement('input');
+  input.type = 'text'; input.className = 'rename'; input.value = item.name;
+  input.placeholder = kind === 'part' ? 'Part name (optional)' : kind === 'act' ? 'Act name (optional)' : 'Sequence name';
+  el.replaceWith(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = (keep) => {
+    if (done) return; done = true;
+    if (keep && input.value.trim() !== item.name) (kind === 'part' ? Story.renamePart : kind === 'act' ? Story.renameAct : Story.renameSequence)(id, input.value, 'beats');
+    renderAll();
+  };
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); e.stopPropagation(); });
+  input.addEventListener('blur', () => finish(true));
+}
+function saveCollapsed() { setPrefs({ collapsed: [...collapsed] }); }
+// expand the part, act and sequence a scene is filed in
+function openPathTo(s) {
+  const w = Story.where(s);
+  if (!w) return;
+  ['p:' + w.part.id, 'a:' + w.act.id, 'q:' + w.seq.id].forEach(k => collapsed.delete(k));
+  saveCollapsed();
+}
+function selectScene(id) {
+  data.currentId = id;
+  renderAll();
+  $('main').scrollTop = 0;
+}
+
+/* ================= Rendering ================= */
+function renderSidebar() {
+  const q = $('search').value.trim().toLowerCase();
+  const el = $('sceneList');
+  const keep = el.scrollTop;
+  if (!bookScenes().length && !Story.data.parts.some(x => x.bookId === Story.bookId)) {
+    el.innerHTML = '<div class="side-empty">No scenes yet. Add scenes on the <b>Board</b> or with <b>+ Scene</b>, and file them into acts and sequences here.</div>';
+    return;
+  }
+  if (q) { el.innerHTML = searchHTML(q); el.scrollTop = 0; return; }
+  const t = Story.tree();
+  let html = '';
+  if (!t.parts.length) html += '<div class="side-empty">Add a part with <b>+ Part</b>, give it acts and sequences, then drag scenes into them.</div>';
+  for (const pt of t.parts) {
+    const pOpen = !collapsed.has('p:' + pt.part.id);
+    const pn = pt.acts.reduce((x, a) => x + a.sequences.reduce((y, q) => y + q.scenes.length, 0), 0);
+    html += `<div class="part" data-part-id="${esc(pt.part.id)}">
+      <div class="part-head" data-id="${esc(pt.part.id)}">
+        <button class="tw" data-act="toggle" data-key="p:${esc(pt.part.id)}" aria-expanded="${pOpen}" title="${pOpen ? 'Collapse' : 'Expand'}">${pOpen ? '▾' : '▸'}</button>
+        <span class="nm" data-rename="part" data-id="${esc(pt.part.id)}" title="Double-click to rename">Part ${pt.no}${pt.part.name ? `<i>: ${esc(pt.part.name)}</i>` : ''}</span>
+        <span class="count">${pn}</span>
+        <button class="icon more" data-act="part-menu" data-id="${esc(pt.part.id)}" title="Part options" aria-label="Part options">⋯</button>
+      </div>`;
+    if (pOpen) {
+      html += '<div class="part-body">';
+      for (const a of pt.acts) {
+        const open = !collapsed.has('a:' + a.act.id);
+        const n = a.sequences.reduce((x, q) => x + q.scenes.length, 0);
+        html += `<div class="act" data-act-id="${esc(a.act.id)}">
+          <div class="act-head" data-drop="act" data-id="${esc(a.act.id)}">
+            <button class="tw" data-act="toggle" data-key="a:${esc(a.act.id)}" aria-expanded="${open}" title="${open ? 'Collapse' : 'Expand'}">${open ? '▾' : '▸'}</button>
+            <span class="nm" data-rename="act" data-id="${esc(a.act.id)}" title="Double-click to rename">Act ${a.no}${a.act.name ? `<i>: ${esc(a.act.name)}</i>` : ''}</span>
+            <span class="count">${n}</span>
+            <button class="icon more" data-act="act-menu" data-id="${esc(a.act.id)}" title="Act options" aria-label="Act options">⋯</button>
+          </div>
+          ${open ? a.sequences.map(seqHTML).join('') + `<button class="add-seq" data-act="add-seq" data-id="${esc(a.act.id)}" data-drop="act-end">+ Sequence</button>` : ''}
+        </div>`;
+      }
+      html += `<button class="add-act" data-act="add-act" data-id="${esc(pt.part.id)}">+ Act</button></div>`;
+    }
+    html += '</div>';
+  }
+  html += `<div class="tray-head" data-drop="unfiled">Unfiled <span class="count">${t.unfiled.length}</span><span class="help-i">${t.unfiled.length ? 'Drag into a sequence' : ''}</span></div>`;
+  html += t.unfiled.map(itemHTML).join('') || '<div class="seq-empty" data-drop="unfiled" style="margin-left:14px">Nothing unfiled.</div>';
+  if (t.archived.length) {
+    html += `<button class="tray-head" data-act="toggle-archived" aria-expanded="${showArchived}">${showArchived ? '▾' : '▸'} Archived <span class="count">${t.archived.length}</span></button>`;
+    if (showArchived) html += t.archived.map(itemHTML).join('');
+  }
+  el.innerHTML = html;
+  el.scrollTop = keep;
+}
+function seqHTML(q) {
+  const open = !collapsed.has('q:' + q.seq.id);
+  return `<div class="seq" data-seq-id="${esc(q.seq.id)}">
+    <div class="seq-head" ${TOUCH ? '' : 'draggable="true" '}data-drag="seq" data-drop="seq" data-id="${esc(q.seq.id)}" title="${TOUCH ? 'Hold to move or for options' : 'Drag to move this sequence'}">
+      <button class="tw" data-act="toggle" data-key="q:${esc(q.seq.id)}" aria-expanded="${open}">${open ? '▾' : '▸'}</button>
+      <span class="no">${q.no}</span>
+      <span class="nm" data-rename="seq" data-id="${esc(q.seq.id)}" title="Double-click to rename">${esc(q.seq.name) || '<i style="color:var(--faint)">Untitled sequence</i>'}</span>
+      <span class="count">${q.scenes.length}</span>
+      <button class="icon more" data-act="seq-menu" data-id="${esc(q.seq.id)}" title="Sequence options" aria-label="Sequence options">⋯</button>
+    </div>
+    ${open ? (q.scenes.map(itemHTML).join('') || `<div class="seq-empty" data-drop="seq" data-id="${esc(q.seq.id)}">Drag scenes here</div>`) : ''}
+  </div>`;
+}
+function itemHTML(s) {
+  const done = s.beats.filter(b => b.done).length, total = s.beats.length;
+  const n = sceneNo(s);
+  const no = s.archived ? '<span class="no">–</span>' : s.wip ? '<span class="no wip">WIP</span>' : `<span class="no">${n ?? ''}</span>`;
+  const sub = [s.pov, s.location].filter(Boolean).join(', ');
+  return `<div class="scene-item${s.id === data.currentId ? ' active' : ''}${s.archived ? ' archived' : ''}${s.keystone ? ' keystone' : ''}" data-id="${esc(s.id)}" tabindex="0" ${s.archived ? '' : (TOUCH ? '' : 'draggable="true" ') + 'data-drag="scene"'} title="${TOUCH ? 'Hold to move or for options' : 'Drag to move · right-click for options'}">
+    ${no}
+    <div><div class="t">${s.keystone ? '<span class="ks-mark" title="Keystone scene"></span>' : ''}${esc(s.title)}</div>${sub ? `<div class="sub">${esc(sub)}</div>` : ''}</div>
+    <div class="mini">${total ? `<div class="mini-bar"><span style="width:${Math.round(done / total * 100)}%"></span></div><span class="mini-n">${done}/${total}</span>` : '<span class="mini-n">no beats</span>'}</div>
+  </div>`;
+}
+function searchHTML(q) {
+  const hit = (s) => (s.keystone && 'keystone'.startsWith(q) && q.length >= 3) || [s.title, s.pov, s.location, s.objective, s.summary].some(v => String(v || '').toLowerCase().includes(q)) ||
+    s.beats.some(b => [b.label, b.text, b.notes].some(v => String(v || '').toLowerCase().includes(q)) || b.dialogue.some(d => (d.line + ' ' + d.speaker).toLowerCase().includes(q)));
+  const list = bookScenes().filter(hit);
+  if (!list.length) return '<div class="side-empty">No scene matches that search.</div>';
+  let html = '', last = null;
+  for (const s of list) {
+    const w = Story.where(s);
+    const crumb = s.archived ? 'Archived' : w ? `Part ${w.partNo} › Act ${w.actNo} › Sequence ${w.seqNo}${w.seq.name ? ': ' + w.seq.name : ''}` : 'Unfiled';
+    if (crumb !== last) { html += `<div class="crumb">${esc(crumb)}</div>`; last = crumb; }
+    html += itemHTML(s).replace(' draggable="true" data-drag="scene"', '').replace(' data-drag="scene"', '');
+  }
+  return html;
+}
+
+function renderMain() {
+  const s = scene();
+  const el = $('mainInner');
+  if (!s) {
+    el.innerHTML = `<div class="empty-main"><h2>Every scene, beat by beat.</h2>
+      <p>Pick a scene on the left, or add one. File scenes into acts and sequences, then break each into beats: the moments that make it work.</p>
+      <div class="actions"><button class="primary" data-act="add-scene">+ Scene</button><button data-act="add-act">+ Act</button></div></div>`;
+    return;
+  }
+  const tpl = allTemplates().find(t => t.id === s.type) || BUILT_IN[0];
+  const done = s.beats.filter(b => b.done).length;
+  const n = sceneNo(s), max = Story.numbers().scene.size;
+  const fileOpts = '<option value="">Unfiled</option>' + Story.filingOptions().map(o => `<option value="${esc(o.value)}" ${o.value === s.seqId ? 'selected' : ''}>${esc(o.label)}</option>`).join('');
+  const numberBit = s.archived ? '<span class="chip gone">Archived</span>' : s.wip ? '<span class="chip wip" title="Work in progress scenes get no number">WIP</span>'
+    : `<label class="num-wrap" title="Type a number to move the scene there; the others renumber">Scene <input type="number" class="num-input" data-num min="1" max="${max}" value="${n}"></label>`;
+  const opts = (list) => list.map(t => `<option value="${esc(t.id)}" ${t.id === s.type ? 'selected' : ''}>${esc(t.name)}</option>`).join('');
+  const words = draftWords(s.id);
+  const order = visibleOrder(), at = order.indexOf(s);
+  el.innerHTML = `
+    <div class="scene-nav"><button data-nav="-1" ${at <= 0 ? 'disabled' : ''} aria-label="Previous scene">‹</button>
+      <span class="where">${at >= 0 ? `<b>${at + 1}</b> of ${order.length} · ` : ''}swipe sideways for the next scene</span>
+      <button data-nav="1" ${at < 0 || at >= order.length - 1 ? 'disabled' : ''} aria-label="Next scene">›</button></div>
+    ${s.archived ? `<div class="arch-banner"><span>This scene is archived. It's hidden from the story, the Board and exports.</span><button data-act="archive-scene">Unarchive</button></div>` : ''}
+    <div class="scene-head">
+      <div class="head-row">${numberBit}
+        <select class="file-select" data-file aria-label="Filed in" ${s.archived ? 'disabled' : ''}>${fileOpts}</select>
+        ${s.keystone ? '<span class="ks-chip"><span class="ks-mark"></span>Keystone</span>' : ''}
+      </div>
+      <input type="text" class="scene-title" data-field="title" value="${esc(s.title)}" aria-label="Scene title">
+      <div class="scene-fields">
+        <label class="field">POV character<input type="text" data-field="pov" value="${esc(s.pov)}" list="speakers"></label>
+        <label class="field">Location<input type="text" data-field="location" value="${esc(s.location)}"></label>
+        <label class="field full">Objective<input type="text" data-field="objective" value="${esc(s.objective)}" placeholder="What must this scene accomplish?"></label>
+        <label class="field full">Summary<textarea data-field="summary" placeholder="What happens, what's in conflict, how it ends…">${esc(s.summary)}</textarea></label>
+      </div>
+      <label class="wip-check"><input type="checkbox" data-keystone ${s.keystone ? 'checked' : ''}> <span class="ks-mark"></span>Keystone (a scene the story is built around)</label>
+      <label class="wip-check" style="margin-top:4px"><input type="checkbox" data-wip ${s.wip ? 'checked' : ''}> Work in progress (no number, left out of exports)</label>
+      <div class="write-row">
+        <button class="primary" data-act="write" title="Open this scene in the writing room">✎ Write this scene</button>
+        <span class="draft-words">${words ? `${words.toLocaleString()} word${words === 1 ? '' : 's'} drafted` : 'Not drafted yet'}</span>
+        <span class="spacer"></span>
+        <button data-act="board" title="Show this scene's card on the Board">Board</button>
+        <button data-act="archive-scene" title="${s.archived ? 'Put this scene back in the story' : 'Hide this scene without deleting anything'}">${s.archived ? 'Unarchive' : 'Archive'}</button>
+        <button class="danger" data-act="delete-scene" title="Delete this scene and all its beats">Delete</button>
+      </div>
+    </div>
+    <div class="template-bar">
+      <label for="typeSelect">Scene type</label>
+      <select id="typeSelect">${opts(BUILT_IN)}${data.templates.length ? `<optgroup label="Your templates">${opts(data.templates)}</optgroup>` : ''}</select>
+      <button data-act="save-template" ${s.beats.length ? '' : 'disabled'}>Save as template</button>
+      ${tpl.custom ? '<button data-act="delete-template">Delete template</button>' : ''}
+      <div class="progress"><span>${done} of ${s.beats.length} written</span><div class="bar"><span style="width:${s.beats.length ? Math.round(done / s.beats.length * 100) : 0}%"></span></div></div>
+      <div class="template-desc">${esc(tpl.desc)}</div>
+    </div>
+    <div id="beats">${s.beats.map((b, i) => beatHTML(b, i)).join('')}</div>
+    <button class="add-beat" data-act="add-beat">+ Add beat</button>
+    <p class="beat-tip">${TOUCH ? 'Write with Apple Pencil in any field and it turns into text. Drag ⋮⋮ to reorder. Swipe a beat right to mark it written, left to delete. Tap a number to mark it written; hold it for more. With a keyboard: Return adds a beat, ⌘↑/↓ moves it, ⌘Return marks it written, ⌘[ and ⌘] change scene.' : 'Enter adds the next beat. Alt + ↑/↓ moves a beat. Click a beat\'s number to mark it written. Paste or drop an image onto a beat to attach it.'}</p>`;
+  el.querySelectorAll('textarea.b-line').forEach(autoGrow);
+  updateSpeakers();
+}
+
+function beatHTML(b, i) {
+  const open = openBeats.has(b.id);
+  const badges = [
+    b.notes.trim() ? '<span class="badge" title="Has notes">Notes</span>' : '',
+    b.dialogue.length ? `<span class="badge" title="Dialogue lines">💬 ${b.dialogue.length}</span>` : '',
+    b.images.length ? `<span class="badge" title="Images and sketches">🖼 ${b.images.length}</span>` : '',
+    b.memo ? `<span class="badge memo" data-play="${esc(b.id)}" title="Play the voice memo">🎙 ${fmtDur(b.memo.dur)}</span>` : ''
+  ].join('');
+  return `<div class="beat${b.done ? ' done' : ''}${open ? ' open' : ''}" data-id="${esc(b.id)}">
+    ${TOUCH ? '<div class="under"><span class="w">✓ Written</span><span class="d">Delete</span></div>' : ''}
+    <div class="node" title="${b.done ? 'Written. Click to unmark.' : 'Mark as written'}" role="checkbox" aria-checked="${b.done}" tabindex="0">${i + 1}</div>
+    <div class="beat-card">
+      <div class="beat-row">
+        <span class="grip" draggable="true" title="Drag to reorder">⋮⋮</span>
+        <div class="beat-texts">
+          <input type="text" class="b-label" value="${esc(b.label)}" placeholder="Beat ${i + 1}" aria-label="Beat name">
+          <textarea class="b-line" rows="1" placeholder="${esc(b.prompt || 'What happens?')}" aria-label="Beat">${esc(b.text)}</textarea>
+        </div>
+        <div class="badges">${badges}</div>
+        <button class="icon expand" title="Notes, dialogue and images" aria-expanded="${open}">${open ? '▾' : '▸'}</button>
+        <button class="icon b-del" title="Delete beat">✕</button>
+        <button class="icon b-more" title="More for this beat" aria-label="More for this beat">⋯</button>
+      </div>
+      <div class="beat-body">
+        ${b.prompt ? `<div class="prompt-hint">${esc(b.prompt)}</div>` : ''}
+        <div><div class="sec-title">Notes</div><textarea class="b-notes" placeholder="Details, research, what to remember…">${esc(b.notes)}</textarea></div>
+        <div>
+          <div class="sec-title">Dialogue</div>
+          ${b.dialogue.map(d => `<div class="dlg-row" data-did="${esc(d.id)}">
+            <input type="text" class="d-spk" value="${esc(d.speaker)}" placeholder="Who speaks" list="speakers">
+            <textarea class="d-line" rows="1" placeholder="What they say">${esc(d.line)}</textarea>
+            <button class="icon d-del" title="Remove line">✕</button></div>`).join('')}
+          <button data-act="add-line">+ Dialogue line</button>
+        </div>
+        <div>
+          <div class="sec-title">Images</div>
+          ${b.images.length ? `<div class="imgs">${b.images.map(im => `<div class="img-card${im.sketch ? ' sketch' : ''}" data-iid="${esc(im.id)}">
+            <img src="${im.src}" alt="${esc(im.caption)}" title="${im.sketch ? 'Tap to keep drawing' : 'Tap to enlarge'}">
+            <div class="cap-row"><input type="text" class="i-cap" value="${esc(im.caption)}" placeholder="Caption"><button class="icon i-del" title="Remove image">✕</button></div></div>`).join('')}</div>` : ''}
+          <div class="add-row" style="margin-top:${b.images.length ? 8 : 0}px;flex-wrap:wrap"><button data-act="add-image">${TOUCH ? '🖼 Photos' : '+ Image'}</button>${TOUCH ? '<button data-act="camera">📷 Camera</button>' : ''}<button data-act="sketch">✏︎ Sketch</button>${TOUCH ? '<button data-act="paste-image">Paste</button>' : ''}<span class="drop-hint">${TOUCH ? 'or drag a picture in from another app' : 'or paste or drop one here'}</span></div>
+        </div>
+        <div>
+          <div class="sec-title">Voice memo</div>
+          <div class="memo-row">${b.memo ? `<button class="play" data-play="${esc(b.id)}" aria-label="Play">▶</button><span class="info">${fmtDur(b.memo.dur)} · ${esc(new Date(b.memo.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</span><button data-act="memo-redo">Record again</button><button class="danger" data-act="memo-del">Remove</button>`
+            : `<button data-act="memo-rec">🎙 Record</button><span class="info">Talk the beat through; it's kept with this beat${SR ? ' and written into its notes' : ''}.</span>`}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function autoGrow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+
+function updateSpeakers() {
+  const names = new Set();
+  data.scenes.forEach(s => { if (s.pov) names.add(s.pov); s.beats.forEach(b => b.dialogue.forEach(d => d.speaker && names.add(d.speaker))); });
+  $('speakers').innerHTML = [...names].sort().map(n => `<option value="${esc(n)}">`).join('');
+}
+
+function refreshProgress() {
+  const s = scene();
+  if (!s) return;
+  const done = s.beats.filter(b => b.done).length;
+  const p = document.querySelector('.progress');
+  if (p) {
+    p.querySelector('span').textContent = `${done} of ${s.beats.length} written`;
+    p.querySelector('.bar span').style.width = (s.beats.length ? Math.round(done / s.beats.length * 100) : 0) + '%';
+  }
+  renderSidebar();
+}
+
+function renderAll() { renderSidebar(); renderMain(); }
+
+/* ================= Beat helpers ================= */
+const beatOf = (el) => { const s = scene(); const id = el.closest('.beat')?.dataset.id; return s && s.beats.find(b => b.id === id); };
+function focusBeat(id, where = 'line', atEnd = true) {
+  const el = document.querySelector(`.beat[data-id="${CSS.escape(id)}"] ${where === 'label' ? '.b-label' : '.b-line'}`);
+  if (el) { el.focus(); if (atEnd) { const n = el.value.length; el.setSelectionRange(n, n); } }
+}
+function addBeatAfter(idx, focus = true) {
+  const s = scene();
+  const b = newBeat();
+  s.beats.splice(idx + 1, 0, b);
+  renderMain(); refreshProgress(); save();
+  if (focus) focusBeat(b.id);
+  return b;
+}
+function deleteBeat(b) {
+  const s = scene(), i = s.beats.indexOf(b);
+  if (i < 0) return;
+  s.beats.splice(i, 1);
+  openBeats.delete(b.id);
+  renderMain(); refreshProgress(); save();
+  const has = b.text.trim() || b.notes.trim() || b.dialogue.length || b.images.length;
+  if (has) toast('Beat deleted.', () => { s.beats.splice(i, 0, b); });
+  return i;
+}
+function moveBeat(b, delta) {
+  const s = scene(), i = s.beats.indexOf(b), j = i + delta;
+  if (i < 0 || j < 0 || j >= s.beats.length) return;
+  s.beats.splice(i, 1); s.beats.splice(j, 0, b);
+  renderMain(); save(); focusBeat(b.id);
+}
+
+async function applyTemplate(id) {
+  const s = scene(), t = allTemplates().find(x => x.id === id);
+  if (!s || !t) return;
+  const hasContent = s.beats.some(b => b.text.trim() || b.notes.trim() || b.dialogue.length || b.images.length);
+  let mode = 'replace';
+  if (s.beats.length && t.beats.length) {
+    mode = await showChoice(`Use “${t.name}”?`,
+      `<p>This scene already has ${s.beats.length} beat${s.beats.length === 1 ? '' : 's'}.</p>
+       <p class="help">${hasContent ? '<b>Replace</b> removes the current beats (you can undo it right after). ' : ''}<b>Add after</b> keeps them and adds the template's beats at the end.</p>`,
+      [{ value: 'cancel', label: 'Cancel' }, { value: 'append', label: 'Add after' }, { value: 'replace', label: 'Replace', cls: hasContent ? 'danger' : 'primary' }]);
+    if (mode === 'cancel') { renderMain(); return; }
+  }
+  const prevBeats = s.beats.slice(), prevType = s.type;
+  const fresh = t.beats.map(b => newBeat(b));
+  s.type = id;
+  if (mode === 'append') s.beats = [...s.beats, ...fresh];
+  else s.beats = fresh.length ? fresh : (s.beats.length ? s.beats : [newBeat()]);
+  if (!s.beats.length) s.beats = [newBeat()];
+  renderAll(); save();
+  if (mode === 'replace' && prevBeats.length && fresh.length) toast(`Beats replaced with “${t.name}”.`, () => { s.beats = prevBeats; s.type = prevType; });
+  if (s.beats[0]) focusBeat(s.beats[mode === 'append' ? prevBeats.length : 0]?.id || s.beats[0].id);
+}
+
+/* ================= Images ================= */
+function readImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type.startsWith('image/')) return reject(new Error('not an image'));
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1400, scale = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        const x = c.getContext('2d');
+        x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height);
+        x.drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => reject(new Error('could not open that image'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+async function addImages(beat, files) {
+  const list = [...files].filter(f => f.type.startsWith('image/'));
+  if (!list.length) return;
+  let added = 0;
+  for (const f of list) {
+    try { beat.images.push({ id: 'i-' + uid(), src: await readImage(f), caption: f.name && !/^image\.\w+$/i.test(f.name) ? f.name.replace(/\.[^.]+$/, '') : '' }); added++; }
+    catch (e) { toast(`Couldn't add ${f.name || 'that image'}: ${e.message}.`); }
+  }
+  if (added) { openBeats.add(beat.id); renderMain(); refreshProgress(); save(); }
+}
+
+/* ================= Events: sidebar & toolbar ================= */
+const list = $('sceneList');
+list.addEventListener('contextmenu', (e) => {
+  const item = e.target.closest('.scene-item'), ah = e.target.closest('.act-head'), qh = e.target.closest('.seq-head'), ph = e.target.closest('.part-head');
+  let items = null;
+  if (item) items = sceneMenu(data.scenes.find(x => x.id === item.dataset.id));
+  else if (qh) items = seqMenu(Story.seq(qh.dataset.id));
+  else if (ah) items = actMenu(Story.act(ah.dataset.id));
+  else if (ph) items = partMenu(Story.part(ph.dataset.id));
+  if (!items) return;
+  e.preventDefault();
+  openMenu(items, e.clientX, e.clientY);
+});
+list.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-act]');
+  if (a) {
+    const act = a.dataset.act, r = a.getBoundingClientRect();
+    if (act === 'toggle') { const k = a.dataset.key; collapsed.has(k) ? collapsed.delete(k) : collapsed.add(k); saveCollapsed(); renderSidebar(); }
+    else if (act === 'toggle-archived') { showArchived = !showArchived; renderSidebar(); }
+    else if (act === 'act-menu') openMenu(actMenu(Story.act(a.dataset.id)), r.left, r.bottom + 2);
+    else if (act === 'seq-menu') openMenu(seqMenu(Story.seq(a.dataset.id)), r.left, r.bottom + 2);
+    else if (act === 'add-seq') addSequence(a.dataset.id);
+    else if (act === 'part-menu') openMenu(partMenu(Story.part(a.dataset.id)), r.left, r.bottom + 2);
+    else if (act === 'add-act') addAct(a.dataset.id);
+    return;
+  }
+  const item = e.target.closest('.scene-item');
+  if (item) selectScene(item.dataset.id);
+});
+list.addEventListener('dblclick', (e) => {
+  const r = e.target.closest('[data-rename]');
+  if (r) startRename(r.dataset.rename, r.dataset.id);
+});
+list.addEventListener('keydown', (e) => {
+  const item = e.target.closest('.scene-item');
+  if (!item) return;
+  if (e.key === 'Enter') item.click();
+  if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+    e.preventDefault();
+    const r = item.getBoundingClientRect();
+    openMenu(sceneMenu(data.scenes.find(x => x.id === item.dataset.id)), r.left + 40, r.bottom - 4);
+  }
+});
+$('search').addEventListener('input', renderSidebar);
+$('btnAddScene').onclick = () => addScene();
+$('btnAddAct').onclick = () => addAct();
+$('btnAddPart').onclick = addPart;
+
+/* Drag scenes within and between sequences; drag sequences within and between acts */
+let dragItem = null;
+list.addEventListener('dragstart', (e) => {
+  const el = e.target.closest('[data-drag]');
+  if (!el) return;
+  const kind = el.dataset.drag;
+  dragItem = { kind, id: kind === 'scene' ? el.dataset.id : el.dataset.id };
+  (kind === 'seq' ? el.closest('.seq') : el).classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', kind);
+});
+list.addEventListener('dragend', () => { dragItem = null; clearDrop(); document.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging')); });
+function clearDrop() { list.querySelectorAll('.drop-before,.drop-after,.drop-into').forEach(x => x.classList.remove('drop-before', 'drop-after', 'drop-into')); }
+// where would this drop land?
+function dropTarget(e) {
+  if (!dragItem) return null;
+  if (dragItem.kind === 'scene') {
+    const item = e.target.closest('.scene-item');
+    if (item && !item.classList.contains('archived') && item.dataset.id !== dragItem.id) {
+      const r = item.getBoundingClientRect(), before = e.clientY < r.top + r.height / 2;
+      return { el: item, cls: before ? 'drop-before' : 'drop-after', drop: () => {
+        const target = data.scenes.find(x => x.id === item.dataset.id);
+        let beforeId = target.id;
+        if (!before) { const all = data.scenes, i = all.indexOf(target); const next = all.slice(i + 1).find(x => x.seqId === target.seqId && x.id !== dragItem.id && !x.archived); beforeId = next ? next.id : null; }
+        Story.moveScene(dragItem.id, target.seqId, beforeId, 'beats');
+      } };
+    }
+    const into = e.target.closest('[data-drop="seq"],[data-drop="unfiled"]');
+    if (into) return { el: into, cls: 'drop-into', drop: () => Story.moveScene(dragItem.id, into.dataset.drop === 'seq' ? into.dataset.id : null, null, 'beats') };
+    return null;
+  }
+  // a sequence
+  const head = e.target.closest('.seq-head');
+  if (head && head.dataset.id !== dragItem.id) {
+    const r = head.getBoundingClientRect(), before = e.clientY < r.top + r.height / 2;
+    return { el: head, cls: before ? 'drop-before' : 'drop-after', drop: () => {
+      const target = Story.seq(head.dataset.id), all = Story.data.sequences, i = all.indexOf(target);
+      const next = all.slice(i + 1).find(x => x.actId === target.actId && x.id !== dragItem.id);
+      Story.moveSequence(dragItem.id, target.actId, before ? target.id : (next ? next.id : null), 'beats');
+    } };
+  }
+  const actEl = e.target.closest('[data-drop="act"],[data-drop="act-end"]');
+  if (actEl) return { el: actEl, cls: 'drop-into', drop: () => Story.moveSequence(dragItem.id, actEl.dataset.id, null, 'beats') };
+  return null;
+}
+list.addEventListener('dragover', (e) => {
+  const t = dropTarget(e);
+  clearDrop();
+  if (!t) return;
+  e.preventDefault();
+  t.el.classList.add(t.cls);
+});
+list.addEventListener('dragleave', (e) => { if (!list.contains(e.relatedTarget)) clearDrop(); });
+list.addEventListener('drop', (e) => {
+  const t = dropTarget(e);
+  clearDrop();
+  if (!t) return;
+  e.preventDefault();
+  const kind = dragItem.kind, id = dragItem.id;
+  t.drop();
+  dragItem = null;
+  if (kind === 'scene') {
+    const s = data.scenes.find(x => x.id === id);
+    if (s && s.seqId) openPathTo(s);
+  }
+  renderAll();
+});
+
+/* ================= Events: main panel ================= */
+const main = $('mainInner');
+main.addEventListener('input', (e) => {
+  const t = e.target, s = scene();
+  if (!s) return;
+  if (t.dataset.field) { s[t.dataset.field] = t.value; if (['title', 'pov', 'location'].includes(t.dataset.field)) renderSidebar(); save({ fields: true }); return; }
+  const b = beatOf(t);
+  if (!b) return;
+  if (t.classList.contains('b-line')) { b.text = t.value; autoGrow(t); }
+  else if (t.classList.contains('b-label')) b.label = t.value;
+  else if (t.classList.contains('b-notes')) b.notes = t.value;
+  else if (t.classList.contains('d-spk') || t.classList.contains('d-line')) {
+    const d = b.dialogue.find(x => x.id === t.closest('.dlg-row').dataset.did);
+    if (d) { if (t.classList.contains('d-spk')) d.speaker = t.value; else d.line = t.value; }
+  } else if (t.classList.contains('i-cap')) {
+    const im = b.images.find(x => x.id === t.closest('.img-card').dataset.iid);
+    if (im) im.caption = t.value;
+  }
+  save();
+});
+main.addEventListener('focusout', (e) => {
+  // refresh the little badges once you leave a field
+  const t = e.target;
+  if (t.classList && (t.classList.contains('b-notes') || t.classList.contains('d-spk'))) {
+    const b = beatOf(t); if (!b) return;
+    const card = t.closest('.beat');
+    setTimeout(() => {
+      if (card.contains(document.activeElement)) return;
+      const badgeEl = card.querySelector('.badges');
+      if (badgeEl) badgeEl.innerHTML = beatHTML(b, 0).match(/<div class="badges">([\s\S]*?)<\/div>/)[1];
+      updateSpeakers();
+    }, 0);
+  }
+});
+main.addEventListener('change', (e) => {
+  const t = e.target, s = scene();
+  if (t.id === 'typeSelect') return applyTemplate(t.value);
+  if (!s) return;
+  if (t.hasAttribute('data-num')) {
+    const v = Math.round(+t.value);
+    if (Number.isFinite(v) && v >= 1) { Story.setSceneNumber(s.id, v, 'beats'); renderAll(); toast(`“${s.title}” is now Scene ${sceneNo(s)}.`); }
+    else renderMain();
+  } else if (t.hasAttribute('data-file')) {
+    Story.moveScene(s.id, t.value || null, null, 'beats');
+    if (s.seqId) openPathTo(s);
+    renderAll();
+  } else if (t.hasAttribute('data-keystone')) {
+    s.keystone = t.checked; save({ fields: true }); renderAll();
+  } else if (t.hasAttribute('data-wip')) {
+    s.wip = t.checked; Story.sortAll(); save({ fields: true, order: true }); renderAll();
+  }
+});
+main.addEventListener('click', async (e) => {
+  const s = scene();
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (act === 'add-scene') return addScene();
+  if (act === 'add-act') return addAct();
+  if (!s) return;
+  if (act === 'board') return Shell.show('board', { sceneId: s.id });
+  if (act === 'add-beat') return addBeatAfter(s.beats.length - 1);
+  if (act === 'write') return writeScene(s);
+  if (act === 'save-template') { $('tplName').value = ''; $('templateModal').classList.add('open'); setTimeout(() => $('tplName').focus(), 0); return; }
+  if (act === 'delete-template') {
+    const t = data.templates.find(x => x.id === s.type);
+    if (t && confirm(`Delete the template “${t.name}”? Scenes keep their beats.`)) {
+      data.templates = data.templates.filter(x => x !== t);
+      data.scenes.forEach(x => { if (x.type === t.id) x.type = 'free'; });
+      renderAll(); save({ fields: true });
+    }
+    return;
+  }
+  if (act === 'delete-scene') return deleteScene(s);
+  if (act === 'archive-scene') return toggleArchive(s);
+  const b = beatOf(e.target);
+  if (!b) return;
+  if (e.target.closest('.node')) { toggleDone(b); return; }
+  if (e.target.closest('.expand')) { openBeats.has(b.id) ? openBeats.delete(b.id) : openBeats.add(b.id); renderMain(); return; }
+  if (e.target.closest('.b-del')) return deleteBeat(b);
+  if (act === 'add-line') return addLine(b);
+  if (e.target.closest('.d-del')) {
+    const did = e.target.closest('.dlg-row').dataset.did;
+    b.dialogue = b.dialogue.filter(x => x.id !== did); renderMain(); save(); return;
+  }
+  if (act === 'add-image') { imageTargetBeat = b; $('imageInput').click(); return; }
+  if (act === 'camera') { imageTargetBeat = b; $('cameraInput').click(); return; }
+  if (act === 'sketch') return Sketch.open(b);
+  if (act === 'paste-image') return pasteImage(b);
+  if (act === 'memo-rec' || act === 'memo-redo') return BeatRec.start(b);
+  if (act === 'memo-del') { const m = b.memo; stopMemo(); b.memo = null; renderMain(); save(); toast('Voice memo removed.', () => { b.memo = m; }); return; }
+  if (e.target.closest('[data-play]')) return playMemo(b.memo, e.target.closest('[data-play]'));
+  if (e.target.closest('.b-more')) { const r = e.target.closest('.b-more').getBoundingClientRect(); return openMenu(beatMenu(b), r.right - 230, r.bottom + 4); }
+  if (e.target.closest('.i-del')) {
+    const iid = e.target.closest('.img-card').dataset.iid, idx = b.images.findIndex(x => x.id === iid), im = b.images[idx];
+    b.images.splice(idx, 1); renderMain(); refreshProgress(); save();
+    toast('Image removed.', () => { b.images.splice(idx, 0, im); openBeats.add(b.id); });
+    return;
+  }
+  if (e.target.tagName === 'IMG' && e.target.closest('.img-card.sketch')) { const im = b.images.find(x => x.id === e.target.closest('.img-card').dataset.iid); if (im) return Sketch.open(b, im); }
+  if (e.target.tagName === 'IMG' && e.target.closest('.img-card')) {
+    $('lightbox').querySelector('img').src = e.target.src;
+    $('lightbox').querySelector('p').textContent = e.target.alt;
+    $('lightbox').classList.add('open');
+  }
+});
+main.addEventListener('keydown', (e) => {
+  const t = e.target, s = scene();
+  if (t.classList.contains('node') && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); t.click(); return; }
+  const b = beatOf(t);
+  if (!b || !s) return;
+  const i = s.beats.indexOf(b);
+  if ((e.altKey || e.metaKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); moveBeat(b, e.key === 'ArrowUp' ? -1 : 1); return; }
+  if (e.metaKey && e.key === 'Enter') { e.preventDefault(); toggleDone(b); return; }
+  if (t.classList.contains('b-line') || t.classList.contains('b-label')) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (t.classList.contains('b-label')) { focusBeat(b.id); return; }
+      addBeatAfter(i);
+      return;
+    }
+    if (e.key === 'Backspace' && t.classList.contains('b-line') && !t.value && !b.label && !b.notes.trim() && !b.dialogue.length && !b.images.length && s.beats.length > 1) {
+      e.preventDefault();
+      const prev = s.beats[i - 1] || s.beats[i + 1];
+      deleteBeat(b);
+      if (prev) focusBeat(prev.id);
+      return;
+    }
+    if (e.key === 'ArrowUp' && t.selectionStart === 0 && i > 0) { e.preventDefault(); focusBeat(s.beats[i - 1].id); }
+    if (e.key === 'ArrowDown' && t.selectionEnd === t.value.length && i < s.beats.length - 1) { e.preventDefault(); focusBeat(s.beats[i + 1].id, 'line', false); }
+  }
+});
+
+/* Drag to reorder beats, or drop image files onto a beat */
+let dragBeatId = null;
+main.addEventListener('dragstart', (e) => {
+  const g = e.target.closest?.('.grip');
+  if (!g) return;
+  const el = g.closest('.beat');
+  dragBeatId = el.dataset.id;
+  el.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'beat');
+  try { e.dataTransfer.setDragImage(el, 20, 20); } catch (err) {}
+});
+main.addEventListener('dragend', () => {
+  dragBeatId = null;
+  document.querySelectorAll('.beat').forEach(x => x.classList.remove('dragging', 'drop-before', 'drop-after', 'file-over'));
+});
+const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+main.addEventListener('dragover', (e) => {
+  const el = e.target.closest('.beat');
+  if (!el) return;
+  if (hasFiles(e)) { e.preventDefault(); document.querySelectorAll('.beat.file-over').forEach(x => x !== el && x.classList.remove('file-over')); el.classList.add('file-over'); return; }
+  if (!dragBeatId) return;
+  e.preventDefault();
+  const r = el.getBoundingClientRect(), before = e.clientY < r.top + r.height / 2;
+  document.querySelectorAll('.beat').forEach(x => x.classList.remove('drop-before', 'drop-after'));
+  if (el.dataset.id !== dragBeatId) el.classList.add(before ? 'drop-before' : 'drop-after');
+});
+main.addEventListener('dragleave', (e) => {
+  const el = e.target.closest('.beat');
+  if (el && !el.contains(e.relatedTarget)) el.classList.remove('file-over', 'drop-before', 'drop-after');
+});
+main.addEventListener('drop', (e) => {
+  const el = e.target.closest('.beat');
+  if (!el) return;
+  e.preventDefault();
+  const s = scene();
+  if (hasFiles(e)) { el.classList.remove('file-over'); const b = s.beats.find(x => x.id === el.dataset.id); if (b) addImages(b, e.dataTransfer.files); return; }
+  if (!dragBeatId || el.dataset.id === dragBeatId) return;
+  const moving = s.beats.find(x => x.id === dragBeatId);
+  const r = el.getBoundingClientRect(), before = e.clientY < r.top + r.height / 2;
+  s.beats.splice(s.beats.indexOf(moving), 1);
+  const at = s.beats.findIndex(x => x.id === el.dataset.id) + (before ? 0 : 1);
+  s.beats.splice(at, 0, moving);
+  dragBeatId = null;
+  renderMain(); save();
+});
+document.addEventListener('dragover', (e) => { if (hasFiles(e)) e.preventDefault(); });
+document.addEventListener('drop', (e) => { if (hasFiles(e) && !e.target.closest?.('.beat')) e.preventDefault(); });
+
+document.addEventListener('paste', (e) => {
+  const el = document.activeElement?.closest?.('.beat');
+  const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith('image/'));
+  if (!el || !files.length) return;
+  e.preventDefault();
+  const b = scene()?.beats.find(x => x.id === el.dataset.id);
+  if (b) addImages(b, files);
+});
+['imageInput', 'cameraInput'].forEach(id => $(id).onchange = async (e) => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (imageTargetBeat) await addImages(imageTargetBeat, files);
+  imageTargetBeat = null;
+});
+$('lightbox').onclick = () => $('lightbox').classList.remove('open');
+
+/* ================= Templates modal ================= */
+$('btnSaveTpl').onclick = () => {
+  const s = scene(), name = $('tplName').value.trim();
+  if (!name) { $('tplName').focus(); return; }
+  const t = { id: 'tpl-' + uid(), name, desc: `Your template, from “${s.title}”.`, custom: true,
+              beats: s.beats.map((b, i) => ({ label: b.label.trim() || `Beat ${i + 1}`, prompt: b.prompt })) };
+  data.templates.push(t);
+  s.type = t.id;
+  closeModals(); renderAll(); save({ fields: true });
+  toast(`Saved template “${name}”.`);
+};
+$('tplName').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btnSaveTpl').click(); });
+
+/* ================= Export ================= */
+function exportScenes() {
+  if (exportScope === 'current') return scene() && !scene().archived ? [scene()] : [];
+  const incWip = $('expWip').checked;
+  return bookScenes().filter(s => !s.archived && (incWip || !s.wip));
+}
+// the act and sequence headings to print before each scene
+function headingsFor(list) {
+  const out = new Map();
+  let lastPart = null, lastAct = null, lastSeq = null;
+  const anyParts = Story.data.parts.some(x => x.bookId === Story.bookId);
+  for (const s of list) {
+    const w = Story.where(s);
+    const partK = w ? w.part.id : 'unfiled', actK = w ? w.act.id : 'unfiled', seqK = w ? w.seq.id : '';
+    const partH = w ? Story.partLabel(w.part) : (anyParts ? 'Unfiled' : '');
+    out.set(s.id, {
+      part: partK !== lastPart ? partH : '',
+      act: w && actK !== lastAct ? Story.actLabel(w.act) : '',
+      seq: w && seqK !== lastSeq ? Story.seqLabel(w.seq) : ''
+    });
+    lastPart = partK; lastAct = actK; lastSeq = seqK;
+  }
+  return out;
+}
+function updateExportNote() {
+  const n = exportScenes().length;
+  $('expNote').textContent = exportFormat === 'pdf'
+    ? `${n} scene${n === 1 ? '' : 's'}. PDF opens Chrome's print window — choose Save as PDF.`
+    : `${n} scene${n === 1 ? '' : 's'}.`;
+}
+function setSeg(group, attr, value) { document.querySelectorAll(`#${group} button`).forEach(b => b.classList.toggle('on', b.dataset[attr] === value)); }
+$('btnExport').onclick = () => {
+  if (!data.scenes.length) { alert('There are no scenes to export yet.'); return; }
+  if (IPAD) { exportFormat = 'docx'; $('expFormat').style.display = 'none'; }
+  setSeg('expFormat', 'fmt', exportFormat); setSeg('expScope', 'scope', exportScope); updateExportNote();
+  $('exportModal').classList.add('open');
+};
+document.querySelectorAll('#expFormat button').forEach(b => b.onclick = () => { exportFormat = b.dataset.fmt; setSeg('expFormat', 'fmt', exportFormat); updateExportNote(); });
+document.querySelectorAll('#expScope button').forEach(b => b.onclick = () => { exportScope = b.dataset.scope; setSeg('expScope', 'scope', exportScope); updateExportNote(); });
+$('expWip').onchange = updateExportNote;
+$('btnDoExport').onclick = () => {
+  const list = exportScenes();
+  if (!list.length) { alert('No scenes match these choices.'); return; }
+  const opts = { title: $('expTitle').value.trim() || 'Beat Outline', details: $('expDetails').checked, images: $('expImages').checked };
+  closeModals();
+  if (exportFormat === 'pdf') exportPdf(list, opts); else exportDocx(list, opts);
+};
+const sceneHeading = (s) => (s.wip ? 'WIP: ' : sceneNo(s) ? `Scene ${sceneNo(s)}: ` : '') + s.title;
+
+function exportPdf(list, o) {
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(o.title)}</title><style>
+    @page { margin: 0.85in; }
+    body { font-family: Georgia, serif; color: #1e293b; font-size: 11.5pt; line-height: 1.5; }
+    h1 { text-align: center; font-size: 22pt; margin: 0 0 4px; }
+    .sub { text-align: center; color: #64748b; font-style: italic; margin-bottom: 26px; }
+    .scene { border-top: 1px solid #cbd5e1; padding-top: 14px; margin-top: 18px; }
+    .ks { font-family: Arial, sans-serif; font-size: 9pt; font-weight: bold; color: #b45309; letter-spacing: .04em; }
+    h1.part { text-align: center; font-size: 23pt; margin: 40px 0 4px; letter-spacing: .04em; break-before: page; }
+    h1.part:first-of-type { break-before: auto; }
+    h1.act { text-align: center; font-size: 19pt; margin: 34px 0 4px; break-after: avoid; }
+    h2.seq { font-size: 13pt; color: #475569; margin: 20px 0 0; border-bottom: 2px solid #cbd5e1; padding-bottom: 3px; break-after: avoid; }
+    h2 { font-size: 15pt; margin: 0 0 4px; }
+    .meta { font-family: Arial, sans-serif; font-size: 9pt; color: #475569; }
+    .obj { font-style: italic; color: #0369a1; margin: 6px 0 10px; }
+    ol { padding-left: 22px; margin: 6px 0; }
+    li { margin: 0 0 10px; break-inside: avoid; }
+    .lbl { font-family: Arial, sans-serif; font-size: 8.5pt; font-weight: bold; color: #0369a1; }
+    .done { color: #059669; font-family: Arial, sans-serif; font-size: 8pt; }
+    .notes { color: #334155; font-size: 10.5pt; margin: 4px 0 0; white-space: pre-wrap; }
+    .dlg { margin: 4px 0 0 0; font-size: 10.5pt; }
+    .dlg b { font-family: Arial, sans-serif; font-size: 8.5pt; letter-spacing: .02em; }
+    .imgs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    figure { margin: 0; width: 2.3in; } figure img { width: 100%; border-radius: 3px; } figcaption { font-size: 8.5pt; color: #64748b; }
+    .none { color: #94a3b8; font-style: italic; }
+  </style></head><body>
+  <h1>${esc(o.title)}</h1><div class="sub">${list.length} scene${list.length === 1 ? '' : 's'} · ${esc(new Date().toLocaleDateString())}</div>
+  ${(() => { const H = headingsFor(list); return list.map(s => `${H.get(s.id).part ? `<h1 class="part">${esc(H.get(s.id).part)}</h1>` : ''}${H.get(s.id).act ? `<h1 class="act">${esc(H.get(s.id).act)}</h1>` : ''}${H.get(s.id).seq ? `<h2 class="seq">${esc(H.get(s.id).seq)}</h2>` : ''}<div class="scene">
+    <h2>${esc(sceneHeading(s))}${s.keystone ? ' <span class="ks">◆ Keystone</span>' : ''}</h2>
+    <div class="meta">${[s.pov ? 'POV: ' + esc(s.pov) : '', s.location ? 'Location: ' + esc(s.location) : ''].filter(Boolean).join(' &nbsp; ')}</div>
+    ${s.objective ? `<div class="obj">Objective: ${esc(s.objective)}</div>` : ''}
+    ${s.beats.length ? `<ol>${s.beats.map(b => `<li>
+      ${b.label ? `<span class="lbl">${esc(b.label)}</span> ` : ''}${b.done ? '<span class="done">✓ written</span>' : ''}
+      <div>${esc(b.text) || '<span class="none">(empty)</span>'}</div>
+      ${o.details && b.notes.trim() ? `<div class="notes">${esc(b.notes)}</div>` : ''}
+      ${o.details ? b.dialogue.filter(d => d.line.trim()).map(d => `<div class="dlg"><b>${esc((d.speaker || '—').toUpperCase())}:</b> ${esc(d.line)}</div>`).join('') : ''}
+      ${o.images && b.images.length ? `<div class="imgs">${b.images.map(im => `<figure><img src="${im.src}">${im.caption ? `<figcaption>${esc(im.caption)}</figcaption>` : ''}</figure>`).join('')}</div>` : ''}
+    </li>`).join('')}</ol>` : '<p class="none">No beats yet.</p>'}
+  </div>`).join(''); })()}
+  </body></html>`;
+  const frame = document.createElement('iframe');
+  Object.assign(frame.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' });
+  document.body.appendChild(frame);
+  frame.contentDocument.open(); frame.contentDocument.write(html); frame.contentDocument.close();
+  const go = () => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(() => frame.remove(), 1500); };
+  const imgs = [...frame.contentDocument.images];
+  Promise.all(imgs.map(i => i.complete ? 1 : new Promise(r => { i.onload = i.onerror = r; }))).then(() => setTimeout(go, 150));
+}
+
+function xmlEsc(s) {
+  return String(s ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/[<>&'"]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c]));
+}
+function dataUrlBytes(src) {
+  const b64 = src.split(',')[1] || '';
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+function imageSize(src) {
+  return new Promise(res => { const i = new Image(); i.onload = () => res([i.naturalWidth, i.naturalHeight]); i.onerror = () => res([800, 600]); i.src = src; });
+}
+async function exportDocx(list, o, asBlob) {
+  const T = (text) => String(text).split(/\r?\n/).map(l => `<w:t xml:space="preserve">${xmlEsc(l)}</w:t>`).join('<w:br/>');
+  const R = (text, rpr = '') => `<w:r>${rpr ? `<w:rPr>${rpr}</w:rPr>` : ''}${T(text)}</w:r>`;
+  const P = (runs, ppr = '') => `<w:p>${ppr ? `<w:pPr>${ppr}</w:pPr>` : ''}${runs}</w:p>`;
+  const media = [];
+  let rel = 2;
+  async function picture(im) {
+    const [w, h] = await imageSize(im.src);
+    const maxW = 3.2 * 914400, cx = Math.round(Math.min(maxW, w * 9525)), cy = Math.round(cx * h / w);
+    const id = 'rId' + (++rel), n = media.length + 1;
+    media.push({ name: `word/media/image${n}.jpeg`, bytes: dataUrlBytes(im.src), id, target: `media/image${n}.jpeg` });
+    return `<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${n}" name="Image ${n}"/>
+      <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${n}" name="image${n}.jpeg"/><pic:cNvPicPr/></pic:nvPicPr>
+      <pic:blipFill><a:blip r:embed="${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>
+      <pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>
+      </a:graphicData></a:graphic></wp:inline></w:drawing></w:r>`;
+  }
+  const ind = '<w:ind w:left="567"/>';
+  let body = P(R(o.title), '<w:pStyle w:val="Title"/><w:jc w:val="center"/>');
+  body += P(R(`${list.length} scene${list.length === 1 ? '' : 's'} · ${new Date().toLocaleDateString()}`, '<w:i/><w:color w:val="64748B"/>'), '<w:jc w:val="center"/><w:spacing w:after="360"/>');
+  const H = headingsFor(list);
+  for (const s of list) {
+    if (H.get(s.id).part) body += P(R(H.get(s.id).part.toUpperCase(), '<w:b/><w:sz w:val="42"/>'), '<w:jc w:val="center"/><w:spacing w:before="600" w:after="120"/><w:outlineLvl w:val="0"/><w:keepNext/>' + (body.includes('<w:outlineLvl w:val="0"/>') ? '<w:pageBreakBefore/>' : ''));
+    if (H.get(s.id).act) body += P(R(H.get(s.id).act, '<w:b/><w:sz w:val="36"/>'), '<w:jc w:val="center"/><w:spacing w:before="480" w:after="120"/><w:outlineLvl w:val="0"/><w:keepNext/>');
+    if (H.get(s.id).seq) body += P(R(H.get(s.id).seq, '<w:b/><w:sz w:val="27"/><w:color w:val="475569"/>'), '<w:pBdr><w:bottom w:val="single" w:sz="8" w:space="2" w:color="CBD5E1"/></w:pBdr><w:spacing w:before="280" w:after="80"/><w:outlineLvl w:val="1"/><w:keepNext/>');
+    body += P(R(sceneHeading(s)) + (s.keystone ? R('   ◆ Keystone', '<w:sz w:val="18"/><w:color w:val="B45309"/>') : ''), '<w:pStyle w:val="Heading1"/>');
+    const meta = [s.pov ? 'POV: ' + s.pov : '', s.location ? 'Location: ' + s.location : ''].filter(Boolean).join('    ');
+    if (meta) body += P(R(meta, '<w:sz w:val="19"/><w:color w:val="475569"/>'));
+    if (s.objective) body += P(R('Objective: ', '<w:b/><w:color w:val="0369A1"/>') + R(s.objective, '<w:i/><w:color w:val="0369A1"/>'));
+    if (!s.beats.length) body += P(R('No beats yet.', '<w:i/><w:color w:val="94A3B8"/>'));
+    for (const [i, b] of s.beats.entries()) {
+      let runs = R(`${i + 1}. `, '<w:b/>');
+      if (b.label) runs += R(b.label + ' — ', '<w:b/><w:color w:val="0369A1"/>');
+      runs += R(b.text || '(empty)', b.text ? '' : '<w:i/><w:color w:val="94A3B8"/>');
+      if (b.done) runs += R('  ✓', '<w:color w:val="059669"/>');
+      body += P(runs, '<w:pStyle w:val="Heading2"/>');
+      if (o.details && b.notes.trim()) body += P(R(b.notes, '<w:color w:val="334155"/>'), ind);
+      if (o.details) for (const d of b.dialogue.filter(x => x.line.trim())) body += P(R((d.speaker || '—').toUpperCase() + ': ', '<w:b/><w:sz w:val="19"/>') + R(d.line, '<w:i/>'), ind);
+      if (o.images) for (const im of b.images) {
+        body += P(await picture(im), ind);
+        if (im.caption) body += P(R(im.caption, '<w:i/><w:sz w:val="18"/><w:color w:val="64748B"/>'), ind);
+      }
+    }
+  }
+  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  let documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="${W}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>${body}<w:sectPr><w:pgSz w:w="12240" w:h="15840"/><w:pgMar w:top="1300" w:right="1300" w:bottom="1300" w:left="1300" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="${W}">
+  <w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Georgia" w:hAnsi="Georgia" w:eastAsia="Georgia" w:cs="Georgia"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US"/></w:rPr></w:rPrDefault>
+  <w:pPrDefault><w:pPr><w:spacing w:after="100" w:line="276" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>
+  <w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>
+  <w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:qFormat/><w:rPr><w:b/><w:sz w:val="48"/><w:color w:val="1E293B"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 3"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/><w:pPr><w:keepNext/><w:pBdr><w:top w:val="single" w:sz="4" w:space="8" w:color="CBD5E1"/></w:pBdr><w:spacing w:before="360" w:after="60"/><w:outlineLvl w:val="2"/></w:pPr><w:rPr><w:b/><w:sz w:val="30"/><w:color w:val="0F172A"/></w:rPr></w:style>
+  <w:style w:type="paragraph" w:styleId="Heading2"><w:name w:val="heading 4"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:uiPriority w:val="9"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="160" w:after="40"/><w:outlineLvl w:val="3"/></w:pPr><w:rPr><w:sz w:val="22"/><w:color w:val="0F172A"/></w:rPr></w:style>
+</w:styles>`;
+  const types = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${media.map(m => `<Relationship Id="${m.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${m.target}"/>`).join('')}</Relationships>`;
+  documentXml = wordOrder(documentXml);
+  const blob = zipStore([
+    ['[Content_Types].xml', types], ['_rels/.rels', rels], ['word/document.xml', documentXml],
+    ['word/_rels/document.xml.rels', docRels], ['word/styles.xml', styles], ...media.map(m => [m.name, m.bytes])
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  if (asBlob) return blob;
+  const safe = o.title.replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '-').slice(0, 60) || 'beat-outline';
+  download(blob,`${safe}-${new Date().toISOString().slice(0, 10)}.docx`);
+}
+
+// Word expects paragraph and text settings in a fixed order; put them in that order before saving
+const P_ORDER = ['pStyle', 'keepNext', 'keepLines', 'pageBreakBefore', 'framePr', 'widowControl', 'numPr', 'suppressLineNumbers', 'pBdr', 'shd', 'tabs', 'suppressAutoHyphens', 'spacing', 'ind', 'contextualSpacing', 'jc', 'textDirection', 'textAlignment', 'outlineLvl', 'rPr'];
+const R_ORDER = ['rStyle', 'rFonts', 'b', 'bCs', 'i', 'iCs', 'caps', 'smallCaps', 'strike', 'dstrike', 'outline', 'shadow', 'emboss', 'imprint', 'noProof', 'snapToGrid', 'vanish', 'webHidden', 'color', 'spacing', 'w', 'kern', 'position', 'sz', 'szCs', 'highlight', 'u', 'effect', 'bdr', 'shd', 'fitText', 'vertAlign', 'rtl', 'cs', 'em', 'lang'];
+function orderKids(inner, order) {
+  const kids = inner.match(/<w:(\w+)\b[^>]*\/>|<w:(\w+)\b[^>]*>[\s\S]*?<\/w:\2>/g) || [];
+  const rank = (k) => { const i = order.indexOf(k.match(/^<w:(\w+)/)[1]); return i < 0 ? 999 : i; };
+  return kids.map((k, i) => [k, i]).sort((a, b) => (rank(a[0]) - rank(b[0])) || (a[1] - b[1])).map(x => x[0]).join('');
+}
+function wordOrder(xml) {
+  return xml.replace(/<w:rPr>((?:(?!<\/w:rPr>)[\s\S])*)<\/w:rPr>/g, (m, inner) => '<w:rPr>' + orderKids(inner, R_ORDER) + '</w:rPr>')
+            .replace(/<w:pPr>((?:(?!<\/w:pPr>)[\s\S])*)<\/w:pPr>/g, (m, inner) => '<w:pPr>' + orderKids(inner, P_ORDER) + '</w:pPr>');
+}
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let i = 0; i < 256; i++) { let c = i; for (let j = 0; j < 8; j++) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1); t[i] = c; } return t; })();
+function crc32(b) { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC_TABLE[(c ^ b[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function zipStore(files, mime) {
+  const enc = new TextEncoder(), parts = [], central = [];
+  let offset = 0;
+  files.forEach(([name, content]) => {
+    const nb = enc.encode(name), d = typeof content === 'string' ? enc.encode(content) : content, crc = crc32(d);
+    const lh = new Uint8Array(30 + nb.length), dl = new DataView(lh.buffer);
+    dl.setUint32(0, 0x04034b50, true); dl.setUint16(4, 20, true); dl.setUint32(14, crc, true);
+    dl.setUint32(18, d.length, true); dl.setUint32(22, d.length, true); dl.setUint16(26, nb.length, true); lh.set(nb, 30);
+    const cd = new Uint8Array(46 + nb.length), dc = new DataView(cd.buffer);
+    dc.setUint32(0, 0x02014b50, true); dc.setUint16(4, 20, true); dc.setUint16(6, 20, true); dc.setUint32(16, crc, true);
+    dc.setUint32(20, d.length, true); dc.setUint32(24, d.length, true); dc.setUint16(28, nb.length, true); dc.setUint32(42, offset, true); cd.set(nb, 46);
+    parts.push(lh, d); central.push(cd); offset += lh.length + d.length;
+  });
+  const size = central.reduce((n, c) => n + c.length, 0);
+  const end = new Uint8Array(22), de = new DataView(end.buffer);
+  de.setUint32(0, 0x06054b50, true); de.setUint16(8, files.length, true); de.setUint16(10, files.length, true); de.setUint32(12, size, true); de.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end], { type: mime });
+}
+
+/* ================= iPad: touch, Pencil, voice, sketches, focus ================= */
+function toggleDone(b) {
+  b.done = !b.done;
+  const el = document.querySelector(`.beat[data-id="${CSS.escape(b.id)}"]`);
+  if (el) { el.classList.toggle('done', b.done); const n = el.querySelector('.node'); n.setAttribute('aria-checked', b.done); n.title = b.done ? 'Written. Tap to unmark.' : 'Mark as written'; }
+  refreshProgress(); save();
+}
+function beatMenu(b) {
+  const s = scene(), i = s.beats.indexOf(b);
+  return [
+    { label: b.done ? '○ Not written yet' : '✓ Mark written', fn: () => toggleDone(b) },
+    { label: openBeats.has(b.id) ? 'Hide notes, dialogue and images' : 'Notes, dialogue and images', fn: () => { openBeats.has(b.id) ? openBeats.delete(b.id) : openBeats.add(b.id); renderMain(); } },
+    '-',
+    { label: b.memo ? '🎙 Record the memo again' : '🎙 Voice memo', fn: () => BeatRec.start(b) },
+    { label: '✏︎ Sketch', fn: () => Sketch.open(b) },
+    ...(TOUCH ? [{ label: '🖼 Add a photo', fn: () => { imageTargetBeat = b; $('imageInput').click(); } }] : []),
+    { label: '💬 Add a dialogue line', fn: () => addLine(b) },
+    { label: '+ Beat after this one', fn: () => addBeatAfter(i) },
+    '-',
+    { label: 'Move up', fn: () => moveBeat(b, -1), disabled: i === 0 },
+    { label: 'Move down', fn: () => moveBeat(b, 1), disabled: i === s.beats.length - 1 },
+    '-',
+    { label: 'Delete beat', cls: 'del', fn: () => deleteBeatUndo(b) }
+  ];
+}
+function addLine(b) {
+  const d = { id: 'd-' + uid(), speaker: b.dialogue.at(-1)?.speaker && b.dialogue.length > 1 ? b.dialogue.at(-2).speaker : '', line: '' };
+  b.dialogue.push(d); openBeats.add(b.id); renderMain(); save();
+  document.querySelector(`.dlg-row[data-did="${d.id}"]`)?.querySelector(d.speaker ? '.d-line' : '.d-spk').focus();
+}
+// delete with an Undo, even for an empty beat (a swipe is easy to do by accident)
+function deleteBeatUndo(b) {
+  const s = scene(), has = b.text.trim() || b.notes.trim() || b.dialogue.length || b.images.length || b.memo;
+  const i = deleteBeat(b);
+  if (!has && i !== undefined) toast('Beat deleted.', () => { s.beats.splice(i, 0, b); });
+}
+async function pasteImage(b) {
+  if (!navigator.clipboard || !navigator.clipboard.read) { toast('Copy a picture, then tap in a beat field and paste.'); return; }
+  try {
+    for (const item of await navigator.clipboard.read()) {
+      const type = item.types.find(t => t.startsWith('image/'));
+      if (type) { const blob = await item.getType(type); await addImages(b, [new File([blob], 'pasted.' + type.split('/')[1], { type })]); return; }
+    }
+    toast('There’s no picture on the clipboard. Copy one first.');
+  } catch (e) { toast('The picture couldn’t be pasted (' + (e.name === 'NotAllowedError' ? 'tap Paste when the iPad asks' : e.message) + ').'); }
+}
+
+/* ---------- voice memos on a beat ---------- */
+let player = null;
+function stopMemo() {
+  if (!player) return;
+  try { player.audio.pause(); } catch (e) {}
+  URL.revokeObjectURL(player.url);
+  document.querySelectorAll(`[data-play="${CSS.escape(player.beat)}"].play`).forEach(x => x.textContent = '▶');
+  player = null;
+}
+async function playMemo(memo, btn) {
+  if (!memo) return;
+  const beatId = btn.dataset.play;
+  if (player && player.id === memo.id) { stopMemo(); return; }
+  stopMemo();
+  const was = btn.textContent; if (btn.classList.contains('play')) btn.textContent = '…';
+  let blob = await parent.MediaStore.get(memo.id);
+  if (!blob) {
+    try { blob = await parent.CloudSync.fetchMemo(memo.id); }
+    catch (e) { btn.textContent = was; toast(e.message || 'That memo isn’t on this device yet.'); return; }
+  }
+  const url = URL.createObjectURL(new Blob([blob], { type: memo.mime || blob.type || 'audio/mp4' }));
+  const audio = new Audio(url);
+  player = { id: memo.id, audio, url, beat: beatId };
+  audio.onended = () => stopMemo();
+  try { await audio.play(); if (btn.classList.contains('play')) btn.textContent = '❚❚'; else toast('Playing the voice memo. Tap 🎙 again to stop.'); }
+  catch (e) { stopMemo(); toast('This memo can’t be played here (' + (memo.mime || 'unknown format') + ').'); }
+}
+// The same two-recorder approach as the Board's Idea Bin: the browser's own recorder, plus a backup
+// that reads the microphone directly and saves a WAV file, for iPad browsers that give the first one no sound.
+const BeatRec = (() => {
+  const MAX_MS = 10 * 60 * 1000, RATE = 16000;
+  let active = false, beatId = null, mr = null, stream = null, chunks = [], t0 = 0, tick = 0, limit = 0, sr = null, finals = '', interim = '', discard = false, mime = '';
+  let finishing = false, fallback = 0, stopAt = 0, ac = null, src = null, proc = null, pcm = [], pcmLen = 0, peak = 0, level = 0, carry = 0, acc = 0, accN = 0, step = 3;
+  const pick = () => { try { return ['audio/mp4', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'].find(m => MediaRecorder.isTypeSupported(m)) || ''; } catch (e) { return ''; } };
+  const live = () => { $('recLive').textContent = (finals + (interim ? ' ' + interim : '')).trim() || (SR ? 'Listening… your words appear here and go into the beat’s notes.' : ''); };
+  function startBackup() {
+    if (!ac || !stream) return;
+    try {
+      src = ac.createMediaStreamSource(stream); proc = ac.createScriptProcessor(4096, 1, 1);
+      step = ac.sampleRate / RATE; carry = 0; acc = 0; accN = 0;
+      proc.onaudioprocess = (e) => {
+        if (!active || finishing) return;
+        const d = e.inputBuffer.getChannelData(0), out = new Int16Array(Math.ceil(d.length / step) + 2); let n = 0, pk = 0;
+        for (let k = 0; k < d.length; k++) {
+          const v = d[k], a = v < 0 ? -v : v; if (a > pk) pk = a;
+          acc += v; accN++; carry += 1;
+          if (carry >= step) { carry -= step; const x = Math.max(-1, Math.min(1, acc / accN)); out[n++] = x < 0 ? x * 0x8000 : x * 0x7fff; acc = 0; accN = 0; }
+        }
+        if (n) { pcm.push(out.subarray(0, n)); pcmLen += n; }
+        if (pk > peak) peak = pk; level = Math.max(pk, level * 0.85);
+      };
+      src.connect(proc); proc.connect(ac.destination);
+    } catch (e) { proc = null; }
+  }
+  function wav() {
+    const buf = new ArrayBuffer(44 + pcmLen * 2), v = new DataView(buf), w = (o, t) => { for (let k = 0; k < t.length; k++) v.setUint8(o + k, t.charCodeAt(k)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + pcmLen * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, RATE, true); v.setUint32(28, RATE * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, pcmLen * 2, true);
+    let o = 44; for (const c of pcm) for (let k = 0; k < c.length; k++, o += 2) v.setInt16(o, c[k], true);
+    return new Blob([buf], { type: 'audio/wav' });
+  }
+  function findBeat(id) { for (const s of data.scenes) { const b = s.beats.find(x => x.id === id); if (b) return { s, b }; } return null; }
+  async function start(b) {
+    if (active) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert('This browser can’t record audio here.'); return; }
+    stopMemo();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    try { ac = AC ? new AC() : null; if (ac && ac.state === 'suspended') ac.resume(); } catch (e) { ac = null; }
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } }); }
+    catch (e) {
+      try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+      catch (e2) { if (ac) { try { ac.close(); } catch (e3) {} ac = null; } alert('The microphone wasn’t available (' + (e2.name || 'blocked') + '). Allow it in the iPad’s Settings (Settings › Safari or Chrome › Microphone), then try again.'); return; }
+    }
+    active = true; finishing = false; discard = false; stopAt = 0; beatId = b.id;
+    chunks = []; pcm = []; pcmLen = 0; peak = 0; level = 0; finals = ''; interim = '';
+    if (ac && ac.state === 'suspended') { try { await ac.resume(); } catch (e) {} }
+    startBackup();
+    mr = null;
+    if (window.MediaRecorder) {
+      mime = pick();
+      try { mr = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : { audioBitsPerSecond: 64000 }); } catch (e) { try { mr = new MediaRecorder(stream); } catch (e2) { mr = null; } }
+      if (mr) { mr.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); }; mr.onstop = () => setTimeout(finish, 50); try { mr.start(1000); } catch (e) { mr = null; } }
+    }
+    if (!mr && !proc) { active = false; stream.getTracks().forEach(t => t.stop()); alert('This browser can’t record audio here.'); return; }
+    const i = scene() ? scene().beats.indexOf(b) : -1;
+    $('recTitle').textContent = 'Voice memo · ' + (b.label.trim() || (i >= 0 ? 'Beat ' + (i + 1) : 'beat'));
+    $('recNote').textContent = ''; $('btnRecStop').disabled = false; $('btnRecCancel').disabled = false; live();
+    $('recSheet').classList.add('open');
+    t0 = Date.now();
+    tick = setInterval(() => {
+      $('recTime').textContent = fmtDur((Date.now() - t0) / 1000);
+      $('recLevel').style.width = Math.min(100, Math.round(Math.sqrt(level) * 140)) + '%';
+      if (Date.now() - t0 > 3000 && !finishing) {
+        const t = stream && stream.getAudioTracks()[0];
+        $('recNote').textContent = t && t.muted ? 'The microphone is muted by the iPad. Check Control Center and Settings › Privacy › Microphone.' : peak < 0.0005 ? 'No sound is coming in yet.' : '';
+      }
+    }, 200);
+    limit = setTimeout(() => { $('recNote').textContent = 'Reached 10 minutes.'; stop(); }, MAX_MS);
+    if (SR) {
+      try {
+        sr = new SR(); sr.continuous = true; sr.interimResults = true; sr.lang = navigator.language || 'en-US';
+        sr.onresult = (ev) => { interim = ''; for (let k = ev.resultIndex; k < ev.results.length; k++) { const r = ev.results[k]; if (r.isFinal) finals = (finals + ' ' + r[0].transcript).trim(); else interim += r[0].transcript; } live(); };
+        sr.onerror = (ev) => { if (ev.error !== 'no-speech' && ev.error !== 'aborted') sr = null; };
+        sr.onend = () => { if (sr && active && !finishing) { try { sr.start(); } catch (e) { sr = null; } } };
+        sr.start();
+      } catch (e) { sr = null; }
+    }
+  }
+  function stop(cancel) {
+    if (!active || finishing) return;
+    finishing = true; discard = !!cancel; stopAt = Date.now();
+    $('recNote').textContent = cancel ? 'Discarding…' : 'Saving the memo…';
+    $('btnRecStop').disabled = true; $('btnRecCancel').disabled = true;
+    clearInterval(tick); clearTimeout(limit);
+    const s = sr; sr = null; if (s) { try { s.stop(); } catch (e) {} }
+    if (mr && mr.state !== 'inactive') { try { mr.stop(); } catch (e) { setTimeout(finish, 50); } } else setTimeout(finish, 50);
+    fallback = setTimeout(finish, 2500);   // some browsers never say the recorder stopped
+  }
+  async function finish() {
+    if (!active) return;
+    active = false; clearTimeout(fallback);
+    if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
+    try { if (src) src.disconnect(); if (proc) { proc.disconnect(); proc.onaudioprocess = null; } } catch (e) {}
+    try { if (ac) ac.close(); } catch (e) {}
+    src = null; proc = null; ac = null;
+    $('recSheet').classList.remove('open'); $('recLevel').style.width = '0%'; $('recTime').textContent = '0:00';
+    const dur = ((stopAt || Date.now()) - t0) / 1000, type = (mr && mr.mimeType) || mime || 'audio/mp4';
+    const small = new Blob(chunks, { type }); chunks = []; mr = null;
+    if (discard) { pcm = []; return; }
+    if (dur < 1) { pcm = []; toast('That recording was too short to keep.'); return; }
+    let blob = small;
+    if (!small.size || small.size < 1200 * dur / 10) { if (pcmLen > RATE / 2) blob = wav(); }
+    pcm = []; pcmLen = 0;
+    if (!blob.size) { alert('No sound reached the app, so nothing was saved. Check that the microphone is allowed (Settings › Safari or Chrome › Microphone).'); return; }
+    const id = 'm' + uid();
+    try { await parent.MediaStore.put(id, blob); } catch (e) { alert('The memo couldn’t be saved on this device: ' + e.message); return; }
+    const hit = findBeat(beatId); if (!hit) { toast('That beat was removed while you were recording.'); return; }
+    const words = (finals + (interim ? ' ' + interim : '')).trim();
+    hit.b.memo = { id, mime: blob.type, dur: Math.round(dur), at: new Date().toISOString(), size: blob.size };
+    if (words) hit.b.notes = (hit.b.notes.trim() ? hit.b.notes.trim() + '\n\n' : '') + '🎙 ' + words;
+    openBeats.add(hit.b.id);
+    if (hit.s === scene()) renderMain();
+    refreshProgress(); save();
+    toast(`Voice memo saved (${fmtDur(dur)})${words ? ' and written into the notes' : ''}.`);
+  }
+  return { start, stop, get on() { return active; } };
+})();
+['click', 'pointerup'].forEach(ev => $('btnRecStop').addEventListener(ev, (e) => { e.preventDefault(); BeatRec.stop(false); }));
+$('btnRecCancel').onclick = () => { if (BeatRec.on && confirm('Discard this recording?')) BeatRec.stop(true); };
+
+/* ---------- sketch pad (Apple Pencil pressure; finger works too) ---------- */
+const Sketch = (() => {
+  const PAPER = '#fbf8f1';
+  let beat = null, img = null, strokes = [], cur = null, color = '#1f2937', width = 2.2, eraser = false, base = null, ctx = null, cv = null, dpr = 1, penSeen = false;
+  function open(b, im) {
+    beat = b; img = im || null; strokes = []; base = null; cur = null;
+    $('sketch').classList.add('open');
+    $('skPencil').checked = penSeen;
+    requestAnimationFrame(() => {
+      size();
+      if (im) { const i = new Image(); i.onload = () => { base = i; redraw(); }; i.src = im.src; }
+    });
+  }
+  function close() { $('sketch').classList.remove('open'); beat = null; img = null; strokes = []; base = null; }
+  function size() {
+    cv = $('skCanvas'); const r = cv.getBoundingClientRect();
+    dpr = Math.min(2, devicePixelRatio || 1);
+    cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
+    ctx = cv.getContext('2d'); redraw();
+  }
+  function redraw() {
+    if (!ctx) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = PAPER; ctx.fillRect(0, 0, cv.width, cv.height);
+    if (base) { const k = Math.min(cv.width / base.width, cv.height / base.height); const w = base.width * k, h = base.height * k; ctx.drawImage(base, (cv.width - w) / 2, (cv.height - h) / 2, w, h); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (const st of strokes) for (let k = 1; k < st.pts.length; k++) seg(st, k);
+  }
+  const widthAt = (st, p) => st.erase ? st.w * 7 : st.pen ? st.w * (0.35 + p * 1.4) : st.w;
+  function seg(st, k) {
+    const a = st.pts[k - 1], b = st.pts[k];
+    ctx.strokeStyle = st.erase ? PAPER : st.c; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.lineWidth = widthAt(st, (a[2] + b[2]) / 2);
+    ctx.beginPath(); ctx.moveTo(a[0], a[1]);
+    if (k > 1) { const m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; ctx.quadraticCurveTo(a[0], a[1], m[0], m[1]); ctx.lineTo(b[0], b[1]); } else ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+  }
+  const pt = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top, e.pointerType === 'pen' ? (e.pressure || 0.5) : 0.5]; };
+  $('skCanvas').addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'pen' && !penSeen) { penSeen = true; $('skPencil').checked = true; }   // the Pencil is here: ignore the palm from now on
+    if ($('skPencil').checked && e.pointerType === 'touch') return;
+    e.preventDefault(); cv.setPointerCapture(e.pointerId);
+    cur = { c: color, w: width, erase: eraser, pen: e.pointerType === 'pen', id: e.pointerId, pts: [pt(e)] };
+    strokes.push(cur);
+    ctx.fillStyle = cur.erase ? PAPER : cur.c; ctx.beginPath(); ctx.arc(cur.pts[0][0], cur.pts[0][1], widthAt(cur, cur.pts[0][2]) / 2, 0, Math.PI * 2); ctx.fill();
+  });
+  $('skCanvas').addEventListener('pointermove', (e) => {
+    if (!cur || e.pointerId !== cur.id) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of (evs.length ? evs : [e])) { cur.pts.push(pt(ev)); seg(cur, cur.pts.length - 1); }
+  });
+  ['pointerup', 'pointercancel'].forEach(t => $('skCanvas').addEventListener(t, (e) => { if (cur && e.pointerId === cur.id) cur = null; }));
+  $('sketch').querySelectorAll('.sw').forEach(b => b.onclick = () => {
+    color = b.dataset.c; $('sketch').querySelectorAll('.sw').forEach(x => x.classList.toggle('on', x === b));
+    if (eraser) { eraser = false; $('sketch').querySelectorAll('.tool').forEach(x => x.classList.toggle('on', +x.dataset.w === width)); }
+  });
+  $('sketch').querySelectorAll('.tool').forEach(b => b.onclick = () => {
+    if (b.dataset.w === 'eraser') eraser = true; else { eraser = false; width = +b.dataset.w; }
+    $('sketch').querySelectorAll('.tool').forEach(x => x.classList.toggle('on', x === b));
+  });
+  $('skUndo').onclick = () => { strokes.pop(); redraw(); };
+  $('skClear').onclick = () => { if ((strokes.length || base) && confirm('Clear the whole sketch?')) { strokes = []; base = null; redraw(); } };
+  $('skCancel').onclick = () => { if (strokes.length && !confirm('Discard what you drew?')) return; close(); };
+  $('skSave').onclick = () => {
+    if (!beat) return close();
+    if (!strokes.length) { close(); return; }
+    // keep it a sensible size: at most 1600 pixels wide
+    const k = Math.min(1, 1600 / cv.width), out = document.createElement('canvas');
+    out.width = Math.round(cv.width * k); out.height = Math.round(cv.height * k);
+    out.getContext('2d').drawImage(cv, 0, 0, out.width, out.height);
+    const src = out.toDataURL('image/jpeg', 0.86), b = beat;
+    if (img) img.src = src; else b.images.push({ id: 'i-' + uid(), src, caption: 'Sketch', sketch: true });
+    openBeats.add(b.id); close();
+    renderMain(); refreshProgress(); save();
+    toast(img ? 'Sketch updated.' : 'Sketch saved to the beat.');
+  };
+  addEventListener('resize', () => { if ($('sketch').classList.contains('open')) size(); });
+  return { open, get on() { return $('sketch').classList.contains('open'); } };
+})();
+
+/* ---------- touch: hold to move or for options; drag ⋮⋮ to reorder beats; swipe beats ---------- */
+function ghostOf(el, x, y) {
+  const r = el.getBoundingClientRect(), g = el.cloneNode(true);
+  g.id = 'ghost'; g.removeAttribute('data-id');
+  Object.assign(g.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' });
+  document.body.appendChild(g);
+  return { g, dx: x - r.left, dy: y - r.top };
+}
+function edgeScroll(box, y) {
+  const r = box.getBoundingClientRect();
+  if (y < r.top + 60) box.scrollTop -= Math.ceil((r.top + 60 - y) / 4);
+  else if (y > r.bottom - 60) box.scrollTop += Math.ceil((y - (r.bottom - 60)) / 4);
+}
+if (TOUCH) {
+  // the scene list: hold a scene or sequence to lift it (then drag it, or let go for its options)
+  let lp = null;
+  const endLp = () => {
+    if (!lp) return;
+    clearTimeout(lp.timer); cancelAnimationFrame(lp.raf);
+    lp.el.classList.remove('holding');
+    if (lp.ghost) lp.ghost.g.remove();
+    document.querySelectorAll('.dragging').forEach(x => x.classList.remove('dragging'));
+    clearDrop(); dragItem = null; lp = null;
+  };
+  list.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1 || lp) return;
+    const el = e.target.closest('.scene-item, .seq-head, .act-head, .part-head');
+    if (!el || e.target.closest('button, input')) return;
+    const t = e.touches[0];
+    const kind = el.classList.contains('scene-item') ? 'scene' : el.classList.contains('seq-head') ? 'seq' : el.classList.contains('act-head') ? 'act' : 'part';
+    lp = { el, kind, id: el.dataset.id, x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY, lifted: false, moved: false, canDrag: !!el.dataset.drag };
+    lp.timer = setTimeout(() => { if (!lp) return; lp.lifted = true; el.classList.add('holding'); }, 420);
+  }, { passive: true });
+  list.addEventListener('touchmove', (e) => {
+    if (!lp) return;
+    const t = e.touches[0], far = Math.hypot(t.clientX - lp.x, t.clientY - lp.y) > 8;
+    if (!lp.lifted) { if (far) endLp(); return; }
+    e.preventDefault();
+    lp.lx = t.clientX; lp.ly = t.clientY;
+    if (!lp.canDrag) return;
+    if (!lp.moved) {
+      if (!far) return;
+      lp.moved = true; dragItem = { kind: lp.kind, id: lp.id };
+      lp.ghost = ghostOf(lp.el, lp.x, lp.y);
+      (lp.kind === 'seq' ? lp.el.closest('.seq') : lp.el).classList.add('dragging');
+      const loop = () => { if (!lp) return; edgeScroll(list, lp.ly); lp.raf = requestAnimationFrame(loop); }; loop();
+    }
+    lp.ghost.g.style.left = (t.clientX - lp.ghost.dx) + 'px'; lp.ghost.g.style.top = (t.clientY - lp.ghost.dy) + 'px';
+    const tgt = dropTarget({ target: document.elementFromPoint(t.clientX, t.clientY) || list, clientY: t.clientY });
+    clearDrop(); if (tgt) tgt.el.classList.add(tgt.cls);
+  }, { passive: false });
+  list.addEventListener('touchend', (e) => {
+    if (!lp) return;
+    const was = lp;
+    if (!was.lifted) { endLp(); return; }
+    e.preventDefault();   // no click after a hold
+    if (!was.moved) {
+      const items = was.kind === 'scene' ? sceneMenu(data.scenes.find(x => x.id === was.id)) : was.kind === 'seq' ? seqMenu(Story.seq(was.id)) : was.kind === 'act' ? actMenu(Story.act(was.id)) : partMenu(Story.part(was.id));
+      endLp(); openMenu(items, was.lx, was.ly + 8); return;
+    }
+    const tgt = dropTarget({ target: document.elementFromPoint(was.lx, was.ly) || list, clientY: was.ly });
+    const kind = was.kind, id = was.id;
+    if (tgt) tgt.drop();
+    endLp();
+    if (tgt && kind === 'scene') { const s = data.scenes.find(x => x.id === id); if (s && s.seqId) openPathTo(s); }
+    renderAll();
+  }, { passive: false });
+  list.addEventListener('touchcancel', endLp);
+
+  // beats: drag the ⋮⋮ handle; the others make room as you go
+  let bd = null;
+  main.addEventListener('touchstart', (e) => {
+    const g = e.target.closest('.grip'); if (!g || e.touches.length !== 1) return;
+    e.preventDefault();
+    const el = g.closest('.beat'), t = e.touches[0];
+    document.activeElement && document.activeElement.blur && document.activeElement.blur();
+    bd = { el, y: t.clientY, ghost: ghostOf(el, t.clientX, t.clientY) };
+    el.classList.add('lifted');
+    const loop = () => { if (!bd) return; edgeScroll($('main'), bd.y); bd.raf = requestAnimationFrame(loop); }; loop();
+  }, { passive: false });
+  main.addEventListener('touchmove', (e) => {
+    if (!bd) return;
+    e.preventDefault();
+    const t = e.touches[0]; bd.y = t.clientY;
+    bd.ghost.g.style.top = (t.clientY - bd.ghost.dy) + 'px';
+    const others = [...document.querySelectorAll('#beats .beat')].filter(x => x !== bd.el);
+    const before = others.find(x => { const r = x.getBoundingClientRect(); return t.clientY < r.top + r.height / 2; });
+    if (before) { if (bd.el.nextElementSibling !== before) before.before(bd.el); }
+    else if (others.length && others[others.length - 1].nextElementSibling !== bd.el) others[others.length - 1].after(bd.el);
+  }, { passive: false });
+  const endBeatDrag = () => {
+    if (!bd) return;
+    cancelAnimationFrame(bd.raf); bd.ghost.g.remove(); bd.el.classList.remove('lifted');
+    const s = scene(), ids = [...document.querySelectorAll('#beats .beat')].map(x => x.dataset.id);
+    const was = s.beats.map(b => b.id).join();
+    s.beats.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+    bd = null;
+    renderMain();
+    if (s.beats.map(b => b.id).join() !== was) save();
+  };
+  main.addEventListener('touchend', endBeatDrag); main.addEventListener('touchcancel', endBeatDrag);
+
+  // a beat's number: tap = written; hold = everything else for that beat
+  let nh = null;
+  main.addEventListener('touchstart', (e) => {
+    const n = e.target.closest('.node'); if (!n || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    nh = { n, x: t.clientX, y: t.clientY, fired: false, timer: setTimeout(() => { if (!nh) return; nh.fired = true; const b = beatOf(n); if (b) openMenu(beatMenu(b), nh.x + 12, nh.y); }, 480) };
+  }, { passive: true });
+  main.addEventListener('touchmove', (e) => { if (nh && Math.hypot(e.touches[0].clientX - nh.x, e.touches[0].clientY - nh.y) > 8) { clearTimeout(nh.timer); nh = null; } }, { passive: true });
+  main.addEventListener('touchend', (e) => { if (!nh) return; clearTimeout(nh.timer); if (nh.fired) e.preventDefault(); nh = null; }, { passive: false });
+
+  // swipe a beat: right marks it written, left deletes it (with Undo). Apple Pencil is left alone for handwriting.
+  let sw = null;
+  main.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1 || bd) return;
+    const t = e.touches[0]; if (t.touchType === 'stylus') return;
+    const card = e.target.closest('.beat-card'); if (!card || e.target.closest('.grip, .node, .beat-body')) return;
+    sw = { el: card.closest('.beat'), card, x: t.clientX, y: t.clientY, dx: 0, mode: null };
+  }, { passive: true });
+  main.addEventListener('touchmove', (e) => {
+    if (!sw) return;
+    const t = e.touches[0], dx = t.clientX - sw.x, dy = t.clientY - sw.y;
+    if (!sw.mode) {
+      if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.6) { sw.mode = 'swipe'; sw.el.classList.add('swiping'); }
+      else if (Math.abs(dy) > 10) { sw = null; return; }
+      else return;
+    }
+    e.preventDefault();
+    sw.dx = dx;
+    const shown = Math.abs(dx) < 140 ? dx : Math.sign(dx) * (140 + (Math.abs(dx) - 140) * 0.35);
+    sw.card.style.transform = `translateX(${shown}px)`;
+    sw.el.classList.toggle('swipe-r', dx > 0); sw.el.classList.toggle('swipe-l', dx < 0);
+  }, { passive: false });
+  const endSwipe = () => {
+    if (!sw) return;
+    const s = sw; sw = null;
+    if (s.mode !== 'swipe') return;
+    const b = beatOf(s.card);
+    s.el.classList.add('snap');
+    if (s.dx < -110 && b) { s.card.style.transform = 'translateX(-110%)'; setTimeout(() => deleteBeatUndo(b), 200); return; }
+    s.card.style.transform = '';
+    setTimeout(() => { s.el.classList.remove('snap', 'swiping', 'swipe-r', 'swipe-l'); }, 260);
+    if (s.dx > 110 && b) toggleDone(b);
+  };
+  main.addEventListener('touchend', endSwipe); main.addEventListener('touchcancel', endSwipe);
+}
+
+/* ---------- the scene list as a drawer (upright iPad), focus mode, and moving between scenes ---------- */
+function drawerMode() { return TOUCH && innerWidth < 1000; }
+function setDrawer(on) { document.body.classList.toggle('drawer', !!on && drawerMode()); }
+function layout() { document.body.classList.toggle('drawer-mode', drawerMode()); if (!drawerMode()) document.body.classList.remove('drawer'); $('btnFocus').classList.toggle('on', document.body.classList.contains('focus')); }
+addEventListener('resize', layout);
+$('btnScenes').onclick = () => {
+  if (drawerMode()) { setDrawer(!document.body.classList.contains('drawer')); return; }
+  document.body.classList.remove('focus'); setPrefs({ focus: false }); layout();
+};
+$('btnFocus').onclick = () => { const on = !document.body.classList.contains('focus'); document.body.classList.toggle('focus', on); setPrefs({ focus: on }); layout(); };
+$('scrim').onclick = () => setDrawer(false);
+list.addEventListener('click', (e) => { if (e.target.closest('.scene-item') && document.body.classList.contains('drawer')) setTimeout(() => setDrawer(false), 120); });
+function goScene(d) {
+  const order = visibleOrder(), i = order.indexOf(scene()), n = order[i + d];
+  if (!n) { toast(d > 0 ? 'That’s the last scene.' : 'That’s the first scene.'); return; }
+  selectScene(n.id);
+  const el = $('mainInner'); el.classList.remove('slide-l', 'slide-r'); void el.offsetWidth; el.classList.add(d > 0 ? 'slide-l' : 'slide-r');
+}
+main.addEventListener('click', (e) => { const n = e.target.closest('[data-nav]'); if (n) goScene(+n.dataset.nav); });
+document.addEventListener('keydown', (e) => {
+  if (e.metaKey && (e.key === ']' || e.key === '[')) { e.preventDefault(); goScene(e.key === ']' ? 1 : -1); }
+});
+// swipe sideways on the scene (not on a beat) to go to the next or previous one
+if (TOUCH) {
+  let ss = null;
+  $('main').addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1 || !(document.body.classList.contains('focus') || drawerMode())) return;
+    const t = e.touches[0]; if (t.touchType === 'stylus') return;
+    if (e.target.closest('.beat, input, textarea, select, button, .template-bar')) return;
+    ss = { x: t.clientX, y: t.clientY, t: Date.now() };
+  }, { passive: true });
+  $('main').addEventListener('touchend', (e) => {
+    if (!ss) return;
+    const t = e.changedTouches[0], dx = t.clientX - ss.x, dy = t.clientY - ss.y, quick = Date.now() - ss.t < 700; ss = null;
+    if (quick && Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 2) goScene(dx < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+/* ---------- the bar above the iPad's on-screen keyboard ---------- */
+const vv = (() => { try { return parent.visualViewport || window.visualViewport; } catch (e) { return window.visualViewport; } })();
+function keyboardGap() {
+  if (!vv) return 0;
+  try { const fr = frameElement ? frameElement.getBoundingClientRect() : { bottom: innerHeight }; return Math.max(0, Math.round(fr.bottom - (vv.offsetTop + vv.height))); } catch (e) { return 0; }
+}
+const editingEl = () => { const a = document.activeElement; return a && a.closest && a.closest('#mainInner') && a.matches('input[type="text"], textarea') ? a : null; };
+let kbT = 0;
+function updateKbar() {
+  if (!TOUCH) return;
+  const a = editingEl(), gap = keyboardGap(), on = !!a && gap > 120;
+  const bar = $('kbar');
+  bar.classList.toggle('on', on);
+  bar.style.bottom = gap + 'px';
+  const b = a && beatOf(a);
+  bar.querySelectorAll('[data-k="line"],[data-k="prev"],[data-k="next"],[data-k="done"],[data-k="open"]').forEach(x => x.disabled = !b);
+  if (b) bar.querySelector('[data-k="done"]').textContent = b.done ? '○ Not written' : '✓ Written';
+  // room to scroll the last beats up above the keyboard
+  $('mainInner').style.paddingBottom = on ? (gap + bar.offsetHeight + 140) + 'px' : '';
+  if (on) {
+    // keep the field you're writing in above the keyboard and the bar
+    const r = a.getBoundingClientRect(), limit = innerHeight - gap - bar.offsetHeight - 14, m = $('main');
+    if (r.bottom > limit) m.scrollTop += r.bottom - limit;
+    else if (r.top < 70) m.scrollTop -= 70 - r.top;
+  }
+}
+const kbSoon = () => { clearTimeout(kbT); kbT = setTimeout(updateKbar, 60); };
+if (TOUCH) {
+  if (vv) { vv.addEventListener('resize', kbSoon); vv.addEventListener('scroll', kbSoon); }
+  document.addEventListener('focusin', kbSoon); document.addEventListener('focusout', kbSoon);
+  main.addEventListener('input', () => { if ($('kbar').classList.contains('on')) kbSoon(); });
+}
+// the bar's buttons must not take the focus away (that would close the keyboard)
+$('kbar').addEventListener('pointerdown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+$('kbar').addEventListener('click', (e) => {
+  const k = e.target.closest('[data-k]')?.dataset.k; if (!k) return;
+  const a = editingEl(), s = scene(); if (!s) return;
+  const b = a && beatOf(a), i = b ? s.beats.indexOf(b) : s.beats.length - 1;
+  if (k === 'hide') { a && a.blur(); return; }
+  if (k === 'add') { addBeatAfter(i); return; }
+  if (!b) return;
+  if (k === 'line') return addLine(b);
+  if (k === 'prev' && i > 0) return focusBeat(s.beats[i - 1].id);
+  if (k === 'next' && i < s.beats.length - 1) return focusBeat(s.beats[i + 1].id, 'line', false);
+  if (k === 'done') { toggleDone(b); kbSoon(); return; }
+  if (k === 'open') { openBeats.has(b.id) ? openBeats.delete(b.id) : openBeats.add(b.id); renderMain(); focusBeat(b.id); }
+});
+layout();
+
+/* ================= Modals / keys ================= */
+function closeModals() { document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open')); }
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeModals);
+document.querySelectorAll('.overlay').forEach(o => o.addEventListener('mousedown', (e) => { if (e.target === o && o.id !== 'choiceModal') closeModals(); }));
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && ['1', '2', '3', '4'].includes(e.key)) { e.preventDefault(); Shell.show(['board', 'beats', 'sheets', 'write'][+e.key - 1]); return; }
+  if (e.key === 'Escape') { closeCtx(); setDrawer(false); $('lightbox').classList.remove('open'); if (!$('choiceModal').classList.contains('open')) closeModals(); }
+  const typing = /^(input|textarea|select)$/i.test(e.target.tagName);
+  if (!typing && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && lastUndo) { e.preventDefault(); runUndo(); $('toast').style.display = 'none'; }
+});
+/* ================= Start ================= */
+if (TOUCH) document.body.classList.add('touch');
+if (prefs().focus && TOUCH) document.body.classList.add('focus');
+const inBook = () => scene() && scene().bookId === Story.bookId;
+if (!inBook() || scene().archived) data.currentId = visibleOrder()[0]?.id || null;
+renderAll();
+
+// Changes made on the Board, in the writing room, or in another window
+const typingHere = () => { const a = document.activeElement; return !!(a && a.closest && a.closest('#mainInner, #sceneList') && a.matches('input,textarea,select')); };
+let raf = 0;
+Story.subscribe((source, info) => {
+  if (source === 'beats' || info.view || info.positions && !info.fields) return;
+  if (info.drafts && !info.structure) {
+    const el = document.querySelector('.draft-words'), s = scene();
+    if (el && s) { const w = draftWords(s.id); el.textContent = w ? `${w.toLocaleString()} word${w === 1 ? '' : 's'} drafted` : 'Not drafted yet'; }
+    return;
+  }
+  if (!inBook()) data.currentId = visibleOrder()[0]?.id || null;
+  if (info.book) { $('search').value = ''; renderAll(); $('main').scrollTop = 0; return; }
+  if (raf) return;
+  raf = requestAnimationFrame(() => {
+    raf = 0;
+    if (typingHere() || $('choiceModal').classList.contains('open')) { renderSidebarSafe(); pendingRender = true; return; }
+    renderAll();
+  });
+});
+function renderSidebarSafe() { const a = document.activeElement; if (!(a && a.closest && a.closest('#sceneList'))) renderSidebar(); }
+document.addEventListener('focusout', () => setTimeout(() => { if (pendingRender && !typingHere()) { pendingRender = false; renderAll(); } }, 0));
+
+// Called by the studio when this view is shown
+window.__view = {
+  // used by Publish: the beat outline as a Word file in memory (nothing is downloaded)
+  async buildDoc() {
+    const title = `Keepers of the Word — ${Story.bookLabel(Story.book(Story.bookId))} — Beat Outline`;
+    const list = bookScenes().filter(s => !s.archived && !s.wip);
+    return { title, blob: await exportDocx(list, { title, details: true, images: true }, true) };
+  },
+  shown(opts = {}) {
+    setDrawer(false); layout();
+    if (opts.sceneId && data.scenes.some(x => x.id === opts.sceneId)) {
+      const s = data.scenes.find(x => x.id === opts.sceneId);
+      if (s.bookId !== Story.bookId) Story.setBook(s.bookId);
+      if (s.archived) showArchived = true;
+      openPathTo(s);
+      selectScene(s.id);
+      document.querySelector(`.scene-item[data-id="${CSS.escape(s.id)}"]`)?.scrollIntoView({ block: 'center' });
+    } else if (pendingRender && !typingHere()) { pendingRender = false; renderAll(); }
+  }
+};
+</script>
+</body>
+</html>
