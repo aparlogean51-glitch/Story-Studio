@@ -1,8 +1,7 @@
 // iStory: keeps the app itself on the iPad so it opens without a connection.
 // Your story is not stored here (it lives in the app's own storage and syncs to Google Drive).
-const CACHE = 'istory-8b443';
-const FILES = ['./', './index.html', './engine.js', './rooms/manuscripts.js', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png',
-  './rooms/board.html?v=Nov%207%20%C2%B7%208b443', './rooms/beats.html?v=Nov%207%20%C2%B7%208b443', './rooms/sheets.html?v=Nov%207%20%C2%B7%208b443', './rooms/write.html?v=Nov%207%20%C2%B7%208b443'];
+const CACHE = 'istory-21c1f';
+const FILES = ['./', './index.html', './js/typewriter.js?v=21c1f', './js/store.js?v=21c1f', './js/google.js?v=21c1f', './js/pad.js?v=21c1f', './js/app.js?v=21c1f', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
   // only iStory's own older copies are cleared; the Scene Board and Scribe Pad keep theirs
