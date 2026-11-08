@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 8 · 21c1f';
+const BUILD = 'Nov 8 · 6a608';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -39,14 +39,21 @@ function openItem(kind, id, from) {
   layoutItem();
   if (kind !== 'beats') Pad.open(id, headLabel());
   renderChain(); paintTop();
+  if (planOn()) $('plan').scrollTop = 0;
 }
 function headLabel() {
   if (!item) return '';
   if (item.kind === 'scene') { const s = Store.scene(item.id); return s ? Store.sceneLabel(s) : ''; }
   const l = Store.looseItem(item.id); return l ? l.title || '' : '';
 }
+const planOn = () => !!(item && item.kind === 'scene' && Store.ui().plan);
 function layoutItem() {
   const k = item && item.kind, panelKey = portrait() ? 'panelP' : 'panelL', ui = Store.ui();
+  const plan = planOn();
+  document.body.classList.toggle('plan', plan);
+  $('plan').hidden = !plan;
+  if (plan) { $('beatPanel').hidden = true; $('desk').hidden = true; $('planBtn').setAttribute('aria-pressed', 'true'); return; }
+  $('planBtn').setAttribute('aria-pressed', 'false');
   const open = k === 'scene' ? (ui[panelKey] === undefined ? !portrait() : ui[panelKey]) : k === 'beats';
   document.body.classList.toggle('portrait', portrait());
   document.body.classList.toggle('chain-only', k === 'beats');
@@ -56,6 +63,35 @@ function layoutItem() {
   $('beatsBtn').setAttribute('aria-pressed', String(open));
   Pad.layout();
 }
+/* ---------- previous / next scene, in timeline order (loose scenes step through Loose Pages) ---------- */
+function sceneRun(s) {
+  if (!s.seqId) return Store.looseFor().filter(x => x.kind === 'scene').map(x => x.item);
+  const out = [], bid = Store.where(s.seqId).book.id;
+  for (const p of Store.partsOf(bid)) for (const a of Store.actsOf(p.id)) for (const q of Store.seqsOf(a.id)) out.push(...Store.scenesOf(q.id));
+  return out;
+}
+function neighbours(s) { const run = sceneRun(s), i = run.indexOf(s); return { prev: run[i - 1], next: run[i + 1] }; }
+function step(dir) {
+  const s = item && item.kind === 'scene' && Store.scene(item.id); if (!s) return;
+  const t = neighbours(s)[dir]; if (!t) return;
+  $('viewing').hidden = true; Pad.unview();
+  openItem('scene', t.id, item.from);
+}
+$('prevBtn').onclick = () => step('prev');
+$('nextBtn').onclick = () => step('next');
+// a sideways swipe on the top bar or the plan steps scenes too
+function swipe(el) {
+  let sx = 0, sy = 0, on = false;
+  el.addEventListener('touchstart', (e) => { if (e.touches.length !== 1 || e.target.closest('textarea, input:focus')) { on = false; return; } on = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    if (!on || !item || item.kind !== 'scene') return; on = false;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2) step(dx < 0 ? 'next' : 'prev');
+  }, { passive: true });
+}
+swipe($('top')); swipe($('plan'));
+$('planBtn').onclick = () => { Pad.settle(); Store.setUi({ plan: !Store.ui().plan }); layoutItem(); renderChain(); paintTop(); if (planOn()) $('plan').scrollTop = 0; else Pad.layout(); };
+
 $('beatsBtn').onclick = () => { const key = portrait() ? 'panelP' : 'panelL', ui = Store.ui(); const cur = ui[key] === undefined ? !portrait() : ui[key]; Store.setUi({ [key]: !cur }); layoutItem(); };
 addEventListener('resize', () => { if (view === 'item') layoutItem(); });
 
@@ -66,7 +102,10 @@ function paintTop() {
   $('gapsBtn').hidden = view !== 'story';
   const k = inItem && item.kind;
   const s = k === 'scene' ? Store.scene(item.id) : null, l = k && k !== 'scene' ? Store.looseItem(item.id) : null;
-  $('stageBtn').hidden = !s; $('detailsBtn').hidden = !s; $('beatsBtn').hidden = !s;
+  $('stageBtn').hidden = !s; $('detailsBtn').hidden = !s || planOn(); $('beatsBtn').hidden = !s || planOn(); $('planBtn').hidden = !s;
+  const nb = s ? neighbours(s) : {};
+  $('prevBtn').hidden = $('nextBtn').hidden = !s;
+  $('prevBtn').disabled = !nb.prev; $('nextBtn').disabled = !nb.next;
   $('chainSceneBtn').hidden = k !== 'beats';
   $('fileBtn').hidden = !(l || (s && !s.seqId));
   const q = s && s.seqId ? Store.seq(s.seqId) : null;
@@ -234,7 +273,7 @@ function sceneCard(s, N, light) {
   const first = (s.summary || '').split('\n')[0];
   return `<div class="card ${light ? 'light' : ''} ${g}" data-scene="${s.id}"><span class="gap">${gt}</span>
     <span class="no">${light ? '<span class="kind">Scene</span>' : (N.scene.get(s.id) || '')}</span>
-    <div class="t ${s.title ? '' : 'empty'}">${esc(s.title || 'Untitled')}</div>${first ? `<div class="s">${esc(first)}</div>` : ''}
+    <div class="t ${s.title ? '' : 'empty'}">${esc(s.title || 'Untitled')}</div>${first ? `<div class="s">${esc(first)}</div>` : ''}${s.pov || s.location ? `<div class="m">${esc([s.pov, s.location].filter(Boolean).join(' · '))}</div>` : ''}
     <div class="f"><span class="bdots">${dots}</span><span class="w">${w ? kfmt(w) : ''}</span></div></div>`;
 }
 function looseCard(x) {
@@ -478,6 +517,7 @@ function fixLinks(bs) { bs.forEach((b, i) => { if (i === 0) b.link = ''; else if
 function grow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
 function renderChain(focus) {
   const bs = chain(); if (!bs) return;
+  if (planOn()) { renderPlan(focus); return; }
   const cur = bs.findIndex(b => !b.done), done = bs.filter(b => b.done).length;
   $('beatCnt').textContent = bs.length ? `${done}/${bs.length}` : '';
   let h = '';
@@ -561,6 +601,64 @@ function openNotes(i) {
   }, { onClose: () => renderChain() });
 }
 
+
+/* =====================================================================
+   Plan: details, every beat with its notes and dialogue, no pad
+   ===================================================================== */
+function renderPlan(focus) {
+  const s = Store.scene(item.id); if (!s) return;
+  const bs = s.beats, done = bs.filter(b => b.done).length;
+  let h = `<div class="pl">
+    <div class="field"><label>Summary</label><textarea data-f="summary" rows="2">${esc(s.summary)}</textarea></div>
+    <div class="grid3"><div class="field"><label>POV</label><input data-f="pov" value="${esc(s.pov)}" autocomplete="off"></div>
+      <div class="field"><label>Location</label><input data-f="location" value="${esc(s.location)}" autocomplete="off"></div>
+      <div class="field"><label>Date</label><input data-f="date" value="${esc(s.date)}" autocomplete="off"></div></div>
+    <div class="field"><label>Status</label><div class="seg">${Store.STATUSES.map(([k, l]) => `<button data-st="${k}" aria-pressed="${s.status === k}">${l}</button>`).join('')}</div></div>
+    <h3><span>Beats</span><span>${bs.length ? done + '/' + bs.length : ''}</span></h3>`;
+  bs.forEach((b, i) => {
+    if (i > 0) h += `<div class="lk-row"><button class="lk ${b.link || 'and'}" data-plink="${i}">${LINK_LABEL[b.link || 'and']}</button></div>`;
+    h += `<div class="pbeat ${b.done ? 'done' : ''}" data-i="${i}"><button class="tick" data-ptick="${i}" aria-label="Written">✓</button>
+      <textarea class="pt" rows="1" data-pt="${i}" placeholder="Beat">${esc(b.text)}</textarea>
+      <textarea class="pn" rows="1" data-pn="${i}" placeholder="Notes">${esc(b.notes)}</textarea>
+      ${b.dialogue.map((d, k) => `<div class="pd" data-k="${k}"><input data-ps value="${esc(d.speaker)}" placeholder="Who" autocomplete="off"><textarea rows="1" data-pl placeholder="Line">${esc(d.line)}</textarea><button data-px aria-label="Remove line">×</button></div>`).join('')}
+      <button class="padd" data-pline="${i}">+ Line</button></div>`;
+  });
+  h += `<button class="add-beat" data-padd="1" style="margin-left:0">+ Beat</button></div>`;
+  const pl = $('plan'), y = pl.scrollTop;
+  pl.innerHTML = h; pl.scrollTop = y;
+  pl.querySelectorAll('textarea').forEach(grow);
+  if (focus != null) { const t = pl.querySelector(`[data-pt="${focus}"]`); if (t) { t.focus(); const n = t.value.length; t.setSelectionRange(n, n); t.scrollIntoView({ block: 'nearest' }); } }
+}
+$('plan').addEventListener('input', (e) => {
+  const s = Store.scene(item.id); if (!s) return;
+  const t = e.target;
+  if (t.tagName === 'TEXTAREA') grow(t);
+  if (t.dataset.f) { s[t.dataset.f] = t.value; Store.touchScene(s, { details: true }); return; }
+  const box = t.closest('.pbeat'); if (!box) return;
+  const b = s.beats[+box.dataset.i]; if (!b) return;
+  if (t.dataset.pt != null) { if (/\n/.test(t.value)) t.value = t.value.replace(/\n+/g, ' '); b.text = t.value; }
+  else if (t.dataset.pn != null) b.notes = t.value;
+  else { const row = t.closest('.pd'), d = row && b.dialogue[+row.dataset.k]; if (!d) return; if (t.matches('[data-ps]')) d.speaker = t.value; else d.line = t.value; }
+  chainChanged();
+});
+$('plan').addEventListener('keydown', (e) => {
+  const t = e.target.closest('[data-pt]'); if (!t || e.isComposing) return;
+  const bs = chain(), i = +t.dataset.pt;
+  if (e.key === 'Enter') { e.preventDefault(); bs.splice(i + 1, 0, Store.newBeat({ link: 'and' })); fixLinks(bs); chainChanged(); renderPlan(i + 1); }
+  else if (e.key === 'Backspace' && !t.value && bs.length > 1 && !bs[i].notes.trim() && !bs[i].dialogue.length) { e.preventDefault(); bs.splice(i, 1); fixLinks(bs); chainChanged(); renderPlan(Math.max(0, i - 1)); }
+});
+$('plan').addEventListener('click', (e) => {
+  const s = Store.scene(item.id); if (!s) return;
+  const bs = s.beats, x = e.target.closest('button'); if (!x) return;
+  const d = x.dataset;
+  if (d.st) { s.status = d.st; Store.touchScene(s, { details: true }); $('plan').querySelectorAll('[data-st]').forEach(b => b.setAttribute('aria-pressed', String(b === x))); return; }
+  if (d.ptick) { const b = bs[+d.ptick]; b.done = !b.done; chainChanged(); renderPlan(); return; }
+  if (d.plink) { const b = bs[+d.plink]; b.link = NEXT_LINK[b.link || 'and']; chainChanged(); renderPlan(); return; }
+  if (d.pline) { const i = +d.pline; bs[i].dialogue.push({ id: Store.uid('d-'), speaker: '', line: '' }); chainChanged(); renderPlan(); const r = $('plan').querySelector(`.pbeat[data-i="${i}"] .pd:last-of-type [data-ps]`); r && r.focus(); return; }
+  if (x.matches('[data-px]')) { const box = x.closest('.pbeat'), b = bs[+box.dataset.i]; b.dialogue.splice(+x.closest('.pd').dataset.k, 1); chainChanged(); renderPlan(); return; }
+  if (d.padd) { bs.push(Store.newBeat({ link: bs.length ? 'and' : '' })); fixLinks(bs); chainChanged(); renderPlan(bs.length - 1); }
+});
+
 /* =====================================================================
    a scene: details, stage, Doc
    ===================================================================== */
@@ -611,6 +709,7 @@ $('docBtn').onclick = () => { const s = Store.scene(item.id), q = s && s.seqId &
    Write, Capture, Recent
    ===================================================================== */
 $('writeBtn').onclick = () => {
+  if (view === 'item' && planOn()) { Store.setUi({ plan: false }); layoutItem(); renderChain(); paintTop(); }
   if (view === 'item' && item.kind !== 'beats') { $('viewing').hidden = true; Pad.unview(); $('scribble').focus({ preventScroll: true }); return; }
   const l = Store.addLoose('writing'); openItem('writing', l.id, view === 'item' ? item.from : view);
 };
@@ -823,7 +922,7 @@ Store.subscribe((info, src) => {
   if (view === 'item' && item) {
     const exists = item.kind === 'scene' ? Store.scene(item.id) : Store.looseItem(item.id);
     if (!exists) { go(item.from || 'story'); return; }
-    if (src === 'doc' || src === 'cloud' || src === 'restore' || src === 'import') { Pad.external(); if (!document.activeElement || !document.activeElement.closest('#chain')) renderChain(); Pad.title(headLabel()); }
+    if (src === 'doc' || src === 'cloud' || src === 'restore' || src === 'import') { Pad.external(); if (!document.activeElement || !document.activeElement.closest('#chain, #plan')) renderChain(); Pad.title(headLabel()); }
   }
   render();
 });

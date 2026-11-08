@@ -263,6 +263,32 @@ audio { width: 100%; height: 36px; }
 #loading { position: absolute; inset: 0; z-index: 90; display: grid; place-items: center; background: var(--bg); font: italic 500 30px var(--serif); color: var(--muted); }
 #loading b { color: var(--accent); font-style: normal; font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7; } .sw::after { transition: none; } }
+
+/* scene: previous / next */
+.tb.nav { min-width: 34px; padding: 0 4px; color: var(--faint); }
+.tb.nav:disabled { opacity: .25; }
+/* board card: POV · place */
+.card .m { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* plan mode: the whole scene worked out, no pad */
+#plan { position: absolute; inset: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 18px 20px 120px; }
+.pl { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+.pl h3 { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 14px 0 0; display: flex; gap: 10px; }
+.pl .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.pbeat { background: var(--raise); border-radius: 14px; padding: 8px 12px 12px 6px; display: grid; grid-template-columns: 38px 1fr; gap: 2px 6px; }
+.pbeat.done .pt { color: var(--muted); }
+.pbeat .tick { width: 26px; height: 26px; margin: 9px 0 0 6px; border-radius: 50%; border: 1.5px solid var(--line-hi); display: grid; place-items: center; color: transparent; font-size: 13px; }
+.pbeat.done .tick { background: var(--done); border-color: var(--done); color: #0d1f15; }
+.pbeat textarea, .pbeat input { width: 100%; resize: none; border: 0; background: none; font: 16px/1.5 var(--serif); padding: 8px 4px; overflow: hidden; -webkit-user-select: text; user-select: text; }
+.pbeat textarea:focus, .pbeat input:focus { outline: none; background: var(--card); border-radius: 8px; }
+.pbeat .pt { font-size: 17px; }
+.pbeat .pn { grid-column: 2; font-size: 15px; color: var(--muted); }
+.pbeat .pn::placeholder, .pbeat .pt::placeholder, .pbeat input::placeholder { color: var(--faint); font-style: italic; }
+.pbeat .pd { grid-column: 2; display: grid; grid-template-columns: 120px 1fr 30px; gap: 4px; align-items: start; }
+.pbeat .pd input { font-weight: 600; font-size: 14px; color: var(--muted); padding-top: 9px; }
+.pbeat .pd textarea { font-size: 15px; }
+.pbeat .pd button, .pbeat .padd { color: var(--faint); height: 34px; border-radius: 8px; }
+.pbeat .padd { grid-column: 2; justify-self: start; padding: 0 6px; font-size: 13px; }
+.pl .lk-row { padding-left: 44px; }
 </style>
 </head>
 <body class="mode-scribble">
@@ -271,9 +297,12 @@ audio { width: 100%; height: 36px; }
   <nav id="tabs"><button class="tab" data-go="story">Story</button><button class="tab" data-go="loose">Loose<span class="n" id="looseN"></span></button></nav>
   <span class="kind-tag" id="kindTag" hidden></span>
   <input id="itemTitle" hidden autocomplete="off" placeholder="Untitled" aria-label="Title">
+  <button class="tb nav" id="prevBtn" hidden aria-label="Previous scene"><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+  <button class="tb nav" id="nextBtn" hidden aria-label="Next scene"><svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
   <span class="spacer"></span>
   <button class="tb pill" id="stageBtn" hidden></button>
   <button class="tb" id="gapsBtn" aria-pressed="false" hidden>Gaps</button>
+  <button class="tb" id="planBtn" aria-pressed="false" hidden>Plan</button>
   <button class="tb" id="beatsBtn" aria-pressed="true" hidden>Beats</button>
   <button class="tb" id="docBtn" hidden title="Open this sequence's Google Doc"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></button>
   <button class="tb" id="detailsBtn" hidden>Details</button>
@@ -288,6 +317,7 @@ audio { width: 100%; height: 36px; }
 <section class="view" id="story"><div id="board"></div></section>
 <section class="view" id="loose" hidden><div class="loose-wrap"><div class="loose-add"><button data-new="beats">+ Beats</button><button data-new="scene">+ Scene</button><button data-new="writing">+ Writing</button></div><div id="looseGrid"></div></div></section>
 <section class="view" id="item" hidden>
+  <section id="plan" hidden></section>
   <aside id="beatPanel">
     <div class="bp-head"><span>Beats</span><span class="cnt" id="beatCnt"></span></div>
     <ol id="chain"></ol>
@@ -313,10 +343,10 @@ audio { width: 100%; height: 36px; }
 <div id="layer"></div>
 <div id="loading"><div><b>i</b>Story</div></div>
 
-<script src="js/typewriter.js?v=21c1f"></script>
-<script src="js/store.js?v=21c1f"></script>
-<script src="js/google.js?v=21c1f"></script>
-<script src="js/pad.js?v=21c1f"></script>
-<script src="js/app.js?v=21c1f"></script>
+<script src="js/typewriter.js?v=6a608"></script>
+<script src="js/store.js?v=6a608"></script>
+<script src="js/google.js?v=6a608"></script>
+<script src="js/pad.js?v=6a608"></script>
+<script src="js/app.js?v=6a608"></script>
 </body>
 </html>
