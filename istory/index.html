@@ -264,6 +264,11 @@ audio { width: 100%; height: 36px; }
 #loading b { color: var(--accent); font-style: normal; font-weight: 500; }
 @media (prefers-reduced-motion: reduce) { .dots i { animation: none; opacity: .7; } .sw::after { transition: none; } }
 
+/* review and edit the draft */
+#doc.editing { -webkit-mask-image: none; mask-image: none; }
+#doc.editing .col { justify-content: flex-start; padding-top: 28px; padding-bottom: 50vh; }
+#editArea { display: block; width: 100%; border: 0; background: none; resize: none; overflow: hidden; color: var(--ink); font: 400 var(--doc-size)/1.62 var(--serif); padding: 0; -webkit-user-select: text; user-select: text; caret-color: var(--accent); }
+#editArea:focus { outline: none; }
 /* scene: previous / next */
 .tb.nav { min-width: 34px; padding: 0 4px; color: var(--faint); }
 .tb.nav:disabled { opacity: .25; }
@@ -302,6 +307,7 @@ audio { width: 100%; height: 36px; }
   <span class="spacer"></span>
   <button class="tb pill" id="stageBtn" hidden></button>
   <button class="tb" id="gapsBtn" aria-pressed="false" hidden>Gaps</button>
+  <button class="tb" id="editBtn" aria-pressed="false" hidden>Edit</button>
   <button class="tb" id="planBtn" aria-pressed="false" hidden>Plan</button>
   <button class="tb" id="beatsBtn" aria-pressed="true" hidden>Beats</button>
   <button class="tb" id="docBtn" hidden title="Open this sequence's Google Doc"><svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></button>
@@ -343,10 +349,10 @@ audio { width: 100%; height: 36px; }
 <div id="layer"></div>
 <div id="loading"><div><b>i</b>Story</div></div>
 
-<script src="js/typewriter.js?v=c897f"></script>
-<script src="js/store.js?v=c897f"></script>
-<script src="js/google.js?v=c897f"></script>
-<script src="js/pad.js?v=c897f"></script>
-<script src="js/app.js?v=c897f"></script>
+<script src="js/typewriter.js?v=96b60"></script>
+<script src="js/store.js?v=96b60"></script>
+<script src="js/google.js?v=96b60"></script>
+<script src="js/pad.js?v=96b60"></script>
+<script src="js/app.js?v=96b60"></script>
 </body>
 </html>

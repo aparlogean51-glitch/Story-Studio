@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 8 · c897f';
+const BUILD = 'Nov 8 · 96b60';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -23,7 +23,7 @@ const ICON = {
 let view = 'story', item = null;   // item: { kind: 'scene' | 'writing' | 'beats', id, from }
 const portrait = () => innerHeight > innerWidth;
 function go(v) {
-  if (view === 'item') Pad.settle();
+  if (view === 'item') { if (Pad.editing) Pad.edit(false); Pad.settle(); }
   view = v; item = v === 'item' ? item : null;
   $('story').hidden = v !== 'story'; $('loose').hidden = v !== 'loose'; $('item').hidden = v !== 'item';
   if (v !== 'item') Store.setUi({ view: v, last: null });
@@ -90,7 +90,8 @@ function swipe(el) {
   }, { passive: true });
 }
 swipe($('top')); swipe($('plan'));
-$('planBtn').onclick = () => { Pad.settle(); Store.setUi({ plan: !Store.ui().plan }); layoutItem(); renderChain(); paintTop(); if (planOn()) $('plan').scrollTop = 0; else Pad.layout(); };
+$('editBtn').onclick = async () => { $('viewing').hidden = true; await Pad.edit(!Pad.editing); paintTop(); };
+$('planBtn').onclick = async () => { if (Pad.editing) await Pad.edit(false); Pad.settle(); Store.setUi({ plan: !Store.ui().plan }); layoutItem(); renderChain(); paintTop(); if (planOn()) $('plan').scrollTop = 0; else Pad.layout(); };
 
 $('beatsBtn').onclick = () => { const key = portrait() ? 'panelP' : 'panelL', ui = Store.ui(); const cur = ui[key] === undefined ? !portrait() : ui[key]; Store.setUi({ [key]: !cur }); layoutItem(); };
 addEventListener('resize', () => { if (view === 'item') layoutItem(); });
@@ -107,6 +108,9 @@ function paintTop() {
   $('prevBtn').hidden = $('nextBtn').hidden = !s;
   $('prevBtn').disabled = !nb.prev; $('nextBtn').disabled = !nb.next;
   $('chainSceneBtn').hidden = k !== 'beats';
+  const canEdit = (k === 'scene' && !planOn()) || k === 'writing';
+  $('editBtn').hidden = !canEdit;
+  $('editBtn').textContent = Pad.editing ? 'Done' : 'Edit'; $('editBtn').setAttribute('aria-pressed', String(Pad.editing));
   $('fileBtn').hidden = !(l || (s && !s.seqId));
   const q = s && s.seqId ? Store.seq(s.seqId) : null;
   $('docBtn').hidden = true;   // the Doc opens only from a sequence's ⋯ menu
@@ -697,8 +701,9 @@ $('stageBtn').onclick = () => {
     vers.length ? { hr: true } : null, vers.length ? { head: 'Earlier' } : null,
     ...vers.map(v => ({ label: Store.stageLabel(v.stage), small: when(v.at), act: () => viewVersion(v) }))]);
 };
-function viewVersion(v) {
-  Pad.settle();
+async function viewVersion(v) {
+  if (Pad.editing) await Pad.edit(false);
+  Pad.settle(); paintTop();
   const label = Store.stageLabel(v.stage) + ' · ' + new Date(v.at).toLocaleDateString([], { month: 'short', day: 'numeric' });
   Pad.view(label, v.text); $('viewingLbl').textContent = label; $('viewing').hidden = false;
 }
@@ -710,6 +715,7 @@ $('docBtn').onclick = () => { const s = Store.scene(item.id), q = s && s.seqId &
    ===================================================================== */
 $('writeBtn').onclick = () => {
   if (view === 'item' && planOn()) { Store.setUi({ plan: false }); layoutItem(); renderChain(); paintTop(); }
+  if (view === 'item' && Pad.editing) { Pad.edit(false).then(paintTop); return; }
   if (view === 'item' && item.kind !== 'beats') { $('viewing').hidden = true; Pad.unview(); $('scribble').focus({ preventScroll: true }); return; }
   const l = Store.addLoose('writing'); openItem('writing', l.id, view === 'item' ? item.from : view);
 };

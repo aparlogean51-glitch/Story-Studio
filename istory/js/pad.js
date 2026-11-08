@@ -14,7 +14,7 @@ const P = {
   box: LS.get('istory2_box', null),
   id: null, lines: [], readOnly: null, strokes: [], live: new Map(), queue: [], seq: 0, history: [], dirty: false, title: ''
 };
-let box, desk, docEl, wrap, cv, ctx, sb, textEl, dpr = 1, saveT = 0, fuseT = 0, composing = false;
+let box, desk, docEl, wrap, cv, ctx, sb, textEl, dpr = 1, saveT = 0, fuseT = 0, composing = false, edEl = null;
 
 /* ---------- layout ---------- */
 function deskSize() { const r = desk.getBoundingClientRect(); return { W: r.width, H: r.height }; }
@@ -30,9 +30,10 @@ function layout() {
   b.w = Math.max(280, Math.min(b.w, W - 16)); b.h = Math.max(170, Math.min(b.h, H - 60));
   b.x = Math.max(8, Math.min(b.x, W - b.w - 8)); b.y = Math.max(40, Math.min(b.y, H - b.h - 8));
   box.style.left = b.x + 'px'; box.style.top = b.y + 'px'; box.style.width = b.w + 'px'; box.style.height = b.h + 'px';
-  if (P.readOnly) { docEl.style.bottom = '0px'; }
+  if (P.readOnly || P.editing) { docEl.style.bottom = '0px'; }
   else docEl.style.bottom = Math.max(0, H - b.y + 12) + 'px';
-  const col = docEl.firstElementChild; col.style.marginLeft = (P.readOnly ? Math.max(8, (W - Math.min(W - 40, 760)) / 2) : b.x) + 'px'; col.style.width = (P.readOnly ? Math.min(W - 40, 760) : b.w) + 'px';
+  const col = docEl.firstElementChild; const wide = P.readOnly || P.editing;
+  col.style.marginLeft = (wide ? Math.max(8, (W - Math.min(W - 40, 760)) / 2) : b.x) + 'px'; col.style.width = (wide ? Math.min(W - 40, 760) : b.w) + 'px';
   sizeCanvas();
 }
 function applySettings() {
@@ -160,6 +161,7 @@ async function google(item) {
 /* ---------- the manuscript ---------- */
 function el(tag, cls, txt) { const n = document.createElement(tag); if (cls) n.className = cls; if (txt != null) n.textContent = txt; return n; }
 function render(scroll) {
+  if (P.editing) { $('msHead').textContent = P.title || ''; return; }
   $('msHead').textContent = P.readOnly ? P.readOnly.label : P.title || '';
   textEl.textContent = '';
   const lines = P.readOnly ? P.readOnly.text.split('\n') : P.lines;
@@ -205,6 +207,24 @@ async function settle() {
   for (let i = 0; i < 60 && P.queue.some(q => q.status === 'pending'); i++) await new Promise(r => setTimeout(r, 150));
   P.queue = P.queue.filter(q => q.status === 'done'); drain(); save();
 }
+/* ---------- review and edit: the whole draft as plain text, keyboard or Scribble, pad put away ---------- */
+function growEd() { const y = docEl.scrollTop; edEl.style.height = 'auto'; edEl.style.height = edEl.scrollHeight + 'px'; docEl.scrollTop = y; }
+async function edit(on) {
+  if (!P.id || on === !!P.editing) return;
+  if (on) {
+    await settle();
+    P.editing = true; P.readOnly = null; box.hidden = true; sb.disabled = true;
+    edEl = document.createElement('textarea'); edEl.id = 'editArea'; edEl.spellcheck = true; edEl.setAttribute('autocapitalize', 'sentences');
+    edEl.value = P.lines.join('\n').replace(/\s+$/, '');
+    edEl.addEventListener('input', () => { P.lines = edEl.value.split('\n'); P.history = []; touch(); growEd(); });
+    textEl.hidden = true; textEl.after(edEl);
+    docEl.classList.add('editing'); layout(); render(); growEd(); docEl.scrollTop = 0;
+  } else {
+    if (edEl) { P.lines = edEl.value.split('\n'); edEl.remove(); edEl = null; }
+    P.editing = false; textEl.hidden = false; box.hidden = false; sb.disabled = false;
+    docEl.classList.remove('editing'); save(); layout(); render();
+  }
+}
 function busy() { return P.dirty || P.queue.length || sb.value || P.strokes.length || P.live.size; }
 
 /* ---------- pad: move, resize, buttons ---------- */
@@ -244,6 +264,7 @@ const Pad = {
   },
   // open a scene's draft or a loose page
   async open(id, title) {
+    if (P.editing) await edit(false);
     if (P.id && P.id !== id) await settle();
     P.id = id; P.title = title || ''; P.readOnly = null;
     const t = Store.text(id);
@@ -252,12 +273,13 @@ const Pad = {
     box.hidden = false; sb.disabled = false;
     layout(); render();
   },
-  close() { settle(); P.id = null; },
-  view(label, text) { P.readOnly = { label, text }; box.hidden = true; layout(); render(); docEl.scrollTop = 0; },
+  close() { if (P.editing) edit(false); settle(); P.id = null; },
+  edit, get editing() { return !!P.editing; },
+  view(label, text) { if (P.editing) edit(false); P.readOnly = { label, text }; box.hidden = true; layout(); render(); docEl.scrollTop = 0; },
   unview() { P.readOnly = null; box.hidden = false; layout(); render(); },
   // the draft changed from outside (the Google Doc, another device): show it if nothing is waiting here
   external() {
-    if (!P.id || busy()) return;
+    if (!P.id || busy() || P.editing) return;
     const t = Store.text(P.id); if (t === P.lines.join('\n').replace(/\s+$/, '')) return;
     P.lines = t ? t.split('\n') : []; P.history = []; render(false);
   },
