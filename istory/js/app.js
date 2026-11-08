@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 8 · 6a608';
+const BUILD = 'Nov 8 · c897f';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -109,7 +109,7 @@ function paintTop() {
   $('chainSceneBtn').hidden = k !== 'beats';
   $('fileBtn').hidden = !(l || (s && !s.seqId));
   const q = s && s.seqId ? Store.seq(s.seqId) : null;
-  $('docBtn').hidden = !(q && q.doc);
+  $('docBtn').hidden = true;   // the Doc opens only from a sequence's ⋯ menu
   if (inItem) {
     $('backLbl').textContent = item.from === 'loose' ? 'Loose' : 'Story';
     const t = s ? s.title : l ? l.title : '';
@@ -293,7 +293,7 @@ function renderBoard() {
       for (const q of Store.seqsOf(a.id)) {
         const sc = Store.scenesOf(q.id);
         h += `<div class="seq" data-seq="${q.id}"><div class="seq-head"><span class="seq-no">${N.seq.get(q.id)}</span><button class="seq-name ${q.name ? '' : 'empty'}" data-seq-name="${q.id}">${esc(q.name || 'Untitled')}</button>
-          <span class="seq-tools">${q.doc ? `<button class="tb" data-seq-doc="${q.id}" title="Google Doc">${ICON.doc}</button>` : ''}<button class="tb" data-seq-menu="${q.id}">${ICON.more}</button></span></div>
+          <span class="seq-tools"><button class="tb" data-seq-menu="${q.id}">${ICON.more}</button></span></div>
           <button class="seq-idea ${q.idea ? '' : 'empty'}" data-seq-idea="${q.id}">${esc(q.idea || 'idea')}</button>
           <div class="cards" data-cards="${q.id}">${sc.map(s => sceneCard(s, N)).join('')}<button class="add-card" data-add-scene="${q.id}" aria-label="New scene">+</button></div></div>`;
       }
