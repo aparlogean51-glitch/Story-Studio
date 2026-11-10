@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 8 · 96b60';
+const BUILD = 'Nov 10 · r1a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -19,51 +19,111 @@ const ICON = {
 
 /* =====================================================================
    where you are
+   A scene has two steps: Beats (work the chain out) and Pages (the page and the pad, nothing else).
+   In Pages the beats wait off the left edge: swipe in, or tap the small bar, to peek at them.
    ===================================================================== */
-let view = 'story', item = null;   // item: { kind: 'scene' | 'writing' | 'beats', id, from }
-const portrait = () => innerHeight > innerWidth;
+let view = 'story', item = null;   // item: { kind: 'scene' | 'writing' | 'beats', id, from, step: 'beats' | 'pages' }
+let peek = false;
 function go(v) {
-  if (view === 'item') { if (Pad.editing) Pad.edit(false); Pad.settle(); }
+  if (view === 'item') leaveItem();
   view = v; item = v === 'item' ? item : null;
   $('story').hidden = v !== 'story'; $('loose').hidden = v !== 'loose'; $('item').hidden = v !== 'item';
   if (v !== 'item') Store.setUi({ view: v, last: null });
   paintTop(); render();
 }
-function openItem(kind, id, from) {
+// leaving what's open: whatever is still in the pad goes into the draft; a loose page left completely empty isn't kept
+function leaveItem() {
+  const was = item; setPeek(false);
+  Pad.settle().then(() => { if (was && !(view === 'item' && item && item.id === was.id)) tidy(was); });
+}
+function tidy(it) {
+  if (it.kind === 'scene') return;
+  const l = Store.looseItem(it.id); if (!l || l.title || l.memo) return;
+  if (l.beats.some(b => b.text.trim() || b.notes.trim() || b.dialogue.length)) return;
+  if ((Store.data.ms[l.id] && Store.data.ms[l.id].text || '').trim()) return;
+  Store.deleteLoose(l.id);
+}
+// a scene opens on the step it was last left on; one never opened starts on its beats until it has some
+function stepFor(kind, id) {
+  if (kind === 'beats') return 'beats';
+  if (kind === 'writing') return 'pages';
+  const was = (Store.ui().steps || {})[id];
+  if (was === 'beats' || was === 'pages') return was;
+  const s = Store.scene(id);
+  return s.beats.some(b => b.text) || Store.text(id).trim() ? 'pages' : 'beats';
+}
+function openItem(kind, id, from, step) {
   const exists = kind === 'scene' ? Store.scene(id) : Store.looseItem(id);
   if (!exists) { go(from || 'story'); return; }
-  if (view === 'item' && item && item.id !== id) Pad.settle();
-  view = 'item'; item = { kind, id, from: from || (view === 'loose' ? 'loose' : 'story') };
-  $('story').hidden = true; $('loose').hidden = true; $('item').hidden = false;
+  const origin = from || (view === 'loose' ? 'loose' : view === 'item' && item ? item.from : 'story');
+  if (view === 'item' && item && item.id !== id) leaveItem();
+  view = 'item'; item = { kind, id, from: origin, step: kind === 'scene' && (step === 'beats' || step === 'pages') ? step : stepFor(kind, id) };
+  peek = false;
+  $('story').hidden = true; $('loose').hidden = true; $('item').hidden = false; $('viewing').hidden = true;
   Store.touchRecent(kind === 'scene' ? 'scene' : 'loose', id); Store.setUi({ lastFrom: item.from });
   layoutItem();
   if (kind !== 'beats') Pad.open(id, headLabel());
   renderChain(); paintTop();
-  if (planOn()) $('plan').scrollTop = 0;
 }
 function headLabel() {
   if (!item) return '';
   if (item.kind === 'scene') { const s = Store.scene(item.id); return s ? Store.sceneLabel(s) : ''; }
   const l = Store.looseItem(item.id); return l ? l.title || '' : '';
 }
-const planOn = () => !!(item && item.kind === 'scene' && Store.ui().plan);
 function layoutItem() {
-  const k = item && item.kind, panelKey = portrait() ? 'panelP' : 'panelL', ui = Store.ui();
-  const plan = planOn();
-  document.body.classList.toggle('plan', plan);
-  $('plan').hidden = !plan;
-  if (plan) { $('beatPanel').hidden = true; $('desk').hidden = true; $('planBtn').setAttribute('aria-pressed', 'true'); return; }
-  $('planBtn').setAttribute('aria-pressed', 'false');
-  const open = k === 'scene' ? (ui[panelKey] === undefined ? !portrait() : ui[panelKey]) : k === 'beats';
-  document.body.classList.toggle('portrait', portrait());
-  document.body.classList.toggle('chain-only', k === 'beats');
-  document.body.classList.toggle('no-panel', !open || k === 'writing');
-  $('beatPanel').hidden = !(open && k !== 'writing');
-  $('desk').hidden = k === 'beats';
-  $('beatsBtn').setAttribute('aria-pressed', String(open));
-  Pad.layout();
+  if (!item) return;
+  const pages = item.step === 'pages', hasBeats = item.kind !== 'writing';
+  document.body.classList.toggle('step-beats', !pages);
+  document.body.classList.toggle('step-pages', pages);
+  document.body.classList.toggle('peek', pages && peek);
+  $('beatPanel').hidden = !hasBeats; $('beatPanel').inert = pages && !peek;
+  $('peekTab').hidden = !(pages && hasBeats);
+  $('desk').hidden = !pages;
+  if (pages) Pad.layout();
 }
-/* ---------- previous / next scene, in timeline order (loose scenes step through Loose Pages) ---------- */
+function leaveView() { if (!$('viewing').hidden) { $('viewing').hidden = true; Pad.unview(); } }
+function setStep(step) {
+  if (!item || item.kind !== 'scene' || item.step === step) return;
+  if (item.step === 'pages') { leaveView(); Pad.settle(); }
+  item.step = step; peek = false;
+  // remembered for this scene (the 300 most recent)
+  const st = { ...(Store.ui().steps || {}) }; delete st[item.id]; st[item.id] = step;
+  const keys = Object.keys(st); for (const k of keys.slice(0, Math.max(0, keys.length - 300))) delete st[k];
+  Store.setUi({ steps: st });
+  layoutItem(); renderChain(); paintTop();
+}
+$('stepSeg').onclick = (e) => { const b = e.target.closest('[data-step]'); if (b) setStep(b.dataset.step); };
+
+/* ---------- peeking at the beats from the page ---------- */
+function setPeek(on) {
+  on = !!(on && item && item.kind === 'scene' && item.step === 'pages');
+  if (peek === on) return;
+  peek = on; document.body.classList.toggle('peek', on); $('beatPanel').inert = !!(item && item.step === 'pages' && !on);
+  if (on) { renderChain(); const cur = $('chain').querySelector('.beat.cur'); if (cur) cur.scrollIntoView({ block: 'center' }); }
+  else if (document.activeElement && document.activeElement.closest('#beatPanel')) document.activeElement.blur();
+}
+$('peekTab').onclick = () => setPeek(true);
+// a finger sliding in from the left edge opens them; sliding them back, touching the page, or writing puts them away
+(() => {
+  let sx = 0, sy = 0, mode = '';
+  $('item').addEventListener('touchstart', (e) => {
+    mode = '';
+    if (e.touches.length !== 1 || !item || item.kind !== 'scene' || item.step !== 'pages') return;
+    const t = e.touches[0]; if (t.touchType === 'stylus') return;
+    if (!peek && t.clientX <= 28) mode = 'open'; else if (peek && e.target.closest('#beatPanel')) mode = 'close'; else return;
+    sx = t.clientX; sy = t.clientY;
+  }, { passive: true });
+  $('item').addEventListener('touchmove', (e) => {
+    if (!mode) return;
+    const t = e.touches[0], dx = t.clientX - sx, dy = Math.abs(t.clientY - sy);
+    if (mode === 'open' && dx > 44 && dy < 70) { mode = ''; setPeek(true); }
+    else if (mode === 'close' && dx < -60 && dy < 50) { mode = ''; setPeek(false); }
+  }, { passive: true });
+})();
+document.addEventListener('pointerdown', (e) => { if (peek && !e.target.closest('#beatPanel, #layer')) setPeek(false); }, true);
+Pad.onWrite = () => setPeek(false);
+
+/* ---------- previous / next scene, in timeline order (loose scenes step through Loose Pages): swipe the top bar ---------- */
 function sceneRun(s) {
   if (!s.seqId) return Store.looseFor().filter(x => x.kind === 'scene').map(x => x.item);
   const out = [], bid = Store.where(s.seqId).book.id;
@@ -71,73 +131,47 @@ function sceneRun(s) {
   return out;
 }
 function neighbours(s) { const run = sceneRun(s), i = run.indexOf(s); return { prev: run[i - 1], next: run[i + 1] }; }
-function step(dir) {
+function hop(dir) {
   const s = item && item.kind === 'scene' && Store.scene(item.id); if (!s) return;
   const t = neighbours(s)[dir]; if (!t) return;
-  $('viewing').hidden = true; Pad.unview();
-  openItem('scene', t.id, item.from);
+  leaveView();
+  openItem('scene', t.id, item.from, item.step);   // stay on the step you're on: beats to beats, pages to pages
 }
-$('prevBtn').onclick = () => step('prev');
-$('nextBtn').onclick = () => step('next');
-// a sideways swipe on the top bar or the plan steps scenes too
-function swipe(el) {
-  let sx = 0, sy = 0, on = false;
-  el.addEventListener('touchstart', (e) => { if (e.touches.length !== 1 || e.target.closest('textarea, input:focus')) { on = false; return; } on = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+(() => {
+  const el = $('top'); let sx = 0, sy = 0, on = false;
+  el.addEventListener('touchstart', (e) => { on = e.touches.length === 1; if (on) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, { passive: true });
   el.addEventListener('touchend', (e) => {
     if (!on || !item || item.kind !== 'scene') return; on = false;
     const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2) step(dx < 0 ? 'next' : 'prev');
+    if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 2) hop(dx < 0 ? 'next' : 'prev');
   }, { passive: true });
-}
-swipe($('top')); swipe($('plan'));
-$('editBtn').onclick = async () => { $('viewing').hidden = true; await Pad.edit(!Pad.editing); paintTop(); };
-$('planBtn').onclick = async () => { if (Pad.editing) await Pad.edit(false); Pad.settle(); Store.setUi({ plan: !Store.ui().plan }); layoutItem(); renderChain(); paintTop(); if (planOn()) $('plan').scrollTop = 0; else Pad.layout(); };
-
-$('beatsBtn').onclick = () => { const key = portrait() ? 'panelP' : 'panelL', ui = Store.ui(); const cur = ui[key] === undefined ? !portrait() : ui[key]; Store.setUi({ [key]: !cur }); layoutItem(); };
-addEventListener('resize', () => { if (view === 'item') layoutItem(); });
+})();
+addEventListener('resize', () => { if (view !== 'item') return; layoutItem(); if (item.step === 'pages' && !Pad.editing && !Pad.fixing && $('viewing').hidden) Pad.render(); });   // turning the iPad keeps the end of the draft in view
 
 function paintTop() {
   const inItem = view === 'item';
-  $('tabs').hidden = inItem; $('back').hidden = !inItem; $('itemTitle').hidden = !inItem;
+  $('tabs').hidden = inItem; $('back').hidden = !inItem; $('titleBtn').hidden = !inItem;
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', String(t.dataset.go === view)));
   $('gapsBtn').hidden = view !== 'story';
   const k = inItem && item.kind;
   const s = k === 'scene' ? Store.scene(item.id) : null, l = k && k !== 'scene' ? Store.looseItem(item.id) : null;
-  $('stageBtn').hidden = !s; $('detailsBtn').hidden = !s || planOn(); $('beatsBtn').hidden = !s || planOn(); $('planBtn').hidden = !s;
-  const nb = s ? neighbours(s) : {};
-  $('prevBtn').hidden = $('nextBtn').hidden = !s;
-  $('prevBtn').disabled = !nb.prev; $('nextBtn').disabled = !nb.next;
-  $('chainSceneBtn').hidden = k !== 'beats';
-  const canEdit = (k === 'scene' && !planOn()) || k === 'writing';
-  $('editBtn').hidden = !canEdit;
-  $('editBtn').textContent = Pad.editing ? 'Done' : 'Edit'; $('editBtn').setAttribute('aria-pressed', String(Pad.editing));
-  $('fileBtn').hidden = !(l || (s && !s.seqId));
-  const q = s && s.seqId ? Store.seq(s.seqId) : null;
-  $('docBtn').hidden = true;   // the Doc opens only from a sequence's ⋯ menu
+  $('stepSeg').hidden = !s;
   if (inItem) {
     $('backLbl').textContent = item.from === 'loose' ? 'Loose' : 'Story';
     const t = s ? s.title : l ? l.title : '';
-    if (document.activeElement !== $('itemTitle')) $('itemTitle').value = t;
-    $('itemTitle').placeholder = s ? 'Untitled scene' : k === 'beats' ? 'Untitled beats' : 'Untitled page';
-    $('itemTitle').size = Math.max(8, Math.min(40, (t || $('itemTitle').placeholder).length + 1));
-    if (s) $('stageBtn').textContent = Store.stageLabel(s.stage);
+    $('titleTxt').textContent = t || (s ? 'Untitled scene' : k === 'beats' ? 'Untitled beats' : 'Untitled page');
+    $('titleBtn').classList.toggle('empty', !t);
+    document.querySelectorAll('#stepSeg [data-step]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.step === item.step)));
   }
   const n = Store.looseFor().length; $('looseN').textContent = n ? String(n) : '';
 }
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => go(t.dataset.go));
 $('back').onclick = () => go(item ? item.from : 'story');
-let titleT = 0;
-$('itemTitle').addEventListener('input', () => {
-  clearTimeout(titleT);
-  const v = $('itemTitle').value;
-  titleT = setTimeout(() => {
-    if (!item) return;
-    if (item.kind === 'scene') { const s = Store.scene(item.id); if (s) { s.title = v.trim(); Store.touchScene(s, { title: true }); } }
-    else { const l = Store.looseItem(item.id); if (l) { l.title = v.trim(); l.updated = Date.now(); Store.changed({ loose: true }, 'title'); } }
-    Pad.title(headLabel());
-  }, 350);
-});
-$('itemTitle').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('itemTitle').blur(); } });
+$('titleBtn').onclick = () => {
+  if (!item) return;
+  if (item.kind === 'scene') { const s = Store.scene(item.id); if (s) sceneSheet(s); }
+  else { const l = Store.looseItem(item.id); if (l) looseSheet(l); }
+};
 
 /* =====================================================================
    layer: menus, sheets and the rare question
@@ -443,8 +477,8 @@ function renderLoose() {
 }
 document.querySelector('.loose-add').onclick = (e) => {
   const k = e.target.closest('[data-new]'); if (!k) return;
-  if (k.dataset.new === 'scene') { const s = Store.addScene({ title: '' }, null); openItem('scene', s.id, 'loose'); setTimeout(() => $('itemTitle').focus(), 80); }
-  else { const l = Store.addLoose(k.dataset.new); openItem(l.kind, l.id, 'loose'); if (k.dataset.new === 'beats') setTimeout(() => { const t = document.querySelector('#chain textarea'); t && t.focus(); }, 80); }
+  if (k.dataset.new === 'scene') { const s = Store.addScene({ title: '' }, null); openItem('scene', s.id, 'loose'); }
+  else { const l = Store.addLoose(k.dataset.new); openItem(l.kind, l.id, 'loose'); }
 };
 pressDrag($('looseGrid'), '.lcard', {
   scroller: () => $('loose'),
@@ -502,12 +536,10 @@ async function fileIn(kind, id) {
   if (view === 'item' && item && item.id === id) { if (opened) openItem('scene', opened, 'story'); else { paintTop(); render(); } }
   else render();
 }
-$('fileBtn').onclick = () => { if (!item) return; Pad.settle(); fileIn(item.kind, item.id); };
-$('chainSceneBtn').onclick = async () => {
-  if (!item) return;
+async function makeScene(id) {
   const t = await pick({ seqs: true, loose: true, title: 'Make a scene in' }); if (!t) return;
-  const s = Store.chainToScene(item.id, t.seq || null); if (s) openItem('scene', s.id, t.seq ? 'story' : 'loose');
-};
+  const s = Store.chainToScene(id, t.seq || null); if (s) openItem('scene', s.id, t.seq ? 'story' : 'loose');
+}
 
 /* =====================================================================
    the beat chain (a scene's, or a loose chain)
@@ -519,43 +551,70 @@ function chainChanged(info = {}) {
 }
 function fixLinks(bs) { bs.forEach((b, i) => { if (i === 0) b.link = ''; else if (!b.link) b.link = 'and'; }); }
 function grow(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+const linkRow = (b, i) => `<li class="lk-row"><button class="lk ${b.link || 'and'}" data-link="${i}">${LINK_LABEL[b.link || 'and']}</button></li>`;
+// the last line is always an empty one waiting to be written on: writing there makes the next beat
+const newRow = (any) => `<li class="beat new"><button class="tick" tabindex="-1" aria-hidden="true">✓</button><textarea rows="1" data-bt="new" placeholder="${any ? 'Next beat' : 'First beat'}"></textarea><button class="nb" tabindex="-1" aria-hidden="true">${ICON.notes}</button></li>`;
+function countBeats(bs) { $('beatCnt').textContent = bs.length ? `${bs.filter(b => b.done).length}/${bs.length}` : ''; }
 function renderChain(focus) {
   const bs = chain(); if (!bs) return;
-  if (planOn()) { renderPlan(focus); return; }
-  const cur = bs.findIndex(b => !b.done), done = bs.filter(b => b.done).length;
-  $('beatCnt').textContent = bs.length ? `${done}/${bs.length}` : '';
+  const cur = bs.findIndex(b => !b.done);
+  countBeats(bs);
   let h = '';
   bs.forEach((b, i) => {
-    if (i > 0) h += `<li class="lk-row"><button class="lk ${b.link || 'and'}" data-link="${i}">${LINK_LABEL[b.link || 'and']}</button></li>`;
+    if (i > 0) h += linkRow(b, i);
     const has = b.notes.trim() || b.dialogue.length;
     h += `<li class="beat ${b.done ? 'done' : ''} ${i === cur && item.kind === 'scene' ? 'cur' : ''}" data-i="${i}"><button class="tick" data-tick="${i}" aria-label="Written">✓</button>
       <textarea rows="1" data-bt="${i}" placeholder="Beat">${esc(b.text)}</textarea><button class="nb ${has ? 'has' : ''}" data-notes="${i}" aria-label="Notes and dialogue">${ICON.notes}</button></li>`;
   });
-  h += `<li><button class="add-beat" data-add-beat="1">+ Beat</button></li>`;
+  h += newRow(bs.length > 0);
   $('chain').innerHTML = h;
   $('chain').querySelectorAll('textarea').forEach(grow);
   if (focus != null) { const t = $('chain').querySelector(`[data-bt="${focus}"]`); if (t) { t.focus(); const n = t.value.length; t.setSelectionRange(n, n); t.scrollIntoView({ block: 'nearest' }); } }
 }
 $('chain').addEventListener('input', (e) => {
   const t = e.target.closest('[data-bt]'); if (!t) return;
-  const bs = chain(), b = bs[+t.dataset.bt]; if (!b) return;
+  const bs = chain(); if (!bs) return;
   if (/\n/.test(t.value)) t.value = t.value.replace(/\n+/g, ' ');
+  if (t.dataset.bt === 'new') {
+    grow(t);
+    if (!t.value.trim()) return;
+    // the waiting line becomes a beat where it stands, so the pencil never loses its place, and a fresh one opens under it
+    const i = bs.length, b = Store.newBeat({ text: t.value, link: i ? 'and' : '' }); bs.push(b);
+    const li = t.closest('li'), tick = li.querySelector('.tick'), nb = li.querySelector('.nb');
+    li.classList.remove('new'); li.dataset.i = i; t.dataset.bt = i; t.placeholder = 'Beat';
+    tick.dataset.tick = i; tick.removeAttribute('tabindex'); tick.removeAttribute('aria-hidden'); tick.setAttribute('aria-label', 'Written');
+    nb.dataset.notes = i; nb.removeAttribute('tabindex'); nb.removeAttribute('aria-hidden'); nb.setAttribute('aria-label', 'Notes and dialogue');
+    if (i > 0) li.insertAdjacentHTML('beforebegin', linkRow(b, i));
+    li.insertAdjacentHTML('afterend', newRow(true));
+    countBeats(bs); chainChanged(); return;
+  }
+  const b = bs[+t.dataset.bt]; if (!b) return;
   b.text = t.value; grow(t); chainChanged();
 });
 $('chain').addEventListener('keydown', (e) => {
   const t = e.target.closest('[data-bt]'); if (!t || e.isComposing) return;
-  const bs = chain(), i = +t.dataset.bt;
-  if (e.key === 'Enter') { e.preventDefault(); bs.splice(i + 1, 0, Store.newBeat({ link: 'and' })); fixLinks(bs); chainChanged(); renderChain(i + 1); }
-  else if (e.key === 'Backspace' && !t.value && bs.length > 1) { e.preventDefault(); bs.splice(i, 1); fixLinks(bs); chainChanged(); renderChain(Math.max(0, i - 1)); }
+  const bs = chain(), fresh = t.dataset.bt === 'new', i = fresh ? bs.length : +t.dataset.bt;
+  const waiting = () => { const n = $('chain').querySelector('[data-bt="new"]'); if (n) { n.focus(); n.scrollIntoView({ block: 'nearest' }); } };
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (fresh) return;
+    if (i === bs.length - 1) { waiting(); return; }
+    bs.splice(i + 1, 0, Store.newBeat({ link: 'and' })); fixLinks(bs); chainChanged(); renderChain(i + 1);
+  }
+  else if (e.key === 'Backspace' && !t.value) {
+    if (fresh) { if (bs.length) { e.preventDefault(); renderChain(bs.length - 1); } return; }
+    if (bs[i].notes.trim() || bs[i].dialogue.length) return;
+    e.preventDefault(); bs.splice(i, 1); fixLinks(bs); chainChanged();
+    if (i > 0) renderChain(i - 1); else { renderChain(); waiting(); }
+  }
 });
 $('chain').addEventListener('click', (e) => {
   const bs = chain(); if (!bs) return;
-  const lk = e.target.closest('[data-link]'), nb = e.target.closest('[data-notes]'), add = e.target.closest('[data-add-beat]');
+  const lk = e.target.closest('[data-link]'), nb = e.target.closest('[data-notes]');
   if (lk) { const b = bs[+lk.dataset.link]; b.link = NEXT_LINK[b.link || 'and']; chainChanged(); renderChain(); }
   else if (nb) openNotes(+nb.dataset.notes);
-  else if (add) { bs.push(Store.newBeat({ link: bs.length ? 'and' : '' })); fixLinks(bs); chainChanged(); renderChain(bs.length - 1); }
 });
-pressDrag($('chain'), '.beat', {
+pressDrag($('chain'), '.beat:not(.new)', {
   handle: '.tick', scroller: () => $('chain'),
   tap: (el) => {
     const bs = chain(), i = +el.dataset.i, b = bs[i]; if (!b) return;
@@ -564,8 +623,7 @@ pressDrag($('chain'), '.beat', {
   },
   menu: (el) => openNotes(+el.dataset.i),
   move: (x, y, st) => {
-    document.querySelectorAll('#chain .ins-y').forEach(z => z.remove());
-    const rows = [...$('chain').querySelectorAll('.beat')].filter(r => r !== st.el);
+    const rows = [...$('chain').querySelectorAll('.beat:not(.new)')].filter(r => r !== st.el);
     let to = rows.length; for (let k = 0; k < rows.length; k++) { const r = rows[k].getBoundingClientRect(); if (y < r.top + r.height / 2) { to = k; break; } }
     st.to = to;
   },
@@ -607,127 +665,93 @@ function openNotes(i) {
 
 
 /* =====================================================================
-   Plan: details, every beat with its notes and dialogue, no pad
+   everything about a scene, in one sheet opened from its title
    ===================================================================== */
-function renderPlan(focus) {
-  const s = Store.scene(item.id); if (!s) return;
-  const bs = s.beats, done = bs.filter(b => b.done).length;
-  let h = `<div class="pl">
-    <div class="field"><label>Summary</label><textarea data-f="summary" rows="2">${esc(s.summary)}</textarea></div>
-    <div class="grid3"><div class="field"><label>POV</label><input data-f="pov" value="${esc(s.pov)}" autocomplete="off"></div>
-      <div class="field"><label>Location</label><input data-f="location" value="${esc(s.location)}" autocomplete="off"></div>
-      <div class="field"><label>Date</label><input data-f="date" value="${esc(s.date)}" autocomplete="off"></div></div>
-    <div class="field"><label>Status</label><div class="seg">${Store.STATUSES.map(([k, l]) => `<button data-st="${k}" aria-pressed="${s.status === k}">${l}</button>`).join('')}</div></div>
-    <h3><span>Beats</span><span>${bs.length ? done + '/' + bs.length : ''}</span></h3>`;
-  bs.forEach((b, i) => {
-    if (i > 0) h += `<div class="lk-row"><button class="lk ${b.link || 'and'}" data-plink="${i}">${LINK_LABEL[b.link || 'and']}</button></div>`;
-    h += `<div class="pbeat ${b.done ? 'done' : ''}" data-i="${i}"><button class="tick" data-ptick="${i}" aria-label="Written">✓</button>
-      <textarea class="pt" rows="1" data-pt="${i}" placeholder="Beat">${esc(b.text)}</textarea>
-      <textarea class="pn" rows="1" data-pn="${i}" placeholder="Notes">${esc(b.notes)}</textarea>
-      ${b.dialogue.map((d, k) => `<div class="pd" data-k="${k}"><input data-ps value="${esc(d.speaker)}" placeholder="Who" autocomplete="off"><textarea rows="1" data-pl placeholder="Line">${esc(d.line)}</textarea><button data-px aria-label="Remove line">×</button></div>`).join('')}
-      <button class="padd" data-pline="${i}">+ Line</button></div>`;
-  });
-  h += `<button class="add-beat" data-padd="1" style="margin-left:0">+ Beat</button></div>`;
-  const pl = $('plan'), y = pl.scrollTop;
-  pl.innerHTML = h; pl.scrollTop = y;
-  pl.querySelectorAll('textarea').forEach(grow);
-  if (focus != null) { const t = pl.querySelector(`[data-pt="${focus}"]`); if (t) { t.focus(); const n = t.value.length; t.setSelectionRange(n, n); t.scrollIntoView({ block: 'nearest' }); } }
-}
-$('plan').addEventListener('input', (e) => {
-  const s = Store.scene(item.id); if (!s) return;
-  const t = e.target;
-  if (t.tagName === 'TEXTAREA') grow(t);
-  if (t.dataset.f) { s[t.dataset.f] = t.value; Store.touchScene(s, { details: true }); return; }
-  const box = t.closest('.pbeat'); if (!box) return;
-  const b = s.beats[+box.dataset.i]; if (!b) return;
-  if (t.dataset.pt != null) { if (/\n/.test(t.value)) t.value = t.value.replace(/\n+/g, ' '); b.text = t.value; }
-  else if (t.dataset.pn != null) b.notes = t.value;
-  else { const row = t.closest('.pd'), d = row && b.dialogue[+row.dataset.k]; if (!d) return; if (t.matches('[data-ps]')) d.speaker = t.value; else d.line = t.value; }
-  chainChanged();
-});
-$('plan').addEventListener('keydown', (e) => {
-  const t = e.target.closest('[data-pt]'); if (!t || e.isComposing) return;
-  const bs = chain(), i = +t.dataset.pt;
-  if (e.key === 'Enter') { e.preventDefault(); bs.splice(i + 1, 0, Store.newBeat({ link: 'and' })); fixLinks(bs); chainChanged(); renderPlan(i + 1); }
-  else if (e.key === 'Backspace' && !t.value && bs.length > 1 && !bs[i].notes.trim() && !bs[i].dialogue.length) { e.preventDefault(); bs.splice(i, 1); fixLinks(bs); chainChanged(); renderPlan(Math.max(0, i - 1)); }
-});
-$('plan').addEventListener('click', (e) => {
-  const s = Store.scene(item.id); if (!s) return;
-  const bs = s.beats, x = e.target.closest('button'); if (!x) return;
-  const d = x.dataset;
-  if (d.st) { s.status = d.st; Store.touchScene(s, { details: true }); $('plan').querySelectorAll('[data-st]').forEach(b => b.setAttribute('aria-pressed', String(b === x))); return; }
-  if (d.ptick) { const b = bs[+d.ptick]; b.done = !b.done; chainChanged(); renderPlan(); return; }
-  if (d.plink) { const b = bs[+d.plink]; b.link = NEXT_LINK[b.link || 'and']; chainChanged(); renderPlan(); return; }
-  if (d.pline) { const i = +d.pline; bs[i].dialogue.push({ id: Store.uid('d-'), speaker: '', line: '' }); chainChanged(); renderPlan(); const r = $('plan').querySelector(`.pbeat[data-i="${i}"] .pd:last-of-type [data-ps]`); r && r.focus(); return; }
-  if (x.matches('[data-px]')) { const box = x.closest('.pbeat'), b = bs[+box.dataset.i]; b.dialogue.splice(+x.closest('.pd').dataset.k, 1); chainChanged(); renderPlan(); return; }
-  if (d.padd) { bs.push(Store.newBeat({ link: bs.length ? 'and' : '' })); fixLinks(bs); chainChanged(); renderPlan(bs.length - 1); }
-});
-
-/* =====================================================================
-   a scene: details, stage, Doc
-   ===================================================================== */
-$('detailsBtn').onclick = () => {
-  const s = Store.scene(item.id); if (!s) return;
-  const w = s.seqId ? Store.where(s.seqId) : null;
-  sheet('Details', 'center', (body) => {
-    body.innerHTML = `<div class="field"><label>Summary</label><textarea id="dSum" rows="3">${esc(s.summary)}</textarea></div>
+function sceneSheet(s) {
+  const no = Store.sceneNo(s), when = (t) => new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  sheet(no ? 'Scene ' + no : 'Scene', 'center', (body) => {
+    const w = s.seqId ? Store.where(s.seqId) : null;
+    body.innerHTML = `<div class="field"><label>Title</label><input id="dTitle" value="${esc(s.title)}" placeholder="Untitled scene" autocomplete="off"></div>
+      <div class="field"><label>Summary</label><textarea id="dSum" rows="2">${esc(s.summary)}</textarea></div>
       <div class="grid2"><div class="field"><label>POV</label><input id="dPov" value="${esc(s.pov)}" autocomplete="off"></div><div class="field"><label>Location</label><input id="dLoc" value="${esc(s.location)}" autocomplete="off"></div></div>
       <div class="field"><label>Date</label><input id="dDate" value="${esc(s.date)}" autocomplete="off"></div>
+      <div class="field"><label>Labels</label><div class="chips" id="dLabels"></div><input id="dLabel" placeholder="Add a label" autocomplete="off" autocapitalize="none" enterkeyhint="done"><div class="chips" id="dSug"></div></div>
       <div class="field"><label>Status</label><div class="seg" id="dSt">${Store.STATUSES.map(([k, l]) => `<button data-st="${k}" aria-pressed="${s.status === k}">${l}</button>`).join('')}</div></div>
+      <div class="field"><label>Stage</label><div class="seg" id="dSg"></div><div class="vers" id="dVers"></div></div>
       <div class="field"><label>Where</label><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font:15px var(--serif);color:var(--muted)">${w ? esc(Store.seqLabel(w.seq)) : 'Loose Pages'}</span>
         <button class="btn quiet" id="dMove">${w ? 'Move…' : 'File in…'}</button>${w ? '<button class="btn quiet" id="dLoose">Move to Loose</button>' : ''}</div></div>
       <button class="btn danger" id="dDel" style="align-self:flex-start">Delete scene</button>`;
     body.querySelectorAll('textarea').forEach(grow);
     const set = (k, v) => { s[k] = v; Store.touchScene(s, { details: true }); };
+    const labels = () => {
+      const mine = s.labels || [], low = new Set(mine.map(x => x.toLowerCase()));
+      body.querySelector('#dLabels').innerHTML = mine.map((l, i) => `<button class="chip2" data-unlabel="${i}">${esc(l)}<i>×</i></button>`).join('');
+      body.querySelector('#dSug').innerHTML = Store.labelsOf(s.bookId).filter(l => !low.has(l.toLowerCase())).slice(0, 12).map(l => `<button class="chip2 sug" data-label="${esc(l)}">${esc(l)}</button>`).join('');
+    };
+    const addLabel = (v) => { const next = Store.normLabels([...(s.labels || []), ...String(v).split(',')]); if (next.length !== (s.labels || []).length) set('labels', next); labels(); };
+    const stages = (armed) => {
+      body.querySelector('#dSg').innerHTML = Store.STAGES.map(([k, l]) => `<button data-sg="${k}" aria-pressed="${s.stage === k}" class="${armed === k ? 'armed' : ''}">${armed === k ? 'Start ' + l : l}</button>`).join('');
+      const vers = Store.ms(s.id).versions;
+      body.querySelector('#dVers').innerHTML = vers.map((v, i) => `<button data-ver="${i}"><span>As it was at the end of ${esc(Store.stageLabel(v.stage))}</span><small>${when(v.at)}</small></button>`).reverse().join('');
+    };
+    labels(); stages();
     body.addEventListener('input', (e) => {
       const id = e.target.id;
-      if (id === 'dSum') { set('summary', e.target.value); grow(e.target); } else if (id === 'dPov') set('pov', e.target.value); else if (id === 'dLoc') set('location', e.target.value); else if (id === 'dDate') set('date', e.target.value);
+      if (id === 'dTitle') { s.title = e.target.value.trim(); Store.touchScene(s, { title: true }); Pad.title(headLabel()); paintTop(); }
+      else if (id === 'dSum') { set('summary', e.target.value); grow(e.target); } else if (id === 'dPov') set('pov', e.target.value); else if (id === 'dLoc') set('location', e.target.value); else if (id === 'dDate') set('date', e.target.value);
+      else if (id === 'dLabel' && /,/.test(e.target.value)) { addLabel(e.target.value); e.target.value = ''; }
     });
+    body.addEventListener('keydown', (e) => { if (e.target.id === 'dLabel' && e.key === 'Enter') { e.preventDefault(); addLabel(e.target.value); e.target.value = ''; } });
+    body.addEventListener('focusout', (e) => { if (e.target.id === 'dLabel' && e.target.value.trim()) { addLabel(e.target.value); e.target.value = ''; } });
     body.addEventListener('click', (e) => {
-      const st = e.target.closest('[data-st]');
-      if (st) { set('status', st.dataset.st); body.querySelectorAll('[data-st]').forEach(b => b.setAttribute('aria-pressed', String(b === st))); }
-      if (e.target.id === 'dMove') { closeLayer(); fileIn('scene', s.id).then(paintTop); }
-      if (e.target.id === 'dLoose') { closeLayer(); Store.moveScene(s.id, null); item.from = 'loose'; paintTop(); }
-      if (e.target.id === 'dDel') { if (!e.target.classList.contains('armed')) { e.target.classList.add('armed'); e.target.textContent = 'Tap again to delete'; return; } closeLayer(); deleteScene(s); }
+      const x = e.target.closest('button'); if (!x) return;
+      const d = x.dataset;
+      if (d.st) { set('status', d.st); body.querySelectorAll('[data-st]').forEach(b => b.setAttribute('aria-pressed', String(b === x))); }
+      else if (d.unlabel != null) { const next = (s.labels || []).slice(); next.splice(+d.unlabel, 1); set('labels', next); labels(); }
+      else if (d.label) addLabel(d.label);
+      else if (d.sg) {
+        // a new stage keeps the draft as it stood at the end of the old one, so it takes a second tap
+        if (d.sg === s.stage) { stages(); return; }
+        if (!x.classList.contains('armed')) { stages(d.sg); return; }
+        Pad.settle().then(() => { Store.setStage(s.id, d.sg); stages(); });
+      }
+      else if (d.ver != null) { const v = Store.ms(s.id).versions[+d.ver]; closeLayer(); if (v) viewVersion(v); }
+      else if (x.id === 'dMove') { closeLayer(); fileIn('scene', s.id).then(paintTop); }
+      else if (x.id === 'dLoose') { closeLayer(); Store.moveScene(s.id, null); if (item) item.from = 'loose'; paintTop(); }
+      else if (x.id === 'dDel') { if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again to delete'; return; } closeLayer(); deleteScene(s); }
+    });
+  }, { onClose: () => { paintTop(); } });
+}
+// a loose page or loose beats: its title, where it goes, or throw it away
+function looseSheet(l) {
+  sheet(l.kind === 'beats' ? 'Loose beats' : 'Loose page', 'center', (body) => {
+    body.innerHTML = `<div class="field"><label>Title</label><input id="lTitle" value="${esc(l.title)}" placeholder="${l.kind === 'beats' ? 'Untitled beats' : 'Untitled page'}" autocomplete="off"></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="lFile">File in…</button>${l.kind === 'beats' ? '<button class="btn" id="lScene">Make a scene…</button>' : ''}</div>
+      <button class="btn danger" id="lDel" style="align-self:flex-start">Delete</button>`;
+    body.querySelector('#lTitle').addEventListener('input', (e) => { l.title = e.target.value.trim(); l.updated = Date.now(); Store.changed({ loose: true }, 'title'); Pad.title(headLabel()); paintTop(); });
+    body.addEventListener('click', async (e) => {
+      const x = e.target.closest('button'); if (!x) return;
+      if (x.id === 'lFile') { closeLayer(); await Pad.settle(); fileIn(l.kind, l.id); }
+      else if (x.id === 'lScene') { closeLayer(); makeScene(l.id); }
+      else if (x.id === 'lDel') {
+        if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again to delete'; return; }
+        closeLayer(); await Pad.settle(); await Google.Copies.keep('before deleting a loose page'); Store.deleteLoose(l.id); go(item ? item.from : 'loose');
+      }
     });
   });
-};
-$('stageBtn').onclick = () => {
-  const s = Store.scene(item.id); if (!s) return;
-  const vers = Store.ms(s.id).versions.slice().reverse();
-  const when = (t) => new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' });
-  menu($('stageBtn'), [{ head: 'Stage' },
-    ...Store.STAGES.map(([k, l]) => ({ label: l, checked: s.stage === k, confirm: s.stage === k ? null : 'Start ' + l, act: () => { if (s.stage !== k) { Pad.settle().then(() => { Store.setStage(s.id, k); paintTop(); }); } } })),
-    vers.length ? { hr: true } : null, vers.length ? { head: 'Earlier' } : null,
-    ...vers.map(v => ({ label: Store.stageLabel(v.stage), small: when(v.at), act: () => viewVersion(v) }))]);
-};
+}
 async function viewVersion(v) {
-  if (Pad.editing) await Pad.edit(false);
-  Pad.settle(); paintTop();
-  const label = Store.stageLabel(v.stage) + ' · ' + new Date(v.at).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  if (!item || item.kind !== 'scene') return;
+  if (item.step !== 'pages') setStep('pages');
+  await Pad.settle();
+  const label = 'End of ' + Store.stageLabel(v.stage) + ' · ' + new Date(v.at).toLocaleDateString([], { month: 'short', day: 'numeric' });
   Pad.view(label, v.text); $('viewingLbl').textContent = label; $('viewing').hidden = false;
 }
-$('viewingBack').onclick = () => { $('viewing').hidden = true; Pad.unview(); };
-$('docBtn').onclick = () => { const s = Store.scene(item.id), q = s && s.seqId && Store.seq(s.seqId), u = q && Google.Docs.url(q); if (u) window.open(u, '_blank'); };
+$('viewingBack').onclick = leaveView;
 
 /* =====================================================================
-   Write, Capture, Recent
+   Capture
    ===================================================================== */
-$('writeBtn').onclick = () => {
-  if (view === 'item' && planOn()) { Store.setUi({ plan: false }); layoutItem(); renderChain(); paintTop(); }
-  if (view === 'item' && Pad.editing) { Pad.edit(false).then(paintTop); return; }
-  if (view === 'item' && item.kind !== 'beats') { $('viewing').hidden = true; Pad.unview(); $('scribble').focus({ preventScroll: true }); return; }
-  const l = Store.addLoose('writing'); openItem('writing', l.id, view === 'item' ? item.from : view);
-};
-$('recentBtn').onclick = () => {
-  const r = Store.recent().slice(0, 10);
-  menu($('recentBtn'), r.length ? r.map(x => {
-    if (x.kind === 'scene') { const s = Store.scene(x.id); return { label: Store.sceneLabel(s), small: s.seqId ? '' : 'Loose', act: () => openItem('scene', s.id, s.seqId ? 'story' : 'loose') }; }
-    const l = Store.looseItem(x.id), t = l.kind === 'beats' ? (l.title || (l.beats.find(b => b.text) || {}).text || 'Beats') : (l.title || (Store.text(l.id).split('\n').find(z => z.trim()) || 'Writing'));
-    return { label: t.slice(0, 48), small: l.kind === 'beats' ? 'Beats' : 'Writing', act: () => openItem(l.kind, l.id, 'loose') };
-  }) : [{ note: 'Nothing yet.' }]);
-};
-
 // voice: the iPad's recorder, with a plain backup recorder for iPads whose recorder gives silence
 const Rec = (() => {
   let mr = null, stream = null, chunks = [], ac = null, src = null, proc = null, pcm = [], pcmLen = 0, sr = null, t0 = 0, tick = 0, level = 0, onText = null, mime = '', finals = '';
@@ -824,7 +848,8 @@ $('menuBtn').onclick = () => {
     : [st.mode === 'error' || st.mode === 'conflict' || st.mode === 'offline' || st.mode === 'reconnect' ? { note: st.msg || st.mode, bad: st.mode === 'error' } : { note: st.lastOk ? 'Synced ' + agoTxt(st.lastOk) : 'Signed in' },
       { label: 'Sync now', act: () => { Google.gesture(); Google.Sync.cycle('now'); Google.Docs.tick('now'); } }, { label: 'Sign out of Google', act: () => Google.signOut() }];
   const empty = !Store.data.scenes.length && !Store.data.loose.length;
-  menu($('menuBtn'), [{ head: 'Book' },
+  const onPage = view === 'item' && item && item.step === 'pages' && $('viewing').hidden;
+  menu($('menuBtn'), [onPage ? { label: 'Type on the page', act: () => Pad.type() } : null, onPage ? { hr: true } : null, { head: 'Book' },
     ...Store.data.books.map(b => ({ label: Store.bookLabel(b), checked: b.id === cur, act: () => { Store.setBook(b.id); go('story'); } })),
     { label: 'New book…', act: async () => { const v = await promptSheet('New book', '', 'Name'); if (v !== null) { const b = Store.addBook(v); Store.setBook(b.id); go('story'); } } },
     { label: 'Rename this book…', act: async () => { const b = Store.book(cur); const v = await promptSheet('Book', b.name, 'Name'); if (v !== null) Store.rename('book', b.id, v); render(); } },
@@ -839,14 +864,20 @@ $('menuBtn').onclick = () => {
     { ver: 'iStory · ' + BUILD }]);
 };
 function copiesSheet() {
-  Google.Copies.list().then(list => {
+  Promise.all([Google.Copies.list(), Store.kept()]).then(([list, kept]) => {
     sheet('Earlier copies', 'center', (body) => {
-      if (!list.length) { body.innerHTML = '<div class="empty-note">None yet.</div>'; return; }
-      body.innerHTML = list.map((c, i) => `<div class="set-row"><span style="font:15px var(--serif)">${new Date(c.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}<br><small style="color:var(--faint);font:12.5px var(--ui)">${esc(c.reason)} · ${c.scenes} scenes · ${kfmt(c.words || 0)} words</small></span><button class="btn" data-i="${i}">Put back</button></div>`).join('');
+      const day = (t) => new Date(t).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      const count = (d) => `${(d.scenes || []).length} scenes · ${kfmt(Object.values(d.ms || {}).reduce((n, m) => n + Store.words(m && m.text), 0))} words`;
+      if (!list.length && !kept) { body.innerHTML = '<div class="empty-note">None yet.</div>'; return; }
+      body.innerHTML = list.map((c, i) => `<div class="set-row"><span style="font:15px var(--serif)">${day(c.at)}<br><small style="color:var(--faint);font:12.5px var(--ui)">${esc(c.reason)} · ${c.scenes} scenes · ${kfmt(c.words || 0)} words</small></span><button class="btn" data-i="${i}">Put back</button></div>`).join('')
+        + (kept ? `<div class="set-row"><span style="font:15px var(--serif)">${day(kept.at)}<br><small style="color:var(--faint);font:12.5px var(--ui)">your story as it was before the rebuild · ${count(kept.data)} · always kept</small></span><button class="btn" data-i="kept">Put back</button></div>` : '');
       body.onclick = async (e) => {
         const b = e.target.closest('[data-i]'); if (!b) return;
         if (!b.classList.contains('armed')) { b.classList.add('armed'); b.textContent = 'Tap again'; return; }
-        closeLayer(); await Google.Copies.putBack(+b.dataset.i); go('story');
+        closeLayer();
+        if (b.dataset.i === 'kept') { await Pad.settle(); await Google.Copies.keep('before putting back the copy from before the rebuild'); await Store.replace(kept.data, 'restore'); Google.Sync.markDirty(); }
+        else await Google.Copies.putBack(+b.dataset.i);
+        go('story');
       };
     });
   });
@@ -928,7 +959,7 @@ Store.subscribe((info, src) => {
   if (view === 'item' && item) {
     const exists = item.kind === 'scene' ? Store.scene(item.id) : Store.looseItem(item.id);
     if (!exists) { go(item.from || 'story'); return; }
-    if (src === 'doc' || src === 'cloud' || src === 'restore' || src === 'import') { Pad.external(); if (!document.activeElement || !document.activeElement.closest('#chain, #plan')) renderChain(); Pad.title(headLabel()); }
+    if (src === 'doc' || src === 'cloud' || src === 'restore' || src === 'import') { Pad.external(); if (!document.activeElement || !document.activeElement.closest('#chain')) renderChain(); Pad.title(headLabel()); }
   }
   render();
 });
@@ -940,7 +971,19 @@ document.addEventListener('pointerdown', () => Google.gesture(), true);
 addEventListener('pagehide', () => { Pad.settle(); Store.flush(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { Pad.settle(); Store.flush(); } });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && layer.children.length) closeLayer(); });
+// a keyboard: Escape closes what's open; on the page, the first key puts the cursor in the draft and types there
+// (the pad is for the pencil, so keys pressed while it has the focus go to the page too)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { if (layer.children.length) closeLayer(); else if (peek) setPeek(false); return; }
+  if (view !== 'item' || !item || item.step !== 'pages' || layer.children.length || !$('viewing').hidden) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || Pad.editing) return;
+  const t = e.target, field = t && t.closest && t.closest('input, textarea, select, [contenteditable]');
+  if (field && field.id !== 'scribble') return;
+  const first = e.key.length === 1 ? e.key : e.key === 'Enter' ? '\n' : e.key === 'Backspace' ? '\b' : null;
+  if (first == null) return;
+  if (t && t.closest && t.closest('button') && (first === ' ' || first === '\n')) return;
+  e.preventDefault(); setPeek(false); Pad.type(first);
+});
 
 /* ---------- opening ---------- */
 (async () => {

@@ -1,6 +1,8 @@
 /* =====================================================================
    Scribe Pad at the desk: the manuscript rises above a fixed writing pad, nothing below it.
    Writes plain paragraphs into the open scene's working draft (or a loose page of writing).
+   Tap a word on the page and the next thing written in the pad replaces it.
+   With a keyboard, the page itself takes the typing (the pad stays where it is).
    ===================================================================== */
 (function (root) {
 'use strict';
@@ -12,7 +14,8 @@ const DEFAULTS = { auto: true, pause: 2.5, spause: 0.25, pencilOnly: true, rules
 const P = {
   set: Object.assign({}, DEFAULTS, LS.get('istory2_pad', {})),
   box: LS.get('istory2_box', null),
-  id: null, lines: [], readOnly: null, strokes: [], live: new Map(), queue: [], seq: 0, history: [], dirty: false, title: ''
+  id: null, lines: [], readOnly: null, strokes: [], live: new Map(), queue: [], seq: 0, history: [], dirty: false, title: '',
+  fix: null, fixHold: null, editing: false
 };
 let box, desk, docEl, wrap, cv, ctx, sb, textEl, dpr = 1, saveT = 0, fuseT = 0, composing = false, edEl = null;
 
@@ -30,9 +33,9 @@ function layout() {
   b.w = Math.max(280, Math.min(b.w, W - 16)); b.h = Math.max(170, Math.min(b.h, H - 60));
   b.x = Math.max(8, Math.min(b.x, W - b.w - 8)); b.y = Math.max(40, Math.min(b.y, H - b.h - 8));
   box.style.left = b.x + 'px'; box.style.top = b.y + 'px'; box.style.width = b.w + 'px'; box.style.height = b.h + 'px';
-  if (P.readOnly || P.editing) { docEl.style.bottom = '0px'; }
+  if (P.readOnly) { docEl.style.bottom = '0px'; }
   else docEl.style.bottom = Math.max(0, H - b.y + 12) + 'px';
-  const col = docEl.firstElementChild; const wide = P.readOnly || P.editing;
+  const col = docEl.firstElementChild; const wide = !!P.readOnly;
   col.style.marginLeft = (wide ? Math.max(8, (W - Math.min(W - 40, 760)) / 2) : b.x) + 'px'; col.style.width = (wide ? Math.min(W - 40, 760) : b.w) + 'px';
   sizeCanvas();
 }
@@ -63,12 +66,17 @@ function runFuse(ms, fn) { stopFuse(); fuseT = setTimeout(fn, ms); }
 function startFuse() { stopFuse(); if (!P.strokes.length || !P.set.auto) return; runFuse(P.set.pause * 1000, flushInk); }
 
 /* ---------- Scribble: Apple's reader fills an always-empty text field ---------- */
-function sbSchedule() { stopFuse(); if (!sb.value || !P.set.auto) return; runFuse(P.set.spause * 1000, sbFlush); }
+function sbSchedule() { if (P.editing) exitEdit(); if (sb.value) wrote(); stopFuse(); if (!sb.value || !P.set.auto) return; runFuse(P.set.spause * 1000, sbFlush); }
 function sbFlush() {
   stopFuse();
   if (composing) { sbSchedule(); return; }
   const v = sb.value; sb.value = '';
   if (!v || !P.id) return;
+  if (P.fix) {
+    const t = v.replace(/\s+/g, ' ').trim(), f = P.fix;
+    if (t) { P.fix = null; P.fixHold = f; P.queue.push({ kind: 'ink', status: 'done', text: t, fix: f }); paintFix(); }
+    drain(); return;
+  }
   v.split('\n').forEach((t, i) => {
     if (i > 0) P.queue.push({ kind: 'break', status: 'done' });
     t = t.replace(/\s+/g, ' ').trim();
@@ -83,6 +91,7 @@ function flushInk() {
   if (!P.strokes.length) return;
   const r = wrap.getBoundingClientRect();
   const item = { kind: 'ink', strokes: P.strokes, w: r.width, h: r.height, status: 'pending', text: '' };
+  if (P.fix) { item.fix = P.fix; P.fixHold = P.fix; P.fix = null; paintFix(); }
   P.strokes = []; redraw(); P.queue.push(item); render(); recognize(item);
 }
 function sendNow() { if (mode() === 'scribble') sbFlush(); else flushInk(); }
@@ -100,19 +109,34 @@ function joinText(a, b) {
   return a + ' ' + b;
 }
 function drain() {
-  let changed = false;
+  let changed = false, inPlace = false;
   while (P.queue.length && P.queue[0].status === 'done') {
     const it = P.queue.shift();
+    if (it.fix) {
+      const f = it.fix, line = P.lines[f.i];
+      if (P.fixHold === f) P.fixHold = null;
+      if (it.text && line != null && line.slice(f.s, f.e) === f.word) {
+        P.history.push({ type: 'text', i: f.i, prev: line });
+        P.lines[f.i] = line.slice(0, f.s) + matchCase(f.word, it.text) + line.slice(f.e);
+        changed = true; inPlace = true; continue;
+      }
+    }
     if (it.kind === 'break') { const i = last(); if (P.lines[i].trim()) { P.lines.push(''); P.history.push({ type: 'break', i: P.lines.length - 1 }); changed = true; } }
     else if (it.text) { const i = last(); P.history.push({ type: 'text', i, prev: P.lines[i] }); P.lines[i] = joinText(P.lines[i], it.text); changed = true; }
   }
   if (changed) touch();
   const errs = P.queue.some(q => q.status === 'error'), pend = P.queue.some(q => q.status === 'pending');
   status(errs ? 'Couldn’t read a line' : pend ? '…' : '', errs);
-  render(changed);
+  render(inPlace ? false : changed);
+}
+// a rewritten word keeps a capital the old word had (the start of a sentence, a name)
+function matchCase(old, neu) {
+  if (/^\p{Lu}/u.test(old) && /^\p{Ll}/u.test(neu)) return neu[0].toUpperCase() + neu.slice(1);
+  return neu;
 }
 function undo() {
   if (P.live.size) return;
+  if (P.fix && !sb.value && !P.strokes.length) { clearFix(); return; }
   if (sb.value) { sb.value = sb.value.replace(/\s*\S+\s*$/, ''); sbSchedule(); return; }
   if (P.strokes.length) { P.strokes.pop(); redraw(); if (P.strokes.length) startFuse(); else stopFuse(); return; }
   const h = P.history.pop(); if (!h) return;
@@ -165,13 +189,17 @@ function render(scroll) {
   $('msHead').textContent = P.readOnly ? P.readOnly.label : P.title || '';
   textEl.textContent = '';
   const lines = P.readOnly ? P.readOnly.text.split('\n') : P.lines;
+  const fx = P.readOnly ? null : fixNow();
   let p = null, prevBlank = true;
-  for (const l of lines) {
+  lines.forEach((l, i) => {
     const t = l.trim();
     const center = /^(#|\*\s?\*\s?\*|~~~|—\s?—\s?—)$/.test(t);
-    p = el('p', !t ? 'blank' : center ? 'center' : prevBlank ? '' : 'ind', t);
+    p = el('p', !t ? 'blank' : center ? 'center' : prevBlank ? '' : 'ind');
+    if (!P.readOnly) p.dataset.i = i;
+    if (fx && fx.i === i) { const lead = l.length - l.trimStart().length, a = fx.s - lead, b = fx.e - lead; p.append(t.slice(0, a), el('mark', 'fix', t.slice(a, b)), t.slice(b)); }
+    else p.textContent = t;
     textEl.append(p); prevBlank = !t || center;
-  }
+  });
   if (!P.readOnly) {
     if (!p) { p = el('p'); textEl.append(p); }
     if (lines.length && !lines[lines.length - 1].trim()) { p.className = ''; p.append(el('span', 'para', '¶')); }
@@ -181,14 +209,70 @@ function render(scroll) {
       else if (it.status === 'error') {
         const c = el('span', 'chip err'), img = new Image(); img.alt = ''; img.src = inkImage(it, 360).toDataURL('image/png');
         const retry = el('button', null, 'Retry'), drop = el('button', null, 'Discard');
-        retry.onclick = () => recognize(it); drop.onclick = () => { P.queue.splice(P.queue.indexOf(it), 1); drain(); };
+        retry.onclick = () => recognize(it); drop.onclick = () => { P.queue.splice(P.queue.indexOf(it), 1); if (it.fix && P.fixHold === it.fix) P.fixHold = null; drain(); };
         c.append(img, retry, drop); p.append(c);
       } else if (it.text) p.append(document.createTextNode((p.textContent ? ' ' : '') + it.text));
     }
   }
-  if (scroll !== false) requestAnimationFrame(() => { docEl.scrollTop = docEl.scrollHeight; });
+  if (scroll !== false && !fx) requestAnimationFrame(() => { docEl.scrollTop = docEl.scrollHeight; });
   P.onRender && P.onRender();
 }
+
+/* ---------- tap a word, rewrite it ---------- */
+const WORD = /[\p{L}\p{N}'’\-]/u;
+function fixNow() {
+  const f = P.fix || P.fixHold; if (!f) return null;
+  const line = P.lines[f.i];
+  if (line == null || line.slice(f.s, f.e) !== f.word) { if (P.fix === f) P.fix = null; if (P.fixHold === f) P.fixHold = null; paintFix(); return null; }
+  return f;
+}
+function wordAt(x, y) {
+  let node = null, off = 0;
+  if (document.caretPositionFromPoint) { const c = document.caretPositionFromPoint(x, y); if (c) { node = c.offsetNode; off = c.offset; } }
+  else if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); if (r) { node = r.startContainer; off = r.startOffset; } }
+  if (!node || node.nodeType !== 3 || !node.parentElement || node.parentElement.closest('.para, .chip')) return null;
+  const p = node.parentElement.closest('p[data-i]'); if (!p || !textEl.contains(p)) return null;
+  // the tap has to land on the word itself, not in the empty space after a short line
+  const rr = document.createRange(); rr.selectNodeContents(node);
+  if (![...rr.getClientRects()].some(b => x >= b.left - 6 && x <= b.right + 6 && y >= b.top - 4 && y <= b.bottom + 4)) return null;
+  const i = +p.dataset.i, raw = P.lines[i]; if (raw == null) return null;
+  const t = raw.trim(), lead = raw.length - raw.trimStart().length;
+  const r = document.createRange(); r.setStart(p, 0); r.setEnd(node, off);
+  const pos = r.toString().length; if (pos > t.length) return null;
+  let k = pos < t.length && WORD.test(t[pos]) ? pos : pos > 0 && WORD.test(t[pos - 1]) ? pos - 1 : -1;
+  if (k < 0) return null;
+  let s = k, e = k + 1;
+  while (s > 0 && WORD.test(t[s - 1])) s--;
+  while (e < t.length && WORD.test(t[e])) e++;
+  while (s < e && /['’\-]/.test(t[s])) s++;
+  while (e > s && /['’\-]/.test(t[e - 1])) e--;
+  if (e <= s) return null;
+  return { i, s: s + lead, e: e + lead, word: t.slice(s, e) };
+}
+function paintFix() {
+  const f = P.fix, bar = $('padFix');
+  bar.hidden = !f; $('padStatus').hidden = !!f;
+  if (f) $('padFixLbl').textContent = '“' + (f.word.length > 22 ? f.word.slice(0, 21) + '…' : f.word) + '”';
+  // while a word is being rewritten the reader shouldn't capitalise it as if it began a sentence
+  sb.setAttribute('autocapitalize', f ? 'none' : 'sentences');
+}
+function setFix(f) {
+  if (sb.value) sbFlush(); if (P.strokes.length) flushInk();
+  P.fix = f; paintFix(); render(false);
+}
+function clearFix() { if (!P.fix) return; P.fix = null; paintFix(); render(false); }
+function removeFix() {
+  const f = fixNow(); if (!f || f !== P.fix) return;
+  const line = P.lines[f.i]; let a = line.slice(0, f.s), b = line.slice(f.e);
+  P.history.push({ type: 'text', i: f.i, prev: line });
+  // close the gap the word leaves: one space between its neighbours, none before punctuation or at the start of the line
+  if (!a.trim()) b = b.replace(/^\s+/, '');
+  else if (/^\s*[.,;:!?)\]”’…]/.test(b)) { a = a.replace(/\s+$/, ''); b = b.replace(/^\s+/, ''); }
+  else if (/\s$/.test(a) && /^\s/.test(b)) b = b.replace(/^\s+/, '');
+  P.lines[f.i] = a + b;
+  P.fix = null; paintFix(); touch(); render(false);
+}
+function wrote() { P.onWrite && P.onWrite(); }
 function status(msg, warn) { const s = $('padStatus'); s.textContent = msg || ''; s.classList.toggle('warn', !!warn); }
 
 /* ---------- saving into the draft ---------- */
@@ -202,35 +286,61 @@ function save() {
 }
 // put anything still in the pad into the manuscript (Scribble text, ink being read)
 async function settle() {
+  if (P.editing) exitEdit();
   if (P.strokes.length) flushInk();
   if (sb.value) sbFlush();
   for (let i = 0; i < 60 && P.queue.some(q => q.status === 'pending'); i++) await new Promise(r => setTimeout(r, 150));
   P.queue = P.queue.filter(q => q.status === 'done'); drain(); save();
 }
-/* ---------- review and edit: the whole draft as plain text, keyboard or Scribble, pad put away ---------- */
+/* ---------- typing on the page: with a keyboard the draft is plain text you type into; the pad stays put ---------- */
 function growEd() { const y = docEl.scrollTop; edEl.style.height = 'auto'; edEl.style.height = edEl.scrollHeight + 'px'; docEl.scrollTop = y; }
-async function edit(on) {
-  if (!P.id || on === !!P.editing) return;
-  if (on) {
-    await settle();
-    P.editing = true; P.readOnly = null; box.hidden = true; sb.disabled = true;
-    edEl = document.createElement('textarea'); edEl.id = 'editArea'; edEl.spellcheck = true; edEl.setAttribute('autocapitalize', 'sentences');
-    edEl.value = P.lines.join('\n').replace(/\s+$/, '');
-    edEl.addEventListener('input', () => { P.lines = edEl.value.split('\n'); P.history = []; touch(); growEd(); });
-    textEl.hidden = true; textEl.after(edEl);
-    docEl.classList.add('editing'); layout(); render(); growEd(); docEl.scrollTop = 0;
-  } else {
-    if (edEl) { P.lines = edEl.value.split('\n'); edEl.remove(); edEl = null; }
-    P.editing = false; textEl.hidden = false; box.hidden = false; sb.disabled = false;
-    docEl.classList.remove('editing'); save(); layout(); render();
+function enterEdit(first) {
+  const fx = fixNow() === P.fix ? P.fix : null; P.fix = null; P.fixHold = null; paintFix();
+  P.editing = true; P.readOnly = null;
+  edEl = document.createElement('textarea'); edEl.id = 'editArea'; edEl.spellcheck = true; edEl.setAttribute('autocapitalize', 'sentences'); edEl.setAttribute('aria-label', 'Draft');
+  const val = P.lines.join('\n');
+  edEl.value = val;
+  edEl.addEventListener('input', () => { P.lines = edEl.value.split('\n'); P.history = []; touch(); growEd(); });
+  edEl.addEventListener('blur', () => setTimeout(() => { if (P.editing && document.activeElement !== edEl) exitEdit(); }, 0));
+  edEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); edEl.blur(); } });
+  const y = docEl.scrollTop;
+  textEl.hidden = true; textEl.after(edEl);
+  docEl.classList.add('editing'); layout(); render(); growEd();
+  let a = val.length, b = val.length;
+  if (fx) { let o = 0; for (let k = 0; k < fx.i; k++) o += P.lines[k].length + 1; if (val.slice(o + fx.s, o + fx.e) === fx.word) { a = o + fx.s; b = o + fx.e; } }
+  edEl.focus({ preventScroll: true }); edEl.setSelectionRange(a, b);
+  if (first != null && first !== '') {
+    // carrying on at the end of the draft: a space before the first word, as the pad does
+    if (a === b && a === val.length && a > 0 && !/\s/.test(val[a - 1]) && /[\p{L}\p{N}"“'‘(]/u.test(first)) first = ' ' + first;
+    if (first === '\b') { if (a === b && a > 0) a--; edEl.setRangeText('', a, b, 'end'); }
+    else edEl.setRangeText(first, a, b, 'end');
+    edEl.dispatchEvent(new Event('input'));
   }
+  docEl.scrollTop = a < val.length ? y : docEl.scrollHeight;
+  P.onMode && P.onMode();
 }
+function exitEdit() {
+  if (!P.editing) return;
+  if (edEl) { P.lines = edEl.value.split('\n'); const gone = edEl; edEl = null; gone.remove(); }
+  P.editing = false; textEl.hidden = false;
+  docEl.classList.remove('editing'); save(); layout(); render();
+  P.onMode && P.onMode();
+}
+// first: the key that started it (so nothing typed is lost), or nothing to just put the cursor on the page
+async function type(first) {
+  if (!P.id || P.readOnly) return;
+  if (P.editing) { edEl && edEl.focus({ preventScroll: true }); return; }
+  if (P.strokes.length || sb.value || P.queue.length) await settle();
+  if (!P.id || P.readOnly || P.editing) return;
+  enterEdit(first);
+}
+async function edit(on) { if (on) await type(); else exitEdit(); }
 function busy() { return P.dirty || P.queue.length || sb.value || P.strokes.length || P.live.size; }
 
 /* ---------- pad: move, resize, buttons ---------- */
-function dragHandle(elm, onMove) {
+function dragHandle(elm, onMove, ok) {
   let start = null;
-  elm.addEventListener('pointerdown', (e) => { e.preventDefault(); start = { x: e.clientX, y: e.clientY, b: { ...P.box }, id: e.pointerId }; try { elm.setPointerCapture(e.pointerId); } catch (_) {} elm.classList.add('on'); });
+  elm.addEventListener('pointerdown', (e) => { if (ok && !ok(e)) return; e.preventDefault(); start = { x: e.clientX, y: e.clientY, b: { ...P.box }, id: e.pointerId }; try { elm.setPointerCapture(e.pointerId); } catch (_) {} elm.classList.add('on'); });
   elm.addEventListener('pointermove', (e) => { if (!start || e.pointerId !== start.id) return; onMove(start.b, e.clientX - start.x, e.clientY - start.y); layout(); });
   const end = (e) => { if (!start || e.pointerId !== start.id) return; start = null; elm.classList.remove('on'); LS.set('istory2_box', P.box); };
   elm.addEventListener('pointerup', end); elm.addEventListener('pointercancel', end);
@@ -241,7 +351,7 @@ function setAuto(on) { P.set.auto = on; LS.set('istory2_pad', P.set); paintAuto(
 const Pad = {
   init() {
     box = $('box'); desk = $('desk'); docEl = $('doc'); wrap = $('inkWrap'); cv = $('ink'); ctx = cv.getContext('2d'); sb = $('scribble'); textEl = $('text');
-    cv.addEventListener('pointerdown', (e) => { if (!accepts(e) || !P.id) return; e.preventDefault(); stopFuse(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} P.live.set(e.pointerId, { pts: [pt(e)] }); redraw(); });
+    cv.addEventListener('pointerdown', (e) => { if (!accepts(e) || !P.id) return; e.preventDefault(); if (P.editing) exitEdit(); wrote(); stopFuse(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} P.live.set(e.pointerId, { pts: [pt(e)] }); redraw(); });
     cv.addEventListener('pointermove', (e) => {
       const st = P.live.get(e.pointerId); if (!st) return; e.preventDefault();
       const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e]; prep(ctx, strokeColor());
@@ -253,8 +363,12 @@ const Pad = {
     sb.addEventListener('compositionstart', () => { composing = true; stopFuse(); });
     sb.addEventListener('compositionend', () => { composing = false; sbSchedule(); });
     sb.addEventListener('touchstart', (e) => { if (!P.set.pencilOnly) return; const ts = Array.from(e.changedTouches); if (ts.length && ts.every(t => t.touchType !== 'stylus')) e.preventDefault(); }, { passive: false });
-    dragHandle($('padMove'), (b, dx, dy) => { P.box.x = b.x + dx; P.box.y = b.y + dy; });
-    dragHandle($('padSize'), (b, dx, dy) => { P.box.w = b.w + dx; const nh = Math.max(170, b.h - dy); P.box.y = b.y + (b.h - nh); P.box.h = nh; });
+    // drag the bar to move the pad; drag either top corner to resize it (the bottom edge stays where your hand rests)
+    dragHandle($('padbar'), (b, dx, dy) => { P.box.x = b.x + dx; P.box.y = b.y + dy; }, (e) => !e.target.closest('button, .grip'));
+    dragHandle($('gripR'), (b, dx, dy) => { P.box.w = b.w + dx; const nh = Math.max(170, b.h - dy); P.box.y = b.y + (b.h - nh); P.box.h = nh; });
+    dragHandle($('gripL'), (b, dx, dy) => { const nw = Math.max(280, b.w - dx); P.box.x = b.x + (b.w - nw); P.box.w = nw; const nh = Math.max(170, b.h - dy); P.box.y = b.y + (b.h - nh); P.box.h = nh; });
+    textEl.addEventListener('click', (e) => { if (P.readOnly || P.editing || !P.id) return; const hit = wordAt(e.clientX, e.clientY); if (hit) setFix(hit); else clearFix(); });
+    $('padFixDel').onclick = removeFix; $('padFixX').onclick = clearFix;
     $('padAuto').onclick = () => setAuto(!P.set.auto);
     $('padUndo').onclick = undo;
     $('padPara').onclick = () => { if (P.id) addBreak(); };
@@ -264,24 +378,24 @@ const Pad = {
   },
   // open a scene's draft or a loose page
   async open(id, title) {
-    if (P.editing) await edit(false);
+    if (P.editing) exitEdit();
     if (P.id && P.id !== id) await settle();
-    P.id = id; P.title = title || ''; P.readOnly = null;
+    P.id = id; P.title = title || ''; P.readOnly = null; P.fix = null; P.fixHold = null; paintFix();
     const t = Store.text(id);
     P.lines = t ? t.split('\n') : [];
     P.history = []; P.queue = []; P.dirty = false; P.strokes = []; sb.value = ''; redraw();
-    box.hidden = false; sb.disabled = false;
+    box.hidden = false;
     layout(); render();
   },
-  close() { if (P.editing) edit(false); settle(); P.id = null; },
-  edit, get editing() { return !!P.editing; },
-  view(label, text) { if (P.editing) edit(false); P.readOnly = { label, text }; box.hidden = true; layout(); render(); docEl.scrollTop = 0; },
+  close() { exitEdit(); settle(); P.id = null; },
+  edit, type, get editing() { return !!P.editing; }, get fixing() { return !!P.fix; }, clearFix,
+  view(label, text) { exitEdit(); P.fix = null; P.fixHold = null; paintFix(); P.readOnly = { label, text }; box.hidden = true; layout(); render(); docEl.scrollTop = 0; },
   unview() { P.readOnly = null; box.hidden = false; layout(); render(); },
   // the draft changed from outside (the Google Doc, another device): show it if nothing is waiting here
   external() {
     if (!P.id || busy() || P.editing) return;
     const t = Store.text(P.id); if (t === P.lines.join('\n').replace(/\s+$/, '')) return;
-    P.lines = t ? t.split('\n') : []; P.history = []; render(false);
+    P.lines = t ? t.split('\n') : []; P.history = []; P.fix = null; P.fixHold = null; paintFix(); render(false);
   },
   title(t) { P.title = t; $('msHead').textContent = t; },
   settle, layout, render, busy,
@@ -292,7 +406,9 @@ const Pad = {
     set(patch) { Object.assign(P.set, patch); LS.set('istory2_pad', P.set); if (mode() !== 'scribble' && sb.value) sbFlush(); if (mode() === 'scribble' && P.strokes.length) flushInk(); applySettings(); layout(); },
     resetBox() { P.box = defaultBox(); LS.set('istory2_box', P.box); layout(); }
   },
-  set onRender(f) { P.onRender = f; }
+  set onRender(f) { P.onRender = f; },
+  set onWrite(f) { P.onWrite = f; },   // the pad was written on
+  set onMode(f) { P.onMode = f; }      // typing on the page began or ended
 };
 root.Pad = Pad;
 })(window);

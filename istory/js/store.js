@@ -5,6 +5,7 @@
 (function (root) {
 'use strict';
 const DB = 'istory2';
+const KEEP = 'keep-before-rebuild';
 const STAGES = [['rough', 'Rough'], ['structural', 'Structural'], ['line', 'Line edit'], ['polish', 'Polish'], ['final', 'Final']];
 const STATUSES = [['open', 'Open'], ['leaning', 'Leaning'], ['locked', 'Locked']];
 const LINKS = ['but', 'therefore', 'and'];
@@ -25,9 +26,15 @@ function normBeat(b) {
 }
 function normScene(s) {
   return { id: str(s.id) || uid('s-'), bookId: str(s.bookId), seqId: s.seqId ? String(s.seqId) : null, title: str(s.title), summary: txt(s.summary).trim(),
-    pov: str(s.pov), location: str(s.location), date: str(s.date), status: STATUSES.some(x => x[0] === s.status) ? s.status : 'open',
+    pov: str(s.pov), location: str(s.location), date: str(s.date), labels: normLabels(s.labels), status: STATUSES.some(x => x[0] === s.status) ? s.status : 'open',
     stage: STAGES.some(x => x[0] === s.stage) ? s.stage : 'rough', beats: (Array.isArray(s.beats) ? s.beats : []).map(normBeat),
     created: +s.created || Date.now(), updated: +s.updated || Date.now() };
+}
+// labels: short words on a scene, no repeats (compared without regard to capitals)
+function normLabels(v) {
+  const out = [], seen = new Set();
+  for (const x of (Array.isArray(v) ? v : [])) { const t = str(x).replace(/\s+/g, ' ').slice(0, 40), k = t.toLowerCase(); if (t && !seen.has(k)) { seen.add(k); out.push(t); } }
+  return out;
 }
 function normLoose(l) {
   return { id: str(l.id) || uid('l-'), bookId: str(l.bookId), kind: l.kind === 'beats' ? 'beats' : 'writing', title: str(l.title),
@@ -102,6 +109,10 @@ const S = {
   async init() {
     let stored = null;
     try { stored = await kvGet('data'); } catch (e) { blocked = true; throw e; }
+    if (stored) {
+      // the first time a rebuilt iStory opens, keep the story exactly as it was (never rotated out, never changed)
+      try { if (!(await kvGet(KEEP))) await kvPut(KEEP, { at: Date.now(), data: JSON.parse(JSON.stringify(stored)) }); } catch (e) { console.error(e); }
+    }
     if (stored) { try { S.data = normalize(stored); return { fresh: false }; } catch (e) { blocked = true; throw new Error('the saved story could not be read (' + e.message + ')'); } }
     // first open: bring in Story Studio from this iPad if it is here
     const studio = await readStudioLocal().catch(() => null);
@@ -133,6 +144,14 @@ const S = {
   flush() { return S.save(); },
   replace(d, src = 'replace') { S.data = normalize(d); S.changed({ all: true }, src); return S.save(); },
   kv: { get: kvGet, put: kvPut, del: kvDel },
+  async kept() { try { return (await kvGet(KEEP)) || null; } catch (e) { return null; } },
+  normLabels,
+  // every label used in a book, most used first
+  labelsOf(bookId = S.bookId) {
+    const n = new Map();
+    for (const s of S.data.scenes) if (s.bookId === bookId) for (const l of s.labels || []) { const k = l.toLowerCase(), e = n.get(k) || { label: l, n: 0 }; e.n++; n.set(k, e); }
+    return [...n.values()].sort((a, b) => b.n - a.n || a.label.localeCompare(b.label)).map(e => e.label);
+  },
 
   /* ----- books and structure ----- */
   get bookId() { const id = ui().book; return S.data.books.some(b => b.id === id) ? id : S.data.books[0].id; },
@@ -225,7 +244,6 @@ const S = {
   setLooseOrder(ids) { setUi({ looseOrder: ids }); },
   addLoose(kind, fields) {
     const l = normLoose({ ...(fields || {}), kind, id: uid('l-'), bookId: S.bookId, created: Date.now(), updated: Date.now() });
-    if (kind === 'beats' && !l.beats.length) l.beats.push(normBeat({ link: '' }));
     S.data.loose.unshift(l);
     if (kind === 'writing') S.data.ms[l.id] = { text: txt(fields && fields.text), versions: [] };
     S.changed({ loose: true });
