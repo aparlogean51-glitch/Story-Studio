@@ -15,9 +15,40 @@ const txt = (v) => (v == null ? '' : String(v)).replace(/\r\n?/g, '\n');
 const words = (t) => (String(t || '').match(/\S+/g) || []).length;
 
 /* ---------- shapes ---------- */
+/* The story's year: holidays and events by month (month 0 = every month or week). One list you can edit; scenes only point at it. */
+const DEFAULT_HOLIDAYS = [
+  ['h-newmoon', 0, 'New moon', 'day 1 of every month (trumpet blast)', 'mosaic'],
+  ['h-sabbath', 0, 'Sabbath', 'every 7th day', 'mosaic'],
+  ['h-turning', 1, 'The Turning', 'civil new year, solstice sunrise', 'nephite'],
+  ['h-leap', 3, 'Leap-month decision', 'Watchers check the barley and the equinox', 'nephite'],
+  ['h-passover', 4, 'Passover', 'day 14', 'mosaic'],
+  ['h-unleavened', 4, 'Unleavened Bread', 'days 15–21', 'mosaic'],
+  ['h-firstfruits', 4, 'Barley Firstfruits', 'day after the Sabbath in that week', 'mosaic'],
+  ['h-latepassover', 5, 'Late Passover', 'day 14', 'mosaic'],
+  ['h-zenith', 5, 'First zenith sun', 'about May 10; planting signal', 'nephite'],
+  ['h-weeks', 6, 'Feast of Weeks', '50 days after Firstfruits', 'mosaic'],
+  ['h-fast5', 8, 'Fifth-month fast', 'Mulekite folk mourning', 'nephite'],
+  ['h-trumpets', 10, 'Trumpets', 'day 1', 'mosaic'],
+  ['h-atonement', 10, 'Day of Atonement', 'day 10', 'mosaic'],
+  ['h-tabernacles', 10, 'Tabernacles', 'days 15–21, then the assembly on day 22', 'mosaic'],
+  ['h-muster', 11, 'Muster', 'armies assemble after covenant renewal', 'nephite'],
+  ['h-storehouse', 12, 'Storehouse count', 'grain tallied, supply sent to the front', 'nephite']
+].map(([id, month, name, when, type]) => ({ id, month, name, when, type }));
+const monthOf = (v) => { const m = Math.round(+v || 0); return m >= 1 && m <= 12 ? m : 0; };
+function normCalendar(c) {
+  const list = c && Array.isArray(c.holidays) ? c.holidays : null;
+  if (!list) return { holidays: DEFAULT_HOLIDAYS.map(h => ({ ...h })) };
+  const seen = new Set();
+  return { holidays: list.filter(h => h && str(h.name)).map(h => {
+    let id = str(h.id) || uid('h-'); if (seen.has(id)) id = uid('h-'); seen.add(id);
+    return { id, month: monthOf(h.month), name: str(h.name), when: str(h.when), type: h.type === 'nephite' ? 'nephite' : h.type === 'mosaic' ? 'mosaic' : 'other' };
+  }) };
+}
+// a voice recording: the sound itself is kept apart (on this iPad, and in Drive); this is the note of it
+const normMemo = (m) => m && /^[\w-]+$/.test(String(m.id || '')) ? { id: String(m.id), mime: str(m.mime), dur: +m.dur || 0, driveId: str(m.driveId), at: +m.at || 0 } : null;
 function blank() {
   const b = { id: uid('bk-'), name: '' }, p = { id: uid('pt-'), bookId: b.id, name: '' }, a = { id: uid('a-'), partId: p.id, name: '' };
-  return { app: 'istory', v: 2, rev: 0, books: [b], parts: [p], acts: [a], seqs: [], scenes: [], loose: [], ms: {}, drive: { folders: {} } };
+  return { app: 'istory', v: 2, rev: 0, books: [b], parts: [p], acts: [a], seqs: [], scenes: [], loose: [], ms: {}, drive: { folders: {} }, calendar: normCalendar(null) };
 }
 function normBeat(b) {
   b = b || {};
@@ -26,7 +57,8 @@ function normBeat(b) {
 }
 function normScene(s) {
   return { id: str(s.id) || uid('s-'), bookId: str(s.bookId), seqId: s.seqId ? String(s.seqId) : null, title: str(s.title), summary: txt(s.summary).trim(),
-    pov: str(s.pov), location: str(s.location), date: str(s.date), labels: normLabels(s.labels), status: STATUSES.some(x => x[0] === s.status) ? s.status : 'open',
+    pov: str(s.pov), location: str(s.location), date: str(s.date), month: monthOf(s.month), holiday: str(s.holiday), labels: normLabels(s.labels),
+    memos: (Array.isArray(s.memos) ? s.memos : []).map(normMemo).filter(Boolean), status: STATUSES.some(x => x[0] === s.status) ? s.status : 'open',
     stage: STAGES.some(x => x[0] === s.stage) ? s.stage : 'rough', beats: (Array.isArray(s.beats) ? s.beats : []).map(normBeat),
     created: +s.created || Date.now(), updated: +s.updated || Date.now() };
 }
@@ -39,7 +71,7 @@ function normLabels(v) {
 function normLoose(l) {
   return { id: str(l.id) || uid('l-'), bookId: str(l.bookId), kind: l.kind === 'beats' ? 'beats' : 'writing', title: str(l.title),
     beats: (Array.isArray(l.beats) ? l.beats : []).map(normBeat), created: +l.created || Date.now(), updated: +l.updated || Date.now(),
-    ...(l.memo && /^[\w-]+$/.test(String(l.memo.id || '')) ? { memo: { id: String(l.memo.id), mime: str(l.memo.mime), dur: +l.memo.dur || 0, driveId: str(l.memo.driveId) } } : {}) };
+    ...(normMemo(l.memo) ? { memo: normMemo(l.memo) } : {}) };
 }
 function normDoc(d) {
   if (!d || typeof d !== 'object' || !/^[\w-]+$/.test(String(d.id || ''))) return null;
@@ -71,7 +103,23 @@ function normalize(d) {
     o.ms[k] = { text: txt(v.text), versions: (Array.isArray(v.versions) ? v.versions : []).filter(x => x && typeof x.text === 'string').map(x => ({ stage: STAGES.some(s => s[0] === x.stage) ? x.stage : 'rough', text: txt(x.text), at: +x.at || 0 })) };
   }
   o.drive = { folders: d.drive && d.drive.folders && typeof d.drive.folders === 'object' ? { ...d.drive.folders } : {} };
+  o.calendar = normCalendar(d.calendar);
+  const hs = new Set(o.calendar.holidays.map(h => h.id));
+  for (const s of o.scenes) if (s.holiday && !hs.has(s.holiday)) s.holiday = '';
+  if (!d.calendar) readWhen(o);
   return o;
+}
+// scenes brought over from Story Studio carried their holiday as words in the date ("63 BC · Passover"); the date is left as it is
+function readWhen(o) {
+  const byName = new Map(o.calendar.holidays.map(h => [h.name.toLowerCase(), h]));
+  for (const s of o.scenes) {
+    if (s.month || s.holiday || !s.date) continue;
+    for (const part of s.date.split('·').map(x => x.trim())) {
+      const h = byName.get(part.toLowerCase()), m = /^month\s+(\d{1,2})$/i.exec(part);
+      if (h && !s.holiday) { s.holiday = h.id; if (h.month) s.month = h.month; }
+      else if (m && !s.month) s.month = monthOf(m[1]);
+    }
+  }
 }
 function bookOfSeq(o, seqId) {
   const q = o.seqs.find(x => x.id === seqId), a = q && o.acts.find(x => x.id === q.actId), p = a && o.parts.find(x => x.id === a.partId);
@@ -146,6 +194,22 @@ const S = {
   kv: { get: kvGet, put: kvPut, del: kvDel },
   async kept() { try { return (await kvGet(KEEP)) || null; } catch (e) { return null; } },
   normLabels,
+  /* ----- the year ----- */
+  holidays() { return S.data.calendar.holidays; },
+  holiday(id) { return (id && S.data.calendar.holidays.find(h => h.id === id)) || null; },
+  defaultHolidays() { return DEFAULT_HOLIDAYS.map(h => ({ ...h })); },
+  // a new list: scenes that pointed at a holiday no longer in it keep their month and let go of the holiday
+  setHolidays(list) {
+    S.data.calendar = normCalendar({ holidays: list });
+    const ids = new Set(S.data.calendar.holidays.map(h => h.id));
+    for (const s of S.data.scenes) { if (s.holiday && !ids.has(s.holiday)) s.holiday = ''; const h = S.holiday(s.holiday); if (h && h.month) s.month = h.month; }
+    S.changed({ structure: true });
+  },
+  // "63 BC · Month 4 · Passover", without saying twice what the date already says in words
+  whenText(s) {
+    const h = S.holiday(s.holiday), d = (s.date || '').toLowerCase();
+    return [s.date, s.month && !new RegExp('month\\s+' + s.month + '\\b').test(d) ? 'Month ' + s.month : '', h && !d.includes(h.name.toLowerCase()) ? h.name : ''].filter(Boolean).join(' · ');
+  },
   // every label used in a book, most used first
   labelsOf(bookId = S.bookId) {
     const n = new Map();
@@ -175,8 +239,9 @@ const S = {
   },
   numbers(bookId = S.bookId) {
     const sc = new Map(), sq = new Map(), pt = new Map(), ac = new Map();
-    let n = 0, m = 0, k = 0, j = 0;
-    for (const p of S.partsOf(bookId)) { pt.set(p.id, ++k); for (const a of S.actsOf(p.id)) { ac.set(a.id, ++j); for (const q of S.seqsOf(a.id)) { sq.set(q.id, ++m); for (const s of S.scenesOf(q.id)) sc.set(s.id, ++n); } } }
+    let n = 0, m = 0, k = 0;
+    // parts, sequences and scenes count through the whole book; acts start again at 1 in each part
+    for (const p of S.partsOf(bookId)) { pt.set(p.id, ++k); let j = 0; for (const a of S.actsOf(p.id)) { ac.set(a.id, ++j); for (const q of S.seqsOf(a.id)) { sq.set(q.id, ++m); for (const s of S.scenesOf(q.id)) sc.set(s.id, ++n); } } }
     return { scene: sc, seq: sq, part: pt, act: ac };
   },
   bookLabel(b) { const n = S.data.books.indexOf(b) + 1; return `Book ${n}${b.name ? ': ' + b.name : ''}`; },
@@ -259,7 +324,7 @@ const S = {
   // a loose beat chain becomes a scene (in a sequence, or loose)
   chainToScene(id, seqId, index) {
     const l = S.looseItem(id); if (!l) return null;
-    const s = S.addScene({ title: l.title, beats: l.beats.filter(b => b.text || b.notes || b.dialogue.length), bookId: l.bookId }, seqId, index);
+    const s = S.addScene({ title: l.title, beats: l.beats.filter(b => b.text || b.notes || b.dialogue.length), bookId: l.bookId, memos: l.memo ? [l.memo] : [] }, seqId, index);
     if (s.beats[0]) s.beats[0].link = '';
     S.data.loose = S.data.loose.filter(x => x !== l);
     S.changed({ loose: true, structure: true, scene: s.id, seq: seqId });
@@ -276,6 +341,7 @@ const S = {
       const t = (S.data.ms[l.id] && S.data.ms[l.id].text || '').trim();
       if (t) { const m = S.ms(s.id); m.text = m.text.trim() ? m.text.replace(/\s+$/, '') + '\n' + t : t; }
     }
+    if (l.memo) s.memos.push(l.memo);
     S.data.loose = S.data.loose.filter(x => x !== l); delete S.data.ms[l.id];
     s.updated = Date.now();
     S.changed({ loose: true, scene: s.id, seq: s.seqId, text: true });
@@ -296,7 +362,7 @@ const S = {
   writingToScene(id, seqId, index) {
     const l = S.looseItem(id); if (!l || l.kind !== 'writing') return null;
     const text = S.text(id), first = text.split('\n').find(x => x.trim()) || '';
-    const s = S.addScene({ title: l.title || first.split(/\s+/).slice(0, 6).join(' '), bookId: l.bookId }, seqId, index);
+    const s = S.addScene({ title: l.title || first.split(/\s+/).slice(0, 6).join(' '), bookId: l.bookId, memos: l.memo ? [l.memo] : [] }, seqId, index);
     S.data.ms[s.id] = { text, versions: [] };
     S.data.loose = S.data.loose.filter(x => x !== l); delete S.data.ms[id];
     S.changed({ loose: true, structure: true, scene: s.id, seq: seqId, text: true });
@@ -393,7 +459,8 @@ function fromStudio(story, meta, pages) {
   const ac = new Set(o.acts.map(a => a.id));
   o.seqs = (story.sequences || []).filter(q => q && ac.has(String(q.actId))).map(q => ({ id: String(q.id), actId: String(q.actId), name: str(q.name), idea: '', doc: null }));
   const sq = new Set(o.seqs.map(q => q.id));
-  const holidays = new Map(((story.calendar && story.calendar.holidays) || []).map(h => [h.id, h.name]));
+  o.calendar = normCalendar(story.calendar);
+  const holidays = new Set(o.calendar.holidays.map(h => h.id));
   // the studio sorts scenes by its own order; keep each sequence's scenes in that order
   for (const s of (story.scenes || []).filter(Boolean)) {
     const loose = !s.seqId || !sq.has(String(s.seqId)) || s.wip || s.archived;
@@ -407,7 +474,7 @@ function fromStudio(story, meta, pages) {
     if (beats[0]) beats[0].link = '';
     const summary = [txt(s.summary).trim(), str(s.objective) ? 'Objective: ' + str(s.objective) : ''].filter(Boolean).join('\n');
     o.scenes.push(normScene({ id: s.id, seqId: loose ? null : String(s.seqId), bookId: bk.has(String(s.bookId)) ? String(s.bookId) : o.books[0].id, title: s.title, summary, pov: s.pov, location: s.location,
-      date: [str(s.storyDate), holidays.get(s.holiday) || ''].filter(Boolean).join(' · '), status: s.status, beats }));
+      date: str(s.storyDate), month: s.month, holiday: holidays.has(str(s.holiday)) ? str(s.holiday) : '', status: s.status, beats }));
   }
   for (const s of o.scenes) if (s.seqId) s.bookId = bookOfSeq(o, s.seqId);
   // manuscripts: the first one for a scene is its working draft; any others and the loose ones become Loose Pages

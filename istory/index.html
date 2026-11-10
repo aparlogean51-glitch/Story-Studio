@@ -71,7 +71,7 @@ svg.i { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-widt
 .part-head { position: sticky; left: 0; display: inline-block; padding: 14px 24px 8px; }
 .lbl-btn { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); padding: 4px 0; text-align: left; }
 .lbl-btn b { color: var(--muted); font-weight: 600; }
-.row { display: flex; align-items: stretch; min-height: 210px; }
+.row { display: flex; align-items: stretch; min-height: 150px; }
 .act-lbl { position: sticky; left: 0; z-index: 3; flex: none; width: 150px; padding: 16px 14px 0 24px; background: linear-gradient(90deg, var(--bg) 82%, rgba(18,19,22,0)); display: flex; flex-direction: column; gap: 4px; }
 .act-lbl .no { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
 .act-lbl .nm { font: 500 15px/1.3 var(--serif); color: var(--muted); text-align: left; padding: 0; }
@@ -88,19 +88,20 @@ svg.i { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-widt
 .seq:hover .seq-idea.empty, .seq.editing .seq-idea.empty { opacity: 1; height: auto; }
 .seq-tools { margin-left: auto; display: flex; gap: 2px; }
 .seq-tools .tb { height: 30px; min-width: 32px; padding: 0 6px; color: var(--faint); }
-.cards { display: flex; gap: 10px; align-items: stretch; position: relative; min-height: 120px; }
+.cards { display: flex; gap: 10px; align-items: stretch; position: relative; min-height: 86px; }
 .ins { position: absolute; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: var(--accent); pointer-events: none; }
-.card { width: 196px; flex: none; min-height: 120px; border-radius: 12px; background: var(--card); padding: 11px 13px 10px; display: flex; flex-direction: column; gap: 4px; position: relative; cursor: pointer; touch-action: pan-x pan-y; }
+.card { width: 172px; flex: none; min-height: 86px; border-radius: 12px; background: var(--card); padding: 10px 13px 12px; display: flex; flex-direction: column; gap: 4px; position: relative; cursor: pointer; touch-action: pan-x pan-y; transition: opacity .15s; }
+.card.dim { opacity: .2; }
+/* the one mark on a card: empty ring, a third, two thirds, full */
+.card .pm { position: absolute; right: 10px; bottom: 10px; width: 14px; height: 14px; }
+.pm .ring { fill: none; stroke: var(--line-hi); stroke-width: 1.6; }
+.pm .pie { fill: none; stroke: var(--muted); stroke-width: 6.2; }
+.pm.p3 .ring { stroke: var(--done); } .pm.p3 .pie { stroke: var(--done); }
+.card .t { padding-right: 16px; }
 .card:active { background: var(--card-hi); }
 .card .no { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
 .card .t { font: 500 15.5px/1.3 var(--serif); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .card .t.empty { color: var(--faint); font-style: italic; }
-.card .s { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card .f { margin-top: auto; display: flex; align-items: center; gap: 8px; padding-top: 6px; font-size: 11.5px; color: var(--faint); font-variant-numeric: tabular-nums; }
-.card .bdots { display: flex; gap: 3px; flex-wrap: wrap; max-width: 120px; }
-.card .bdots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line-hi); }
-.card .bdots i.on { background: var(--done); }
-.card .f .w { margin-left: auto; }
 .card.target { box-shadow: 0 0 0 2px var(--accent); }
 .card .gap { display: none; position: absolute; top: 9px; right: 10px; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 6px; border-radius: 5px; }
 body.gaps .card.g-nobeats { box-shadow: 0 0 0 1.5px var(--line-hi) inset; background: transparent; }
@@ -108,9 +109,10 @@ body.gaps .card.g-nobeats .gap, body.gaps .card.g-nopages .gap, body.gaps .card.
 body.gaps .card.g-nobeats .gap { color: var(--muted); background: var(--hover); }
 body.gaps .card.g-nopages .gap { color: var(--therefore); background: rgba(143,178,230,.12); }
 body.gaps .card.g-weak .gap { color: var(--and); background: rgba(201,163,94,.14); }
-.add-card { width: 46px; flex: none; border-radius: 12px; color: var(--faint); font-size: 22px; border: 1.5px dashed var(--line-hi); }
+.add-card { width: 40px; flex: none; border-radius: 12px; color: var(--faint); font-size: 20px; opacity: .7; }
 .add-card:active { color: var(--ink); }
-.add-seq { flex: none; align-self: center; height: 44px; padding: 0 16px; border-radius: 12px; color: var(--faint); font-size: 14px; border: 1.5px dashed var(--line); white-space: nowrap; }
+.add-seq { flex: none; align-self: center; height: 44px; padding: 0 14px; border-radius: 12px; color: var(--faint); font-size: 13.5px; white-space: nowrap; opacity: .8; }
+.add-seq:active, .add-card:active, .add-act:active, .add-part:active { background: var(--hover); color: var(--ink); opacity: 1; }
 .add-act, .add-part { margin: 8px 0 0 24px; height: 36px; padding: 0 12px; border-radius: 10px; color: var(--faint); font-size: 13px; position: sticky; left: 24px; }
 .loose-row { margin-top: 10px; display: flex; align-items: flex-start; }
 .loose-row .track { border: 0; flex-wrap: nowrap; }
@@ -289,8 +291,40 @@ audio { width: 100%; height: 36px; }
 /* typing on the page: the draft as plain text, in the same place and the same letters */
 #editArea { display: block; width: 100%; border: 0; background: none; resize: none; overflow: hidden; color: var(--ink); font: 400 var(--doc-size)/1.62 var(--serif); padding: 0; -webkit-user-select: text; user-select: text; caret-color: var(--accent); }
 #editArea:focus { outline: none; }
-/* board card: POV · place */
-.card .m { font-size: 11.5px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* press a card: what it leaves out, above what you can do with it */
+.menu .info { padding: 10px 14px 6px; display: flex; flex-direction: column; gap: 7px; max-width: 340px; }
+.menu .info .it { font: 500 16.5px/1.3 var(--serif); }
+.menu .info p { font: 14.5px/1.45 var(--serif); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.menu .info .im { font-size: 12.5px; color: var(--muted); }
+.menu .info .im.dimmer { color: var(--faint); }
+.menu .info .chips { gap: 6px; } .menu .info .chip2 { height: 26px; padding: 0 10px; font-size: 12.5px; }
+/* the year filter, while it's on */
+.tb.chipx { background: var(--hover); color: var(--ink); padding: 0 8px 0 12px; height: 34px; border-radius: 999px; font-size: 13.5px; margin-right: 4px; }
+.tb.chipx b { color: var(--faint); font-weight: 400; }
+#memoBtn { color: var(--accent); font-variant-numeric: tabular-nums; font-size: 13.5px; }
+#memoBtn svg.i { width: 16px; height: 16px; fill: currentColor; stroke: none; }
+.btn svg.i { width: 16px; height: 16px; } [data-play] svg.i { fill: currentColor; stroke: none; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 12px; }
+.field select, .yrow select { background: var(--card); border: 0; border-radius: 10px; padding: 11px 13px; font: 16px/1.45 var(--serif); color: var(--ink); width: 100%; -webkit-appearance: none; appearance: none; }
+.field select:disabled { color: var(--muted); opacity: .8; }
+/* the year */
+.sheet.wide { width: min(900px, calc(100% - 32px)); }
+.yr { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ym { background: var(--card); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 92px; }
+.ymh { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--faint); padding: 4px 6px; border-radius: 7px; display: flex; align-items: center; gap: 8px; }
+.ymh.used { color: var(--ink); }
+.yh { text-align: left; padding: 7px 9px; border-radius: 9px; box-shadow: 0 0 0 1px var(--line-hi) inset; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--muted); }
+.yh b { font: 500 14.5px/1.25 var(--serif); }
+.yh small { flex-basis: 100%; font-size: 11.5px; color: var(--faint); line-height: 1.3; }
+.yh.used { box-shadow: none; background: rgba(157,183,230,.16); color: var(--ink); }
+.yh i, .ymh i { font-style: normal; font: 600 11px var(--ui); color: var(--accent); margin-left: auto; letter-spacing: 0; }
+.yh:active, .ymh:active { background: var(--hover); }
+.yev { display: flex; gap: 8px; flex-wrap: wrap; } .yev .yh { background: var(--card); box-shadow: none; } .yev .yh.used { background: rgba(157,183,230,.16); }
+.yedit { display: flex; flex-direction: column; gap: 8px; }
+.yrow { display: grid; grid-template-columns: 140px 1.1fr 1.6fr 120px 40px; gap: 8px; align-items: center; }
+.yrow input { background: var(--card); border: 0; border-radius: 10px; padding: 10px 12px; font: 15.5px var(--serif); width: 100%; -webkit-user-select: text; user-select: text; min-width: 0; }
+.yrow select { padding: 10px 12px; font-size: 15px; }
+@media (max-width: 760px) { .yr { grid-template-columns: repeat(3, 1fr); } .yrow { grid-template-columns: 1fr 1fr; } .grid3 { grid-template-columns: 1fr 1fr; } }
 /* labels on a scene */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip2 { height: 34px; padding: 0 12px; border-radius: 999px; background: var(--card); color: var(--ink); font-size: 14px; display: inline-flex; align-items: center; gap: 8px; }
@@ -307,7 +341,9 @@ audio { width: 100%; height: 36px; }
   <button id="back" hidden><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span id="backLbl">Story</span></button>
   <nav id="tabs"><button class="tab" data-go="story">Story</button><button class="tab" data-go="loose">Loose<span class="n" id="looseN"></span></button></nav>
   <button id="titleBtn" hidden aria-label="Details"><span id="titleTxt"></span><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+  <button class="tb" id="memoBtn" hidden></button>
   <span class="spacer"></span>
+  <button class="tb chipx" id="calChip" hidden aria-label="Show every scene again"><span></span><b>✕</b></button>
   <div class="steps" id="stepSeg" role="tablist" hidden><button role="tab" data-step="beats">Beats</button><button role="tab" data-step="pages">Pages</button></div>
   <button class="tb" id="gapsBtn" aria-pressed="false" hidden>Gaps</button>
   <button class="tb" id="captureBtn" title="Capture an idea" aria-label="Capture an idea"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -344,10 +380,10 @@ audio { width: 100%; height: 36px; }
 <div id="layer"></div>
 <div id="loading"><div><b>i</b>Story</div></div>
 
-<script src="js/typewriter.js?v=r1a"></script>
-<script src="js/store.js?v=r1a"></script>
-<script src="js/google.js?v=r1a"></script>
-<script src="js/pad.js?v=r1a"></script>
-<script src="js/app.js?v=r1a"></script>
+<script src="js/typewriter.js?v=r2a"></script>
+<script src="js/store.js?v=r2a"></script>
+<script src="js/google.js?v=r2a"></script>
+<script src="js/pad.js?v=r2a"></script>
+<script src="js/app.js?v=r2a"></script>
 </body>
 </html>

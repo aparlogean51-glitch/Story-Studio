@@ -252,18 +252,21 @@ G.importStudio = async () => { const f = (await listAppData([STUDIO])).get(STUDI
 /* ---------- voice memos: kept on this iPad, and in Drive for other devices ---------- */
 const Memos = {
   async put(id, blob) { await Store.kv.put(id, blob, 'memos'); },
-  async get(item) {
-    const m = item && item.memo; if (!m) return null;
+  // the sound of a recording: from this iPad, or fetched from Drive and then kept here
+  async blob(m) {
+    if (!m) return null;
     let b = await Store.kv.get(m.id, 'memos').catch(() => null);
     if (!b && m.driveId && cfg().signedIn) { try { b = await getFile({ id: m.driveId }); await Store.kv.put(m.id, b, 'memos'); } catch (e) {} }
     return b;
   },
+  get(item) { return Memos.blob(item && item.memo); },
+  all() { return [...Store.data.loose.map(l => l.memo).filter(Boolean), ...Store.data.scenes.flatMap(s => s.memos || [])]; },
   async sync() {
-    for (const l of Store.data.loose) {
-      if (!l.memo || l.memo.driveId) continue;
-      const b = await Store.kv.get(l.memo.id, 'memos').catch(() => null); if (!b) continue;
-      const out = await putAppFile('istory-memo-' + l.memo.id, b, null, {});
-      l.memo.driveId = out.id; Store.changed({ loose: true, quiet: true }, 'cloud-memo');
+    for (const m of Memos.all()) {
+      if (m.driveId) continue;
+      const b = await Store.kv.get(m.id, 'memos').catch(() => null); if (!b) continue;
+      const out = await putAppFile('istory-memo-' + m.id, b, null, {});
+      m.driveId = out.id; Store.changed({ loose: true, quiet: true }, 'cloud-memo');
     }
   }
 };

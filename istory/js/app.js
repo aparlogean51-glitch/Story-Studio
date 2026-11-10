@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 10 · r1a';
+const BUILD = 'Nov 10 · r2a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -14,7 +14,9 @@ const ICON = {
   doc: '<svg class="i" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>',
   more: '<svg class="i" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/></svg>',
   notes: '<svg class="i" viewBox="0 0 24 24"><path d="M5 5h14v10l-4 4H5z"/><path d="M15 19v-4h4M8 9h8M8 12h5"/></svg>',
-  mic: '<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>'
+  mic: '<svg class="i" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>',
+  play: '<svg class="i" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></svg>',
+  stop: '<svg class="i" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>'
 };
 
 /* =====================================================================
@@ -33,7 +35,7 @@ function go(v) {
 }
 // leaving what's open: whatever is still in the pad goes into the draft; a loose page left completely empty isn't kept
 function leaveItem() {
-  const was = item; setPeek(false);
+  const was = item; setPeek(false); Player.stop();
   Pad.settle().then(() => { if (was && !(view === 'item' && item && item.id === was.id)) tidy(was); });
 }
 function tidy(it) {
@@ -163,6 +165,10 @@ function paintTop() {
     $('titleBtn').classList.toggle('empty', !t);
     document.querySelectorAll('#stepSeg [data-step]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.step === item.step)));
   }
+  const ms = inItem ? itemMemos() : [];
+  $('memoBtn').hidden = !ms.length;
+  if (ms.length) { Player.prime(ms); const on = ms.some(m => m.id === Player.playing); $('memoBtn').innerHTML = (on ? ICON.stop : ICON.play) + `<span>${on ? 'Stop' : ms.length > 1 ? ms.length + ' voice' : clock(ms[0].dur)}</span>`; $('memoBtn').setAttribute('aria-label', on ? 'Stop the recording' : 'Play the recording'); }
+  $('calChip').hidden = !calOnly || view !== 'story';
   const n = Store.looseFor().length; $('looseN').textContent = n ? String(n) : '';
 }
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => go(t.dataset.go));
@@ -190,6 +196,7 @@ function menu(anchor, items) {
     if (it.head) { const h = document.createElement('div'); h.className = 'head'; h.textContent = it.head; m.append(h); continue; }
     if (it.note) { const h = document.createElement('div'); h.className = 'note' + (it.bad ? ' bad' : ''); h.textContent = it.note; m.append(h); continue; }
     if (it.ver) { const h = document.createElement('div'); h.className = 'ver'; h.textContent = it.ver; m.append(h); continue; }
+    if (it.info) { const h = document.createElement('div'); h.className = 'info'; h.innerHTML = it.info; m.append(h); continue; }
     const b = document.createElement('button'); b.setAttribute('role', it.checked !== undefined ? 'menuitemradio' : 'menuitem');
     if (it.checked !== undefined) b.setAttribute('aria-checked', String(!!it.checked));
     b.innerHTML = esc(it.label) + (it.small ? `<small>${esc(it.small)}</small>` : '');
@@ -303,23 +310,42 @@ function pressDrag(root, sel, h) {
 /* =====================================================================
    Story: the timeline
    ===================================================================== */
+// how far along a scene is, as one mark: 0 nothing yet · 1 beats · 2 pages begun · 3 written (every beat written, or past the rough stage)
+function progress(s) {
+  const bs = s.beats.filter(b => b.text), w = Store.wordsOf(s.id);
+  if (w && ((bs.length && bs.every(b => b.done)) || s.stage !== 'rough')) return 3;
+  if (w) return 2;
+  return bs.length ? 1 : 0;
+}
+const PROGRESS = ['Nothing yet', 'Beats', 'Pages begun', 'Written'];
+const mark = (n) => `<svg class="pm p${n}" viewBox="0 0 16 16" aria-label="${PROGRESS[n]}"><circle class="ring" cx="8" cy="8" r="6.2"/>${n ? `<circle class="pie" cx="8" cy="8" r="3.1" stroke-dasharray="${(n / 3 * 19.48).toFixed(2)} 19.48" transform="rotate(-90 8 8)"/>` : ''}</svg>`;
+// the year filter: { month } or { holiday }; scenes that don't match fade
+let calOnly = null;
+const calHit = (s) => !calOnly || (calOnly.holiday ? s.holiday === calOnly.holiday : s.month === calOnly.month);
 function sceneCard(s, N, light) {
-  const bs = s.beats, done = bs.filter(b => b.done).length, w = Store.wordsOf(s.id), weak = bs.slice(1).filter(b => b.link === 'and').length;
+  const bs = s.beats, w = Store.wordsOf(s.id), weak = bs.slice(1).filter(b => b.link === 'and').length;
   let g = '', gt = '';
   if (!bs.length) { g = 'g-nobeats'; gt = 'no beats'; } else if (!w) { g = 'g-nopages'; gt = 'no pages'; } else if (weak) { g = 'g-weak'; gt = weak + ' and then'; }
-  const dots = bs.length > 14 ? `${done}/${bs.length}` : bs.map(b => `<i class="${b.done ? 'on' : ''}"></i>`).join('');
-  const first = (s.summary || '').split('\n')[0];
-  return `<div class="card ${light ? 'light' : ''} ${g}" data-scene="${s.id}"><span class="gap">${gt}</span>
+  return `<div class="card ${light ? 'light' : ''} ${g} ${calHit(s) ? '' : 'dim'}" data-scene="${s.id}"><span class="gap">${gt}</span>
     <span class="no">${light ? '<span class="kind">Scene</span>' : (N.scene.get(s.id) || '')}</span>
-    <div class="t ${s.title ? '' : 'empty'}">${esc(s.title || 'Untitled')}</div>${first ? `<div class="s">${esc(first)}</div>` : ''}${s.pov || s.location ? `<div class="m">${esc([s.pov, s.location].filter(Boolean).join(' · '))}</div>` : ''}
-    <div class="f"><span class="bdots">${dots}</span><span class="w">${w ? kfmt(w) : ''}</span></div></div>`;
+    <div class="t ${s.title ? '' : 'empty'}">${esc(s.title || 'Untitled')}</div>${mark(progress(s))}</div>`;
 }
 function looseCard(x) {
   if (x.kind === 'scene') return sceneCard(x.item, null, true);
-  const l = x.item;
-  if (l.kind === 'beats') { const f = l.beats.find(b => b.text); return `<div class="card light" data-loose="${l.id}"><span class="no"><span class="kind">Beats</span></span><div class="t ${l.title || f ? '' : 'empty'}">${esc(l.title || (f && f.text) || 'Untitled')}</div><div class="f">${l.beats.length} beat${l.beats.length === 1 ? '' : 's'}</div></div>`; }
-  const t = Store.text(l.id), first = t.split('\n').find(z => z.trim()) || '';
-  return `<div class="card light" data-loose="${l.id}"><span class="no"><span class="kind">Writing</span></span><div class="t ${l.title || first ? '' : 'empty'}">${esc(l.title || first || 'Untitled')}</div><div class="f"><span class="w">${kfmt(Store.words(t))}</span></div></div>`;
+  const l = x.item, dim = calOnly ? 'dim' : '';
+  if (l.kind === 'beats') { const f = l.beats.find(b => b.text); return `<div class="card light ${dim}" data-loose="${l.id}"><span class="no"><span class="kind">Beats</span></span><div class="t ${l.title || f ? '' : 'empty'}">${esc(l.title || (f && f.text) || 'Untitled')}</div></div>`; }
+  const first = Store.text(l.id).split('\n').find(z => z.trim()) || '';
+  return `<div class="card light ${dim}" data-loose="${l.id}"><span class="no"><span class="kind">Writing</span></span><div class="t ${l.title || first ? '' : 'empty'}">${esc(l.title || first || 'Untitled')}</div></div>`;
+}
+// what a press on a card shows above its actions: everything the card itself leaves out
+function sceneInfo(s) {
+  const no = Store.sceneNo(s), bs = s.beats.filter(b => b.text), done = bs.filter(b => b.done).length, w = Store.wordsOf(s.id);
+  const who = [s.pov, s.location].filter(Boolean).join(' · '), when = Store.whenText(s);
+  const facts = [bs.length ? `${bs.length} beat${bs.length === 1 ? '' : 's'}${done ? ', ' + done + ' written' : ''}` : 'no beats', w ? kfmt(w) + ' words' : 'no pages', Store.stageLabel(s.stage), (Store.STATUSES.find(x => x[0] === s.status) || [])[1]].filter(Boolean).join(' · ');
+  return `<div class="it">${no ? 'Scene ' + no + ' · ' : ''}${esc(s.title || 'Untitled')}</div>${s.summary ? `<p>${esc(s.summary)}</p>` : ''}
+    ${who ? `<div class="im">${esc(who)}</div>` : ''}${when ? `<div class="im">${esc(when)}</div>` : ''}
+    ${(s.labels || []).length ? `<div class="chips">${s.labels.map(l => `<span class="chip2">${esc(l)}</span>`).join('')}</div>` : ''}
+    <div class="im dimmer">${esc(facts)}${(s.memos || []).length ? ' · voice' : ''}</div>`;
 }
 function renderBoard() {
   const bid = Store.bookId, N = Store.numbers(bid);
@@ -344,7 +370,17 @@ function renderBoard() {
   if (loose.length) h += `<div class="loose-row" data-loose-row="1"><div class="act-lbl"><span class="no">Loose</span></div><div class="track">${loose.map(looseCard).join('')}</div></div>`;
   const b = $('board'), x = b.scrollLeft, y = b.scrollTop;
   b.innerHTML = h; b.scrollLeft = x; b.scrollTop = y;
+  paintCal();
 }
+function paintCal() {
+  const c = $('calChip'); c.hidden = !calOnly || view !== 'story'; if (!calOnly) return;
+  const h = calOnly.holiday ? Store.holiday(calOnly.holiday) : null;
+  if (calOnly.holiday && !h) { calOnly = null; c.hidden = true; return; }
+  const n = Store.data.scenes.filter(s => s.bookId === Store.bookId && calHit(s)).length;
+  c.querySelector('span').textContent = (h ? h.name : 'Month ' + calOnly.month) + ' · ' + n;
+}
+function setCal(f) { calOnly = f; renderSync(); if (f) { const hit = document.querySelector('#board .card[data-scene]:not(.dim)'); if (hit) hit.scrollIntoView({ block: 'center', inline: 'center' }); } }
+$('calChip').onclick = () => setCal(null);
 // edit a label in place
 function inline(el, value, commit, opts = {}) {
   const inp = document.createElement(opts.multi ? 'textarea' : 'input');
@@ -443,7 +479,8 @@ pressDrag($('board'), '.card', {
 function cardMenu(el) {
   if (el.dataset.scene) {
     const s = Store.scene(el.dataset.scene); if (!s) return;
-    menu(el, [{ label: 'Open', act: () => openItem('scene', s.id, view) },
+    menu(el, [{ info: sceneInfo(s) }, { hr: true }, { label: 'Open', act: () => openItem('scene', s.id, view) },
+      { label: 'Details…', act: () => sceneSheet(s) },
       s.seqId ? { label: 'Move to Loose', act: () => { Store.moveScene(s.id, null); render(); } } : { label: 'File in…', act: () => fileIn('scene', s.id) },
       { label: 'Delete scene', confirm: 'Tap again to delete', act: () => deleteScene(s) }]);
   } else {
@@ -467,10 +504,10 @@ function renderLoose() {
   $('looseGrid').innerHTML = list.length ? list.map(x => {
     if (x.kind === 'scene') {
       const s = x.item;
-      return `<div class="lcard" data-kind="scene" data-id="${s.id}"><div class="kind scene">Scene</div><div class="t">${esc(s.title || 'Untitled')}</div><div class="p">${esc(s.summary || '')}</div></div>`;
+      return `<div class="lcard" data-kind="scene" data-id="${s.id}"><div class="kind scene">Scene${(s.memos || []).length ? ' · voice' : ''}</div><div class="t">${esc(s.title || 'Untitled')}</div><div class="p">${esc(s.summary || '')}</div></div>`;
     }
     const l = x.item;
-    if (l.kind === 'beats') return `<div class="lcard" data-kind="beats" data-id="${l.id}"><div class="kind beats">Beats</div>${l.title ? `<div class="t">${esc(l.title)}</div>` : ''}<div class="p beats">${l.beats.filter(b => b.text).map((b, i) => '<div>' + (i && b.link ? `<span class="lk ${b.link}">${LINK_LABEL[b.link]}</span>` : '') + esc(b.text) + '</div>').join('')}</div></div>`;
+    if (l.kind === 'beats') return `<div class="lcard" data-kind="beats" data-id="${l.id}"><div class="kind beats">Beats${l.memo ? ' · voice' : ''}</div>${l.title ? `<div class="t">${esc(l.title)}</div>` : ''}<div class="p beats">${l.beats.filter(b => b.text).map((b, i) => '<div>' + (i && b.link ? `<span class="lk ${b.link}">${LINK_LABEL[b.link]}</span>` : '') + esc(b.text) + '</div>').join('')}</div></div>`;
     const t = Store.text(l.id);
     return `<div class="lcard" data-kind="writing" data-id="${l.id}"><div class="kind">Writing${l.memo ? ' · voice' : ''}</div>${l.title ? `<div class="t">${esc(l.title)}</div>` : ''}<div class="p">${esc(t.slice(0, 400))}</div></div>`;
   }).join('') : '<div class="empty-note">Nothing loose.</div>';
@@ -529,12 +566,14 @@ function pick(opts) {
 async function fileIn(kind, id) {
   const t = await pick(kind === 'scene' ? { seqs: true, title: 'Move to' } : { seqs: true, scenes: true, title: 'File in' });
   if (!t) return;
+  // filed from its own screen, you follow it to the scene it went into (the loose piece itself is gone by then)
+  const wasOpen = view === 'item' && item && item.id === id;
   let opened = null;
   if (kind === 'scene') { if (t.seq) Store.moveScene(id, t.seq); }
   else if (t.scene) { Store.fileInto(id, t.scene); opened = t.scene; }
   else if (t.seq) { const s = kind === 'beats' ? Store.chainToScene(id, t.seq) : Store.writingToScene(id, t.seq); opened = s && s.id; }
-  if (view === 'item' && item && item.id === id) { if (opened) openItem('scene', opened, 'story'); else { paintTop(); render(); } }
-  else render();
+  if (wasOpen && opened) openItem('scene', opened, 'story');
+  else { paintTop(); render(); }
 }
 async function makeScene(id) {
   const t = await pick({ seqs: true, loose: true, title: 'Make a scene in' }); if (!t) return;
@@ -674,15 +713,34 @@ function sceneSheet(s) {
     body.innerHTML = `<div class="field"><label>Title</label><input id="dTitle" value="${esc(s.title)}" placeholder="Untitled scene" autocomplete="off"></div>
       <div class="field"><label>Summary</label><textarea id="dSum" rows="2">${esc(s.summary)}</textarea></div>
       <div class="grid2"><div class="field"><label>POV</label><input id="dPov" value="${esc(s.pov)}" autocomplete="off"></div><div class="field"><label>Location</label><input id="dLoc" value="${esc(s.location)}" autocomplete="off"></div></div>
-      <div class="field"><label>Date</label><input id="dDate" value="${esc(s.date)}" autocomplete="off"></div>
+      <div class="grid3"><div class="field"><label>Date</label><input id="dDate" value="${esc(s.date)}" autocomplete="off"></div>
+        <div class="field"><label>Month</label><select id="dMonth"></select></div><div class="field"><label>Holiday or event</label><select id="dHol"></select></div></div>
       <div class="field"><label>Labels</label><div class="chips" id="dLabels"></div><input id="dLabel" placeholder="Add a label" autocomplete="off" autocapitalize="none" enterkeyhint="done"><div class="chips" id="dSug"></div></div>
       <div class="field"><label>Status</label><div class="seg" id="dSt">${Store.STATUSES.map(([k, l]) => `<button data-st="${k}" aria-pressed="${s.status === k}">${l}</button>`).join('')}</div></div>
       <div class="field"><label>Stage</label><div class="seg" id="dSg"></div><div class="vers" id="dVers"></div></div>
       <div class="field"><label>Where</label><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font:15px var(--serif);color:var(--muted)">${w ? esc(Store.seqLabel(w.seq)) : 'Loose Pages'}</span>
         <button class="btn quiet" id="dMove">${w ? 'Move…' : 'File in…'}</button>${w ? '<button class="btn quiet" id="dLoose">Move to Loose</button>' : ''}</div></div>
+      <div class="field" id="dMemos"></div>
       <button class="btn danger" id="dDel" style="align-self:flex-start">Delete scene</button>`;
     body.querySelectorAll('textarea').forEach(grow);
     const set = (k, v) => { s[k] = v; Store.touchScene(s, { details: true }); };
+    // a holiday that belongs to one month sets the month; an every-month one (or none) leaves the month to you
+    const year = () => {
+      const hs = Store.holidays(), h = Store.holiday(s.holiday), fixed = !!(h && h.month);
+      const opt = (x) => `<option value="${esc(x.id)}">${esc(x.name)}${x.when ? ' — ' + esc(x.when) : ''}</option>`;
+      body.querySelector('#dMonth').innerHTML = '<option value="0">—</option>' + Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}">Month ${i + 1}</option>`).join('');
+      let o = '<option value="">—</option>';
+      if (hs.some(x => !x.month)) o += `<optgroup label="Every month">${hs.filter(x => !x.month).map(opt).join('')}</optgroup>`;
+      for (let m = 1; m <= 12; m++) if (hs.some(x => x.month === m)) o += `<optgroup label="Month ${m}">${hs.filter(x => x.month === m).map(opt).join('')}</optgroup>`;
+      body.querySelector('#dHol').innerHTML = o;
+      body.querySelector('#dMonth').value = String(s.month || 0); body.querySelector('#dMonth').disabled = fixed; body.querySelector('#dHol').value = s.holiday || '';
+    };
+    const memos = () => { body.querySelector('#dMemos').innerHTML = memoRows(s.memos || []); };
+    year(); memos();
+    body.addEventListener('change', (e) => {
+      if (e.target.id === 'dMonth') set('month', +e.target.value || 0);
+      else if (e.target.id === 'dHol') { const h = Store.holiday(e.target.value); s.holiday = h ? h.id : ''; if (h && h.month) s.month = h.month; Store.touchScene(s, { details: true }); year(); }
+    });
     const labels = () => {
       const mine = s.labels || [], low = new Set(mine.map(x => x.toLowerCase()));
       body.querySelector('#dLabels').innerHTML = mine.map((l, i) => `<button class="chip2" data-unlabel="${i}">${esc(l)}<i>×</i></button>`).join('');
@@ -707,6 +765,8 @@ function sceneSheet(s) {
       const x = e.target.closest('button'); if (!x) return;
       const d = x.dataset;
       if (d.st) { set('status', d.st); body.querySelectorAll('[data-st]').forEach(b => b.setAttribute('aria-pressed', String(b === x))); }
+      else if (d.play) { const m = (s.memos || []).find(z => z.id === d.play); if (m) Player.toggle(m).then(memos); }
+      else if (d.unmemo) { if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again'; return; } Player.stop(); s.memos = (s.memos || []).filter(z => z.id !== d.unmemo); Store.touchScene(s, { details: true }); memos(); paintTop(); }
       else if (d.unlabel != null) { const next = (s.labels || []).slice(); next.splice(+d.unlabel, 1); set('labels', next); labels(); }
       else if (d.label) addLabel(d.label);
       else if (d.sg) {
@@ -720,18 +780,25 @@ function sceneSheet(s) {
       else if (x.id === 'dLoose') { closeLayer(); Store.moveScene(s.id, null); if (item) item.from = 'loose'; paintTop(); }
       else if (x.id === 'dDel') { if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again to delete'; return; } closeLayer(); deleteScene(s); }
     });
-  }, { onClose: () => { paintTop(); } });
+  }, { onClose: () => { paintTop(); render(); } });
 }
+// a recording, in a sheet: play it, or take it off
+const clock = (sec) => { const n = Math.max(0, Math.round(sec || 0)); return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0'); };
+const memoRows = (list) => list.length ? `<label>Voice</label>` + list.map(m => `<div class="set-row"><button class="btn" data-play="${m.id}">${Player.playing === m.id ? ICON.stop + 'Stop' : ICON.play + clock(m.dur)}</button><button class="btn quiet" data-unmemo="${m.id}">Remove</button></div>`).join('') : '';
 // a loose page or loose beats: its title, where it goes, or throw it away
 function looseSheet(l) {
   sheet(l.kind === 'beats' ? 'Loose beats' : 'Loose page', 'center', (body) => {
     body.innerHTML = `<div class="field"><label>Title</label><input id="lTitle" value="${esc(l.title)}" placeholder="${l.kind === 'beats' ? 'Untitled beats' : 'Untitled page'}" autocomplete="off"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="lFile">File in…</button>${l.kind === 'beats' ? '<button class="btn" id="lScene">Make a scene…</button>' : ''}</div>
+      <div class="field" id="lMemos">${memoRows(l.memo ? [l.memo] : [])}</div>
       <button class="btn danger" id="lDel" style="align-self:flex-start">Delete</button>`;
     body.querySelector('#lTitle').addEventListener('input', (e) => { l.title = e.target.value.trim(); l.updated = Date.now(); Store.changed({ loose: true }, 'title'); Pad.title(headLabel()); paintTop(); });
     body.addEventListener('click', async (e) => {
       const x = e.target.closest('button'); if (!x) return;
-      if (x.id === 'lFile') { closeLayer(); await Pad.settle(); fileIn(l.kind, l.id); }
+      const redraw = () => { body.querySelector('#lMemos').innerHTML = memoRows(l.memo ? [l.memo] : []); };
+      if (x.dataset.play) { if (l.memo) Player.toggle(l.memo).then(redraw); }
+      else if (x.dataset.unmemo) { if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again'; return; } Player.stop(); delete l.memo; l.updated = Date.now(); Store.changed({ loose: true }); redraw(); paintTop(); }
+      else if (x.id === 'lFile') { closeLayer(); await Pad.settle(); fileIn(l.kind, l.id); }
       else if (x.id === 'lScene') { closeLayer(); makeScene(l.id); }
       else if (x.id === 'lDel') {
         if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again to delete'; return; }
@@ -750,8 +817,37 @@ async function viewVersion(v) {
 $('viewingBack').onclick = leaveView;
 
 /* =====================================================================
-   Capture
+   Capture, and playing back what was recorded
    ===================================================================== */
+// The sound is fetched ahead of the tap (when the piece opens), so the tap itself can start it: an iPad only plays what a touch asks for.
+const Player = (() => {
+  const urls = new Map(); let audio = null, cur = '';
+  async function prime(list) { for (const m of list) if (!urls.has(m.id)) { const b = await Google.Memos.blob(m).catch(() => null); if (b && !urls.has(m.id)) urls.set(m.id, URL.createObjectURL(b)); } }
+  function stop() { if (audio) { try { audio.pause(); } catch (e) {} audio = null; } if (cur) { cur = ''; paintTop(); } }
+  async function toggle(m) {
+    if (cur === m.id) { stop(); return; }
+    stop();
+    if (!urls.has(m.id)) await prime([m]);
+    const u = urls.get(m.id); if (!u) { banner('That recording isn’t on this iPad. Connect to Google to fetch it.'); return; }
+    const a = new Audio(u); audio = a; cur = m.id;
+    a.onended = () => { if (audio === a) stop(); };
+    a.onerror = () => { if (audio === a) { stop(); banner('That recording couldn’t be played.'); } };
+    paintTop();
+    try { await a.play(); } catch (e) { if (audio === a) stop(); }
+  }
+  return { prime, toggle, stop, get playing() { return cur; } };
+})();
+// the recordings on what's open
+function itemMemos() {
+  if (!item) return [];
+  if (item.kind === 'scene') { const s = Store.scene(item.id); return s ? s.memos || [] : []; }
+  const l = Store.looseItem(item.id); return l && l.memo ? [l.memo] : [];
+}
+$('memoBtn').onclick = () => {
+  const list = itemMemos(); if (!list.length) return;
+  if (Player.playing || list.length === 1) { const m = list.find(x => x.id === Player.playing) || list[0]; Player.toggle(m); return; }
+  menu($('memoBtn'), list.map((m, i) => ({ label: 'Voice ' + (i + 1), small: clock(m.dur), act: () => Player.toggle(m) })));
+};
 // voice: the iPad's recorder, with a plain backup recorder for iPads whose recorder gives silence
 const Rec = (() => {
   let mr = null, stream = null, chunks = [], ac = null, src = null, proc = null, pcm = [], pcmLen = 0, sr = null, t0 = 0, tick = 0, level = 0, onText = null, mime = '', finals = '';
@@ -827,12 +923,14 @@ $('captureBtn').onclick = () => {
       if (recording) { recording = false; memo = await Rec.stop(); }
       const text = ta.value.trim();
       if (!text && !memo) { closeLayer(); return; }
-      if (kind === 'scene') { const lines = text.split('\n'); Store.addScene({ title: lines[0].slice(0, 120), summary: lines.slice(1).join('\n').trim() }, null); }
-      else if (kind === 'beats') { const lines = text.split('\n').map(x => x.trim()).filter(Boolean); Store.addLoose('beats', { beats: lines.map((t, i) => ({ text: t, link: i ? 'and' : '' })) }); }
-      else {
-        const l = Store.addLoose('writing', { text });
-        if (memo) { const id = Store.uid('m-'); await Google.Memos.put(id, memo.blob); l.memo = { id, mime: memo.mime, dur: memo.dur, driveId: '' }; Store.changed({ loose: true }); }
-      }
+      // the sound is stored first, so a recording is never dropped; with no words to go by, the piece is named for what it is
+      let m = null;
+      if (memo) { const id = Store.uid('m-'); await Google.Memos.put(id, memo.blob); m = { id, mime: memo.mime, dur: memo.dur, driveId: '', at: Date.now() }; }
+      const named = text ? '' : 'Voice note · ' + new Date().toLocaleDateString([], { month: 'short', day: 'numeric' });
+      if (kind === 'scene') { const lines = text.split('\n'); Store.addScene({ title: lines[0].slice(0, 120) || named, summary: lines.slice(1).join('\n').trim(), memos: m ? [m] : [] }, null); }
+      else if (kind === 'beats') { const lines = text.split('\n').map(x => x.trim()).filter(Boolean); Store.addLoose('beats', { title: named, beats: lines.map((t, i) => ({ text: t, link: i ? 'and' : '' })), ...(m ? { memo: m } : {}) }); }
+      else Store.addLoose('writing', { title: named, text, ...(m ? { memo: m } : {}) });
+      if (m) Google.Sync.markDirty && Google.Sync.markDirty();
       closeLayer(); render();
     };
   }, { done: 'Cancel', onClose: () => { if (recording) Rec.stop(); } });
@@ -853,6 +951,7 @@ $('menuBtn').onclick = () => {
     ...Store.data.books.map(b => ({ label: Store.bookLabel(b), checked: b.id === cur, act: () => { Store.setBook(b.id); go('story'); } })),
     { label: 'New book…', act: async () => { const v = await promptSheet('New book', '', 'Name'); if (v !== null) { const b = Store.addBook(v); Store.setBook(b.id); go('story'); } } },
     { label: 'Rename this book…', act: async () => { const b = Store.book(cur); const v = await promptSheet('Book', b.name, 'Name'); if (v !== null) Store.rename('book', b.id, v); render(); } },
+    { label: 'The year…', act: yearSheet },
     { hr: true }, { head: 'Google' }, ...gl,
     { hr: true },
     { label: 'Earlier copies…', act: copiesSheet },
@@ -863,6 +962,43 @@ $('menuBtn').onclick = () => {
     empty ? { label: 'Bring in Story Studio…', act: bringStudio } : null,
     { ver: 'iStory · ' + BUILD }]);
 };
+/* ---------- the story's year: twelve months, their holidays and events, and which ones your scenes have used ---------- */
+function yearSheet() {
+  let draft = null;   // while the list is being edited: a working copy, saved or dropped as a whole
+  sheet('The year', 'center wide', (body) => {
+    const show = () => {
+      const hs = Store.holidays(), sc = Store.data.scenes.filter(s => s.bookId === Store.bookId);
+      const byH = new Map(), byM = new Map();
+      for (const s of sc) { if (s.holiday) byH.set(s.holiday, (byH.get(s.holiday) || 0) + 1); if (s.month) byM.set(s.month, (byM.get(s.month) || 0) + 1); }
+      const chip = (h) => { const n = byH.get(h.id) || 0; return `<button class="yh ${n ? 'used' : ''}" data-h="${esc(h.id)}"><b>${esc(h.name)}</b>${n ? `<i>${n}</i>` : ''}${h.when ? `<small>${esc(h.when)}</small>` : ''}</button>`; };
+      const every = hs.filter(h => !h.month);
+      body.innerHTML = `<div class="yr">${Array.from({ length: 12 }, (_, k) => { const m = k + 1, n = byM.get(m) || 0;
+          return `<div class="ym"><button class="ymh ${n ? 'used' : ''}" data-m="${m}">Month ${m}${n ? `<i>${n}</i>` : ''}</button>${hs.filter(h => h.month === m).map(chip).join('')}</div>`; }).join('')}</div>
+        ${every.length ? `<div class="field"><label>Every month</label><div class="yev">${every.map(chip).join('')}</div></div>` : ''}
+        <div style="display:flex"><button class="btn quiet" id="yEdit" style="margin-left:auto">Edit the list</button></div>`;
+    };
+    const edit = () => {
+      const months = (cur) => `<option value="0" ${cur ? '' : 'selected'}>Every month</option>` + Array.from({ length: 12 }, (_, i) => `<option value="${i + 1}" ${cur === i + 1 ? 'selected' : ''}>Month ${i + 1}</option>`).join('');
+      const types = (cur) => [['mosaic', 'Mosaic'], ['nephite', 'Nephite'], ['other', 'Other']].map(([k, l]) => `<option value="${k}" ${cur === k ? 'selected' : ''}>${l}</option>`).join('');
+      body.innerHTML = `<div class="yedit">${draft.map((h, i) => `<div class="yrow" data-i="${i}"><select data-f="month">${months(h.month)}</select><input data-f="name" value="${esc(h.name)}" placeholder="Name" autocomplete="off"><input data-f="when" value="${esc(h.when)}" placeholder="When" autocomplete="off"><select data-f="type">${types(h.type)}</select><button class="tb" data-del="${i}" aria-label="Remove">✕</button></div>`).join('')}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="yAdd">Add a holiday or event</button><button class="btn quiet" id="yReset">Put back the built-in list</button><span style="flex:1"></span><button class="btn quiet" id="yCancel">Cancel</button><button class="btn primary" id="ySave">Save</button></div>`;
+    };
+    const draw = () => (draft ? edit() : show());
+    draw();
+    body.addEventListener('input', (e) => { const r = e.target.closest('.yrow'); if (!r || !draft) return; const h = draft[+r.dataset.i], f = e.target.dataset.f; if (h && f) h[f] = f === 'month' ? +e.target.value || 0 : e.target.value; });
+    body.addEventListener('click', (e) => {
+      const x = e.target.closest('button'); if (!x) return;
+      if (x.dataset.h) { closeLayer(); if (view !== 'story') go('story'); setCal({ holiday: x.dataset.h }); }
+      else if (x.dataset.m) { closeLayer(); if (view !== 'story') go('story'); setCal({ month: +x.dataset.m }); }
+      else if (x.id === 'yEdit') { draft = Store.holidays().map(h => ({ ...h })); draw(); }
+      else if (x.dataset.del != null) { draft.splice(+x.dataset.del, 1); draw(); }
+      else if (x.id === 'yAdd') { draft.push({ id: Store.uid('h-'), month: 0, name: '', when: '', type: 'other' }); draw(); const ins = body.querySelectorAll('.yrow input[data-f="name"]'); ins.length && ins[ins.length - 1].focus(); }
+      else if (x.id === 'yReset') { if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again'; return; } draft = Store.defaultHolidays(); draw(); }
+      else if (x.id === 'yCancel') { draft = null; draw(); }
+      else if (x.id === 'ySave') { Store.setHolidays(draft.map(h => ({ ...h, name: h.name.trim(), when: h.when.trim() })).filter(h => h.name)); draft = null; draw(); render(); }
+    });
+  });
+}
 function copiesSheet() {
   Promise.all([Google.Copies.list(), Store.kept()]).then(([list, kept]) => {
     sheet('Earlier copies', 'center', (body) => {
