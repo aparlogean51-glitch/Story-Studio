@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Keeper’s Codex">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="preload" href="data/register.json?v=c5b" as="fetch" crossorigin>
+<link rel="preload" href="data/register.json?v=c6a" as="fetch" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
@@ -98,21 +98,24 @@ body[data-view="timeline"] #mapview { display: none; }
 #onlyBtn { display: none; }
 @media (min-width: 900px) { #onlyBtn { display: inline-flex; } body.maponly[data-view="map"] #side { display: none; } body.maponly[data-view="map"] #mapview { left: 0; } }
 
-/* the author's tools: only on a device that holds the author key */
+/* editing */
+.editing label { display: block; font: 600 11px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 14px 0 5px; }
+.editing input[type=text], .editing input[type=number], .editing select, .editing textarea { width: 100%; padding: 10px 12px; border: 0; border-radius: 9px; background: var(--card); color: var(--ink); font: 16px var(--ui); -webkit-appearance: none; appearance: none; }
+.editing textarea { font: 16px/1.5 var(--serif); resize: vertical; }
+.editing .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.editing .hint { font: 12.5px/1.45 var(--ui); color: var(--faint); margin-top: 5px; }
+.editing .check { display: flex; align-items: center; gap: 10px; text-transform: none; letter-spacing: 0; font: 15px var(--ui); color: var(--ink); margin-top: 20px; } .editing .check input { width: 20px; height: 20px; accent-color: var(--accent); }
+.editing [contenteditable] { outline: none; border-radius: 9px; box-shadow: 0 0 0 1px var(--line-hi); padding: 8px 12px; margin-left: -12px; margin-right: -12px; min-height: 1.6em; -webkit-user-select: text; user-select: text; cursor: text; }
+.editing [contenteditable]:focus, .editing input:focus, .editing select:focus, .editing textarea:focus { outline: none; box-shadow: 0 0 0 1.5px var(--gold-line); }
+.editing [contenteditable]:empty::before { content: attr(data-ph); color: var(--faint); }
+.editing h1 { margin-top: 20px; } .editing .note { border-left: 0; margin-top: 0; white-space: pre-wrap; } .editing .sum { white-space: pre-wrap; }
+.hero-act { position: absolute; left: 22px; bottom: 22px; display: flex; gap: 8px; z-index: 1; } .hero-act .ab { font: 500 13.5px var(--ui); letter-spacing: 0; text-transform: none; color: var(--ink); display: inline-flex; align-items: center; background: rgba(9,14,24,.88); box-shadow: 0 0 0 1px var(--line-hi) inset; cursor: pointer; margin: 0; }
 #authbar { display: flex; align-items: center; gap: 8px; font: 600 11.5px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
 #authbar span { flex: 1; }
 .ab, .auth-row button { height: 36px; padding: 0 13px; border-radius: 9px; background: var(--card-hi); color: var(--ink); font: 500 13.5px var(--ui); letter-spacing: 0; text-transform: none; }
 .ab.go { background: var(--accent); color: #1a1202; } .ab:disabled { opacity: .45; }
 .auth-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 .ev.gone { opacity: .45; }
-#about label { display: block; font: 600 11px var(--ui); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 14px 0 5px; }
-#about input[type=text], #about input[type=password], #about input[type=number], #about select, #about textarea { width: 100%; padding: 10px 12px; border: 0; border-radius: 9px; background: var(--card); color: var(--ink); font: 16px var(--ui); -webkit-appearance: none; appearance: none; }
-#about textarea { font: 16px/1.5 var(--serif); resize: vertical; }
-#about .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-#about .hint { font: 12.5px/1.45 var(--ui); color: var(--faint); margin-top: 5px; }
-#about .check { display: flex; align-items: center; gap: 10px; text-transform: none; letter-spacing: 0; font: 15px var(--ui); color: var(--ink); } #about .check input { width: 20px; height: 20px; accent-color: var(--accent); }
-#about .acts { display: flex; gap: 8px; margin-top: 22px; } #about .acts .ab { height: 44px; padding: 0 18px; font-size: 15px; } #about .acts .sp { flex: 1; }
-#about .err { color: var(--judges); font: 14px var(--ui); margin-top: 10px; }
 
 /* the timeline */
 .yh { position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; gap: 10px; padding: 14px 18px 8px; background: linear-gradient(var(--bg) 72%, transparent); font: 600 11.5px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
@@ -274,7 +277,7 @@ body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
    city sits on each map, routes, and which side the text last reports holding a city). Add eras there and they appear here.
    The address after the # says what is open: #W03 an event, #map the map, #map/W03 that event on the map.
    ===================================================================== */
-const VERSION = 'Nov 11 · c5b';
+const VERSION = 'Nov 11 · c6a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CATS = [['War of the Judges', 'War of the Judges', 'var(--judges)'], ['Earlier wars', 'Earlier wars', 'var(--wars)'], ['Church', 'Church', 'var(--church)'], ['Mission', 'Sons of Mosiah', 'var(--mission)'], ['Political', 'Political', 'var(--political)'], ['Migration', 'Migration', 'var(--migration)']];
@@ -282,9 +285,10 @@ const CATS = [['War of the Judges', 'War of the Judges', 'var(--judges)'], ['Ear
 const STORY = 'The Book of Coriantumr', TAG = 'Coriantumr', LENSES = [['canon', 'Canon'], ['story', STORY], ['mixed', 'Mixed']];
 const CAT = Object.fromEntries(CATS.map(([k, l, c]) => [k, [l, c]]));
 const cat = (e) => CAT[e.category] || [e.category, 'var(--muted)'];
-const art = (e, size) => `assets/scenes/${size ? size + '/' : ''}${e.id}.webp`;
+const imgs = new Map();   // pictures added on this device while editing, by event
+const art = (e, size) => imgs.get(e.id) || `assets/scenes/${size ? size + '/' : ''}${e.id}.${e.artExt || 'webp'}${e.artV ? '?v=' + e.artV : ''}`;
 const GLYPH = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2h4v4h4v4h4v4h2v4h-2v4h-4v4h-4v4h-8v-4H8v-4H4v-4H2v-4h2v-4h4V6h4V2z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
-const hasArt = (e) => e.art !== false;
+const hasArt = (e) => imgs.has(e.id) || e.art !== false;
 const isStory = (e) => e.source === 'story';
 // a small picture of the event, or the empty frame that holds its place until an illustration exists
 const thumb = (e, w, h, lazy) => (hasArt(e) ? `<img class="stone" ${lazy ? 'loading="lazy" decoding="async" ' : ''}width="${w}" height="${h}" src="${art(e, 'sm')}" alt="">` : `<span class="ph stone">${GLYPH}</span>`);
@@ -371,11 +375,11 @@ const cities = () => (ATLAS.maps[mapKey] || { cities: {} }).cities;
 const pinned = (e) => e.places.filter((p) => cities()[p]);
 function renderEvent() {
   const e = cur, el = $('event'); if (!e) { el.innerHTML = ''; return; }
+  if (author) { renderEdit(); return; }
   const [label, color] = cat(e), on = pinned(e);
   el.innerHTML = `<div class="page" style="--c:${color}">
     ${hasArt(e) ? `<div class="hero stone zoomable"><img class="lo" src="${art(e, 'sm')}" alt=""><img class="hi" alt="${esc(e.scene || e.title)}" src="${art(e, 'md')}" srcset="${art(e, 'md')} 900w, ${art(e)} 1536w" sizes="(min-width: 900px) min(820px, calc(100vw - 440px)), 100vw"></div>` : `<div class="hero stone"><div class="ph">${GLYPH}<span>Illustration to come</span></div></div>`}
     <div class="body">
-      ${author ? `<div class="auth-row"><button data-act="edit">Edit</button><button data-act="add">Add a scene after</button><button data-act="up" aria-label="Move earlier">↑</button><button data-act="down" aria-label="Move later">↓</button></div>` : ''}
       <div class="meta"><span class="cat"><i class="dot"></i>${esc(label)}</span><span>${esc(e.dateLabel)}</span>${isStory(e) ? `<span class="tag">${STORY} · not scripture</span>` : ''}</div>
       <h1>${esc(e.title)}</h1>
       <p class="sum">${esc(e.summary)}</p>
@@ -400,7 +404,7 @@ function paintNav() {
 }
 function step(d) { if (!cur) return false; const t = around(cur)[d < 0 ? 0 : 1]; if (t) go(t.id, true); return !!t; }
 $('event').addEventListener('click', (ev) => {
-  const a = ev.target.closest('[data-act]'); if (a && author && cur) { const k = a.dataset.act; if (k === 'edit') editEvent(cur); else if (k === 'add') editEvent(blank(cur), cur); else move(cur, k === 'up' ? -1 : 1); return; }
+  const a = ev.target.closest('[data-act]'); if (a && author && cur) { editAct(a.dataset.act); return; }
   const c = ev.target.closest('[data-who]'); if (c) { setWho(c.dataset.who === who ? '' : c.dataset.who); return; }
   const p = ev.target.closest('[data-city]'); if (p && cur) { city = ''; nav('map', cur.id); focusOn([p.dataset.city]); }
 });
@@ -409,13 +413,13 @@ $('next').onclick = () => { stop(); step(1); };
 $('back').onclick = () => { stop(); if (history.state && history.state.inApp) history.back(); else nav('timeline', null, true); };
 (() => { let x = 0, y = 0, on = false;   // a sideways swipe on the event moves to the next or the previous one
   $('event').addEventListener('touchstart', (e) => { on = e.touches.length === 1; if (on) { x = e.touches[0].clientX; y = e.touches[0].clientY; } }, { passive: true });
-  $('event').addEventListener('touchend', (e) => { if (!on) return; on = false; const t = e.changedTouches[0], dx = t.clientX - x, dy = t.clientY - y; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) { stop(); step(dx < 0 ? 1 : -1); } }, { passive: true });
+  $('event').addEventListener('touchend', (e) => { if (!on || author) return; on = false; const t = e.changedTouches[0], dx = t.clientX - x, dy = t.clientY - y; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) { stop(); step(dx < 0 ? 1 : -1); } }, { passive: true });
 })();
 addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.key === 'Escape') { if (!$('zoom').hidden) closeZoom(); else if (!$('about').hidden) closeAbout(); else if (view === 'map' && city) { city = ''; renderSheet(); drawPins(); } else if (!wide() && document.body.classList.contains('reading')) $('back').click(); return; }
   if (!$('about').hidden || !$('zoom').hidden) return;
-  const typing = e.target && e.target.closest && e.target.closest('input, textarea');
+  const typing = e.target && e.target.closest && e.target.closest('input, textarea, select, [contenteditable]');
   if (e.key === '/' && !typing) { e.preventDefault(); if (!wide() && view !== 'timeline') nav('timeline', null); $('q').focus(); return; }
   if (typing || !cur) return;
   if (e.key === 'ArrowRight') { stop(); step(1); } else if (e.key === 'ArrowLeft') { stop(); step(-1); }
@@ -542,7 +546,7 @@ function closeZoom() { $('zoom').hidden = true; $('zoom').innerHTML = ''; }
 $('zoom').addEventListener('click', closeZoom);
 (() => { let last = 0, lx = 0, ly = 0;
   $('event').addEventListener('pointerup', (e) => {
-    if (!e.target.closest('.hero.zoomable')) { last = 0; return; }
+    if (!e.target.closest('.hero.zoomable') || e.target.closest('.hero-act')) { last = 0; return; }
     const now = Date.now(); if (now - last < 350 && Math.hypot(e.clientX - lx, e.clientY - ly) < 40) { last = 0; openZoom(); } else { last = now; lx = e.clientX; ly = e.clientY; }
   });
 })();
@@ -637,136 +641,172 @@ function openAbout() {
     <h4>The map</h4><p>An interpretive model, not an archaeological reconstruction. Places the map doesn’t show stay off it rather than being guessed. Dotted lines join named places; they are not roads. City colours show only the changes of control the text reports.</p>
     <h4>Illustrations</h4><p>Generated, interpretive images. Faces, clothing and buildings are artistic choices, not claims about Nephite life.</p>
     <h4>The data</h4><p><a href="data/register.json" download>Events with scripture references</a> · <a href="data/source-notes.md" download>Source and date notes</a></p>
-    <p style="margin-top:22px;font:12px var(--ui);color:var(--faint)"><button id="authorBtn" style="font:inherit;color:inherit;padding:10px 10px 10px 0">${esc(VERSION)}${author ? ' · editing is on' : ''}</button></p>`;
+    ${author ? '<h4>Your work</h4><p><label class="ab" style="display:inline-flex;align-items:center;margin:0">Restore from a backup file<input type="file" id="fRestore" accept=".json,application/json" hidden></label></p>' : ''}
+    <p style="margin-top:22px;font:12px var(--ui);color:var(--faint)"><button id="authorBtn" style="font:inherit;color:inherit;padding:10px 10px 10px 0">${esc(VERSION)}${author ? ' · editing' : ''}</button></p>`;
   $('about').hidden = false; $('scrim').hidden = false; $('aboutX').onclick = closeAbout; $('aboutX').focus();
-  $('authorBtn').onclick = () => { if (!author) openKey(); };   // the author's way in: tap the version line
+  $('authorBtn').onclick = () => { if (!author) { keep.set('edit', true); location.reload(); } };   // the way in to editing: tap the version line
+  if (author) $('fRestore').onchange = (ev) => { if (ev.target.files[0]) restore(ev.target.files[0]); };
 }
 function closeAbout() { $('about').hidden = true; $('scrim').hidden = true; }
 $('aboutBtn').onclick = openAbout; $('scrim').onclick = closeAbout;
 
 /* =====================================================================
-   the author's tools. They appear only on a device where the author key has been entered (open the codex at #author).
-   Edits are kept on the device as they are made, and Publish writes data/register.json to the GitHub repository, where
-   every publish is kept in the file's history. Removing an event marks it removed; nothing is ever deleted from the file.
+   editing. Tap the version line in the About panel to turn it on. Every event page then becomes editable in place:
+   text, dates, category, people, places, scripture, the picture, its position, and whether visitors see it.
+   The work is kept on this device (the events and any pictures added), and "Back up" saves all of it to one file.
+   Removing an event marks it removed; nothing is ever deleted.
    ===================================================================== */
-const GH = { repo: 'aparlogean51-glitch/Story-Studio', path: 'atlas/data/register.json', branch: 'main' };
-let author = false, baseSha = '', dirty = false, force = false, busy = false;
-const b64 = {
-  enc(t) { const b = new TextEncoder().encode(t); let o = ''; for (let i = 0; i < b.length; i += 0x8000) o += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(o); },
-  dec(t) { return new TextDecoder().decode(Uint8Array.from(atob(t.replace(/\s/g, '')), (c) => c.charCodeAt(0))); },
+let author = false, dirty = false, saveT = 0;
+const idb = {
+  db: null,
+  open() { return this.db || (this.db = new Promise((res, rej) => { const r = indexedDB.open('codex', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); })); },
+  async tx(mode, fn) { const d = await this.open(); return new Promise((res, rej) => { const t = d.transaction('kv', mode), q = fn(t.objectStore('kv')); t.oncomplete = () => res(q.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error); }); },
+  get(k) { return this.tx('readonly', (o) => o.get(k)); }, put(k, v) { return this.tx('readwrite', (o) => o.put(v, k)); }, del(k) { return this.tx('readwrite', (o) => o.delete(k)); }, keys() { return this.tx('readonly', (o) => o.getAllKeys()); },
 };
-async function gh(method, body, key) {
-  const r = await fetch(`https://api.github.com/repos/${GH.repo}/contents/${GH.path}${method === 'GET' ? '?ref=' + GH.branch : ''}`, { method, cache: 'no-store', headers: { Authorization: 'Bearer ' + (key || keep.get('key', '')), Accept: 'application/vnd.github+json' }, body: body ? JSON.stringify(body) : undefined });
-  if (!r.ok) throw new Error(String(r.status)); return r.json();
-}
-// with a key on the device, the events come straight from the repository (or from edits not yet published)
 async function authorStart() {
-  if (!keep.get('key', '')) return;
-  const d = keep.get('draft', null);
+  if (!keep.get('edit', false)) return;
   try {
-    const j = await gh('GET');
-    if (d && d.data) { ALL = d.data; baseSha = d.sha; dirty = true; } else { ALL = JSON.parse(b64.dec(j.content)); baseSha = j.sha; }
-    author = true;
-  } catch (e) { if (d && d.data) { ALL = d.data; baseSha = d.sha; dirty = true; author = true; } else setTimeout(() => toast(e.message === '401' ? 'GitHub refused the author key' : 'Editing is off: GitHub couldn’t be reached'), 400); }
+    const d = await idb.get('draft'); if (d && d.data) { ALL = d.data; dirty = true; }
+    for (const k of await idb.keys()) if (String(k).startsWith('img:')) imgs.set(k.slice(4), URL.createObjectURL(await idb.get(k)));
+    author = true; if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  } catch (e) { setTimeout(() => toast('Editing is off: this browser won’t keep your work'), 400); }
 }
 function renderAuthor() {
   const el = $('authbar'); el.hidden = !author; if (!author) return;
-  el.innerHTML = `<span>Editing</span><button class="ab" data-a="add">Add</button><button class="ab${dirty ? ' go' : ''}" data-a="publish" ${dirty && !busy ? '' : 'disabled'}>${busy ? 'Publishing…' : dirty ? (force ? 'Replace it' : 'Publish') : 'Published'}</button><button class="ab" data-a="lock" aria-label="Stop editing on this device">Lock</button>`;
+  el.innerHTML = '<span>Editing</span><button class="ab go" data-a="add">Add</button><button class="ab" data-a="backup">Back up</button><button class="ab" data-a="exit">Exit</button>';
 }
 $('authbar').addEventListener('click', (ev) => {
   const a = ev.target.closest('[data-a]'); if (!a) return;
-  if (a.dataset.a === 'add') editEvent(blank(cur), cur); else if (a.dataset.a === 'publish') publish();
-  else if (dirty) toast('Publish first, so your changes aren’t left behind'); else { keep.set('key', ''); location.reload(); }
+  if (a.dataset.a === 'add') addAfter(cur); else if (a.dataset.a === 'backup') backup(); else { flush(); keep.set('edit', false); setTimeout(() => location.reload(), 150); }
 });
-// after any edit: remember it on the device, and redraw
-function touch() {
-  dirty = true; force = false; keep.set('draft', { sha: baseSha, data: ALL });
-  reindex(); renderAuthor(); renderKinds(); renderTimeline();
-}
-async function publish() {
-  if (busy || !dirty) return; busy = true; renderAuthor();
-  try {
-    const j = await gh('GET');
-    if (j.sha !== baseSha && !force) { force = true; busy = false; renderAuthor(); toast('The timeline was changed somewhere else. Tap “Replace it” to publish yours over it.'); return; }
-    const r = await gh('PUT', { message: 'Codex: edits from the app', content: b64.enc(JSON.stringify(ALL, null, 1) + '\n'), sha: j.sha, branch: GH.branch });
-    baseSha = r.content.sha; dirty = false; force = false; keep.set('draft', null); toast('Published. Visitors see it in about a minute.');
-  } catch (e) { toast(e.message === '401' || e.message === '403' ? 'GitHub refused the author key' : 'Couldn’t publish. Your changes are still on this device.'); }
-  busy = false; renderAuthor();
-}
+// keep the work on the device
+function flush() { clearTimeout(saveT); saveT = 0; dirty = true; idb.put('draft', { data: ALL, at: Date.now() }).catch(() => toast('Couldn’t save on this device. Use Back up now.')); }
+// after a change to what the timeline shows: save, and redraw the lists
+function touch() { flush(); reindex(); renderKinds(); renderTimeline(); markTimeline(false); }
+// while typing: save and redraw the list a moment after the last key
+function soon() { clearTimeout(saveT); saveT = setTimeout(() => { flush(); reindex(); renderTimeline(); markTimeline(false); paintNav(); }, 400); }
+addEventListener('pagehide', () => { if (saveT) flush(); });
 const SLUG = { '1 nephi': '1-ne', '2 nephi': '2-ne', jacob: 'jacob', enos: 'enos', jarom: 'jarom', omni: 'omni', 'words of mormon': 'w-of-m', mosiah: 'mosiah', alma: 'alma', helaman: 'hel', '3 nephi': '3-ne', '4 nephi': '4-ne', mormon: 'morm', ether: 'ether', moroni: 'moro' };
 function refFrom(label, old) {
   const was = old.find((r) => r.label === label); if (was) return was;
   const m = /^(\d?\s?[A-Za-z ]+?)\s+(\d+)(?::(\d+)(?:\s*[–-]\s*(\d+))?)?/.exec(label), book = m && SLUG[m[1].trim().toLowerCase()];
   return { label, url: book ? `https://www.churchofjesuschrist.org/study/scriptures/bofm/${book}/${m[2]}?lang=eng${m[3] ? `&id=p${m[3]}${m[4] ? '-p' + m[4] : ''}#p${m[3]}` : ''}` : '' };
 }
-// a new, empty event that will sit after the given one and starts with its date
-function blank(after) {
-  const src = lens === 'canon' ? 'canon' : 'story', pre = src === 'story' ? 'S' : 'C';
+const listOf = (v) => v.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
+// a new event, placed after the given one and starting with its date
+function addAfter(after) {
+  stop(); const src = lens === 'canon' ? 'canon' : 'story', pre = src === 'story' ? 'S' : 'C';
   const n = Math.max(0, ...ALL.map((e) => (e.id[0] === pre && /^\d+$/.test(e.id.slice(1)) ? +e.id.slice(1) : 0))) + 1;
-  return { id: pre + String(n).padStart(2, '0'), title: '', year: after ? after.year : null, yearEnd: after ? after.yearEnd : undefined, dateLabel: after ? after.dateLabel : '', category: after ? after.category : CATS[0][0], summary: '', people: [], places: [], refs: [], scene: '', chronologyNote: '', sortYear: after ? after.sortYear : null, source: src, art: false, isNew: true };
+  const e = { id: pre + String(n).padStart(2, '0'), title: 'New scene', year: after ? after.year : null, dateLabel: after ? after.dateLabel : '', category: after ? after.category : CATS[0][0], summary: '', people: [], places: [], refs: [], scene: '', chronologyNote: '', sortYear: after ? after.sortYear : null, source: src, art: false };
+  if (after && after.yearEnd) e.yearEnd = after.yearEnd;
+  const first = ALL.findIndex((x) => x.hidden); ALL.splice(after ? ALL.indexOf(after) + 1 : first < 0 ? ALL.length : first, 0, e);
+  touch(); cur = e; nav(view === 'map' ? 'timeline' : view, e.id, !wide() && !document.body.classList.contains('reading') ? false : true);
+  const t = $('event').querySelector('[data-f="title"]'); if (t) { t.focus(); try { getSelection().selectAllChildren(t); } catch (err) {} }
 }
 function move(e, d) {
   const list = ALL.filter(live), n = list[list.indexOf(e) + d]; if (!n) return;
   ALL.splice(ALL.indexOf(e), 1); ALL.splice(ALL.indexOf(n) + (d > 0 ? 1 : 0), 0, e);
   touch(); paintNav(); markTimeline(true);
 }
-const listOf = (v) => v.split(/[,\n]/).map((x) => x.trim()).filter(Boolean);
-function editEvent(e, after) {
-  stop(); const isNew = !!e.isNew, el = $('about'), v = (x) => esc(x == null ? '' : x);
-  el.innerHTML = `<button class="tb x" id="aboutX" aria-label="Close">${CLOSE}</button>
-    <h3>${isNew ? 'Add to the timeline' : 'Edit'}</h3>
-    <div class="two"><div><label for="fSource">Belongs to</label><select id="fSource"><option value="story"${isStory(e) ? ' selected' : ''}>${STORY}</option><option value="canon"${isStory(e) ? '' : ' selected'}>Canon (scripture)</option></select></div>
-    <div><label for="fCat">Category</label><select id="fCat">${CATS.map(([k, l]) => `<option value="${k}"${e.category === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>
-    <label for="fTitle">Title</label><input id="fTitle" type="text" value="${v(e.title)}" autocomplete="off">
-    <div class="two"><div><label for="fDate">Date line</label><input id="fDate" type="text" value="${v(e.dateLabel)}" autocomplete="off"></div>
-    <div><label for="fYear">Year of the judges</label><input id="fYear" type="number" inputmode="numeric" value="${v(e.year)}"></div></div>
-    <label for="fSum">What happens</label><textarea id="fSum" rows="5">${v(e.summary)}</textarea>
-    <label for="fNote">Note (optional)</label><textarea id="fNote" rows="2">${v(e.chronologyNote)}</textarea>
-    <label for="fPeople">People, separated by commas</label><input id="fPeople" type="text" value="${v(e.people.join(', '))}" autocomplete="off">
-    <label for="fPlaces">Places, separated by commas</label><input id="fPlaces" type="text" value="${v(e.places.join(', '))}" autocomplete="off">
-    <p class="hint">On the map: ${esc(Object.keys(cities()).join(', '))}</p>
-    <label for="fRefs">Scripture, one per line (optional)</label><textarea id="fRefs" rows="2" placeholder="Alma 46:1–37">${v(e.refs.map((r) => r.label).join('\n'))}</textarea>
-    <label class="check"><input id="fVisible" type="checkbox"${e.draft ? '' : ' checked'}>Visitors can see this</label>
-    <p class="err" id="fErr" hidden></p>
-    <div class="acts"><button class="ab go" id="fSave">${isNew ? 'Add' : 'Save'}</button><span class="sp"></span>${isNew ? '' : `<button class="ab" id="fGone">${e.removed ? 'Put back' : 'Remove'}</button>`}</div>`;
-  el.hidden = false; $('scrim').hidden = false; el.scrollTop = 0; $('aboutX').onclick = closeAbout;
-  if (isNew) $('fTitle').focus();
-  $('fSave').onclick = () => {
-    const title = $('fTitle').value.trim(); if (!title) { $('fErr').textContent = 'Give it a title.'; $('fErr').hidden = false; return; }
-    const y = $('fYear').value.trim();
-    Object.assign(e, { title, source: $('fSource').value, category: $('fCat').value, dateLabel: $('fDate').value.trim(), year: y === '' ? null : +y, summary: $('fSum').value.trim(), chronologyNote: $('fNote').value.trim(), people: listOf($('fPeople').value), places: listOf($('fPlaces').value), refs: listOf($('fRefs').value.replace(/,/g, '\u0001')).map((l) => refFrom(l.replace(/\u0001/g, ','), e.refs)) });
-    if (e.year !== null && !e.yearEnd) delete e.yearEnd;
-    if ($('fVisible').checked) delete e.draft; else e.draft = true;
-    if (isNew) { delete e.isNew; const at = after ? ALL.indexOf(after) + 1 : (ALL.findIndex((x) => x.hidden) + 1 || ALL.length + 1) - 1; ALL.splice(at, 0, e); }
-    shownAfterEdit(e);
-  };
-  if (!isNew) $('fGone').onclick = () => { if (e.removed) delete e.removed; else e.removed = true; shownAfterEdit(e); };
+// a changed year carries the event to its place among the years
+const yr = (e) => (e.year != null ? e.year : e.sortYear != null ? e.sortYear : -999);
+function relocate(e) {
+  const list = ALL.filter(live), i = list.indexOf(e), p = list[i - 1], n = list[i + 1];
+  if ((!p || yr(p) <= yr(e)) && (!n || yr(n) >= yr(e))) return;
+  ALL.splice(ALL.indexOf(e), 1);
+  let at = -1; ALL.forEach((x, k) => { if (live(x) && yr(x) <= yr(e)) at = k; });
+  ALL.splice(at + 1, 0, e);
 }
-function shownAfterEdit(e) {
-  touch(); closeAbout();
+function renderEdit() {
+  const e = cur, el = $('event'), v = (x) => esc(x == null ? '' : x), has = hasArt(e);
+  painting = true; el.innerHTML = `<div class="page editing" data-id="${e.id}" style="--c:${cat(e)[1]}">
+    <div class="hero stone${has ? ' zoomable' : ''}">${has ? `<img class="hi in" src="${art(e, 'md')}" alt="">` : `<div class="ph">${GLYPH}<span>Illustration to come</span></div>`}
+      <div class="hero-act"><label class="ab">${has ? 'Change picture' : 'Add a picture'}<input type="file" accept="image/*" id="fImg" hidden></label>${has ? '<button class="ab" data-act="noimg">Remove picture</button>' : e.artWas ? '<button class="ab" data-act="origimg">Bring back the original</button>' : ''}</div></div>
+    <div class="body">
+      <div class="auth-row"><button data-act="add">Add a scene after</button><button data-act="up">↑ Earlier</button><button data-act="down">↓ Later</button><button data-act="gone">${e.removed ? 'Put back' : 'Remove'}</button></div>
+      <div class="two"><div><label for="eSource">Belongs to</label><select id="eSource" data-f="source"><option value="story"${isStory(e) ? ' selected' : ''}>${STORY}</option><option value="canon"${isStory(e) ? '' : ' selected'}>Canon (scripture)</option></select></div>
+      <div><label for="eCat">Category</label><select id="eCat" data-f="category">${CATS.map(([k, l]) => `<option value="${k}"${e.category === k ? ' selected' : ''}>${l}</option>`).join('')}</select></div></div>
+      <div class="two"><div><label for="eYear">Year of the judges</label><input id="eYear" data-f="year" type="number" inputmode="numeric" value="${v(e.year)}"></div>
+      <div><label for="eDate">Date line</label><input id="eDate" data-f="dateLabel" type="text" value="${v(e.dateLabel)}" autocomplete="off"></div></div>
+      <h1 contenteditable="plaintext-only" data-f="title" data-ph="Title" spellcheck="true">${v(e.title)}</h1>
+      <p class="sum" contenteditable="plaintext-only" data-f="summary" data-ph="What happens" spellcheck="true">${v(e.summary)}</p>
+      <label>Note</label><p class="note" contenteditable="plaintext-only" data-f="chronologyNote" data-ph="Optional" spellcheck="true">${v(e.chronologyNote)}</p>
+      <label for="ePeople">People, separated by commas</label><input id="ePeople" data-f="people" type="text" value="${v(e.people.join(', '))}" autocomplete="off">
+      <label for="ePlaces">Places, separated by commas</label><input id="ePlaces" data-f="places" type="text" value="${v(e.places.join(', '))}" autocomplete="off">
+      <p class="hint">On the map: ${esc(Object.keys(cities()).join(', '))}</p>
+      <label for="eRefs">Scripture, one per line</label><textarea id="eRefs" data-f="refs" rows="2" placeholder="Alma 46:1–37">${v(e.refs.map((r) => r.label).join('\n'))}</textarea>
+      <label class="check"><input data-f="visible" type="checkbox"${e.draft ? '' : ' checked'}>Visitors can see this</label>
+    </div></div>`;
+  painting = false; el.scrollTop = 0; paintNav(); document.title = e.title + ' · Keeper’s Codex';
+}
+// the event a field on the page belongs to (the page can be on its way out when a field reports its last change)
+let painting = false;
+const fieldEvent = (t) => { const pg = t.closest && t.closest('.page.editing'); return pg ? ALL.find((x) => x.id === pg.dataset.id) : null; };
+// typing goes straight into the event
+$('event').addEventListener('input', (ev) => {
+  const t = ev.target, f = t.dataset && t.dataset.f, e = fieldEvent(t); if (!author || !f || !e || t.type === 'checkbox' || t.type === 'file' || t.tagName === 'SELECT' || f === 'year') return;
+  const text = t.isContentEditable ? t.innerText : t.value;
+  if (f === 'title') e.title = text.replace(/\s+/g, ' ').trim(); else if (f === 'people' || f === 'places') e[f] = listOf(text);
+  else if (f === 'refs') e.refs = text.split('\n').map((x) => x.trim()).filter(Boolean).map((l) => refFrom(l, e.refs)); else e[f] = text.trim();
+  soon();
+});
+$('event').addEventListener('change', (ev) => {
+  const t = ev.target, f = t.dataset && t.dataset.f, e = fieldEvent(t); if (!author || !e) return;
+  if (t.id === 'fImg') { if (t.files[0]) setImage(e, t.files[0]); return; }
+  if (!f || !(t.type === 'checkbox' || t.tagName === 'SELECT' || f === 'year')) return;
+  if (f === 'visible') { if (t.checked) delete e.draft; else e.draft = true; }
+  else if (f === 'year') {
+    e.year = t.value.trim() === '' ? null : +t.value; delete e.yearEnd;
+    if (e.year !== null) { if (!e.dateLabel || /^(about year|years? )\d/i.test(e.dateLabel) || /^about \d+ BC/i.test(e.dateLabel)) e.dateLabel = `Year ${e.year} of the judges · about ${92 - e.year} BC`; relocate(e); }
+  } else e[f] = t.value;
+  touch(); if (painting || e !== cur) return;
   if (!EVENTS.includes(e)) { lens = 'mixed'; keep.set('lens', lens); pick(); renderLens(); renderTimeline(); }
-  cur = e; nav(view, e.id, true); if (view === 'timeline' && (wide() || document.body.classList.contains('reading'))) renderEvent(); markTimeline(true);
+  renderEdit(); markTimeline(true);
+});
+async function setImage(e, file) {
+  try {
+    const src = URL.createObjectURL(file), im = new Image(); im.src = src; await im.decode();
+    const k = Math.min(1, 1600 / im.naturalWidth), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * k); c.height = Math.round(im.naturalHeight * k);
+    c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(src);
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', .86));
+    await idb.put('img:' + e.id, blob);
+    if (imgs.has(e.id)) URL.revokeObjectURL(imgs.get(e.id)); imgs.set(e.id, URL.createObjectURL(blob));
+    touch(); if (cur === e) renderEdit(); markTimeline(false);
+  } catch (err) { toast('That picture couldn’t be added'); }
 }
-// entering the author key: open the codex at #author
-function openKey() {
-  const el = $('about');
-  el.innerHTML = `<button class="tb x" id="aboutX" aria-label="Close">${CLOSE}</button><h3>Author key</h3>
-    <label for="fKey">GitHub access key</label><input id="fKey" type="password" autocomplete="off" autocapitalize="none" spellcheck="false">
-    <p class="hint">Kept on this device only. It lets this device add, edit and remove events.</p><p class="err" id="fErr" hidden></p>
-    <div class="acts"><button class="ab go" id="fUnlock">Unlock editing</button></div>`;
-  el.hidden = false; $('scrim').hidden = false; $('aboutX').onclick = closeAbout; $('fKey').focus();
-  $('fUnlock').onclick = async () => {
-    const k = $('fKey').value.trim(); if (!k) return; $('fUnlock').disabled = true;
-    try { await gh('GET', null, k); keep.set('key', k); location.reload(); }
-    catch (e) { $('fUnlock').disabled = false; $('fErr').textContent = e.message === '401' ? 'GitHub doesn’t recognise that key.' : e.message === '404' || e.message === '403' ? 'That key can’t reach the Story-Studio repository.' : 'GitHub couldn’t be reached. Check the connection.'; $('fErr').hidden = false; }
-  };
+function editAct(k) {
+  const e = cur;
+  if (k === 'add') addAfter(e); else if (k === 'up' || k === 'down') move(e, k === 'up' ? -1 : 1);
+  else {
+    if (k === 'gone') { if (e.removed) delete e.removed; else e.removed = true; }
+    else if (k === 'noimg') { if (imgs.has(e.id)) { URL.revokeObjectURL(imgs.get(e.id)); imgs.delete(e.id); idb.del('img:' + e.id).catch(() => {}); } else { e.artWas = true; e.art = false; } }
+    else if (k === 'origimg') { delete e.art; delete e.artWas; }
+    touch(); renderEdit(); markTimeline(false);
+  }
 }
-addEventListener('beforeunload', (ev) => { if (busy) ev.preventDefault(); });
+/* ---------- one file holding all the work: the events and the pictures added ---------- */
+const asDataURL = (blob) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); });
+async function backup() {
+  flush(); const images = {};
+  try { for (const id of imgs.keys()) images[id] = await asDataURL(await idb.get('img:' + id)); } catch (e) { toast('Couldn’t read the pictures for the backup'); return; }
+  const file = new File([JSON.stringify({ codexBackup: 1, at: new Date().toISOString(), data: ALL, images })], `keepers-codex-backup-${new Date().toISOString().slice(0, 10)}.json`, { type: 'application/json' });
+  try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file] }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); toast('Backup file saved');
+}
+async function restore(file) {
+  try {
+    const b = JSON.parse(await file.text()); if (!b || !b.codexBackup || !Array.isArray(b.data)) throw new Error('not a backup');
+    await idb.put('draft-before-restore', { data: ALL, at: Date.now() });   // what was here is kept aside, not thrown away
+    for (const k of await idb.keys()) if (String(k).startsWith('img:')) await idb.put('old-' + k, await idb.get(k)), await idb.del(k);
+    for (const [id, url] of Object.entries(b.images || {})) await idb.put('img:' + id, await (await fetch(url)).blob());
+    await idb.put('draft', { data: b.data, at: Date.now() }); location.reload();
+  } catch (e) { toast('That file isn’t a Keeper’s Codex backup'); }
+}
 
 /* ---------- start ---------- */
 (async () => {
   try {
-    const [r, a] = await Promise.all([fetch('data/register.json?v=c5b'), fetch('data/atlas.json?v=c5b')]);
+    const [r, a] = await Promise.all([fetch('data/register.json?v=c6a'), fetch('data/atlas.json?v=c6a')]);
     if (!r.ok) throw new Error(r.status);
     ALL = await r.json(); if (a.ok) ATLAS = await a.json();
     if (!LENSES.some(([k]) => k === lens)) lens = 'canon';
@@ -774,7 +814,6 @@ addEventListener('beforeunload', (ev) => { if (busy) ev.preventDefault(); });
     if (!ATLAS.maps[mapKey]) mapKey = Object.keys(ATLAS.maps)[0] || '';
   } catch (e) { $('load').textContent = 'The codex couldn’t load. Check the connection and open it again.'; return; }
   renderLens(); renderAuthor(); renderKinds(); renderTimeline(); paintPlay();
-  if (location.hash === '#author') { history.replaceState(null, '', location.pathname + location.search); route(); $('load').remove(); openKey(); return; }
   route(); $('load').remove();
 })();
 if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}); });
