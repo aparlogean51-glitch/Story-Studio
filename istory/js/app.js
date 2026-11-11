@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 10 · r3a';
+const BUILD = 'Nov 10 · r3b';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -712,8 +712,8 @@ function sceneSheet(s) {
     const w = s.seqId ? Store.where(s.seqId) : null;
     body.innerHTML = `<div class="field"><label>Title</label><input id="dTitle" value="${esc(s.title)}" placeholder="Untitled scene" autocomplete="off"></div>
       <div class="field"><label>Summary</label><textarea id="dSum" rows="2">${esc(s.summary)}</textarea></div>
-      <div class="grid2"><div class="field"><label>POV</label><input id="dPov" value="${esc(s.pov)}" autocomplete="off"></div><div class="field"><label>Location</label><input id="dLoc" value="${esc(s.location)}" autocomplete="off"></div></div>
-      <div class="grid3"><div class="field"><label>Date</label><input id="dDate" value="${esc(s.date)}" autocomplete="off"></div>
+      <div class="grid2"><div class="field"><label>POV</label><div data-pick="pov"></div></div><div class="field"><label>Location</label><div data-pick="location"></div></div></div>
+      <div class="grid3"><div class="field"><label>Date</label><div data-pick="date"></div></div>
         <div class="field"><label>Month</label><select id="dMonth"></select></div><div class="field"><label>Holiday or event</label><select id="dHol"></select></div></div>
       <div class="field"><label>Labels</label><div class="chips" id="dLabels"></div><input id="dLabel" placeholder="Add a label" autocomplete="off" autocapitalize="none" enterkeyhint="done"><div class="chips" id="dSug"></div></div>
       <div class="field"><label>Status</label><div class="seg" id="dSt">${Store.STATUSES.map(([k, l]) => `<button data-st="${k}" aria-pressed="${s.status === k}">${l}</button>`).join('')}</div></div>
@@ -736,6 +736,23 @@ function sceneSheet(s) {
       body.querySelector('#dMonth').value = String(s.month || 0); body.querySelector('#dMonth').disabled = fixed; body.querySelector('#dHol').value = s.holiday || '';
     };
     const memos = () => { body.querySelector('#dMemos').innerHTML = memoRows(s.memos || []); };
+    // POV, location and date are chosen from your saved lists; "New…" turns the drop-down into a box to type one, which is then saved
+    const picker = (kind, typing) => {
+      const box = body.querySelector(`[data-pick="${kind}"]`), cur = s[kind] || '';
+      if (typing) { box.innerHTML = `<input data-new="${kind}" placeholder="New" autocomplete="off">`; box.firstChild.focus(); return; }
+      const opts = Store.list(kind).slice(); if (cur && !opts.some(o => o.toLowerCase() === cur.toLowerCase())) opts.unshift(cur);
+      box.innerHTML = `<select data-sel="${kind}"><option value="">—</option>${opts.map(o => `<option value="${esc(o)}" ${o.toLowerCase() === cur.toLowerCase() ? 'selected' : ''}>${esc(o)}</option>`).join('')}<option value="~new~">New…</option><option value="~edit~">Edit this list…</option></select>`;
+    };
+    const commitNew = (inp) => { const kind = inp.dataset.new; if (!inp.isConnected || inp.dataset.done) return; inp.dataset.done = '1'; const v = Store.addToList(kind, inp.value); if (v) set(kind, v); picker(kind); };
+    ['pov', 'location', 'date'].forEach(k => picker(k));
+    body.addEventListener('change', (e) => {
+      const kind = e.target.dataset && e.target.dataset.sel; if (!kind) return;
+      if (e.target.value === '~new~') picker(kind, true);
+      else if (e.target.value === '~edit~') { closeLayer(); listsSheet(kind, () => sceneSheet(s)); }
+      else set(kind, e.target.value);
+    });
+    body.addEventListener('keydown', (e) => { if (e.target.dataset && e.target.dataset.new) { if (e.key === 'Enter') { e.preventDefault(); commitNew(e.target); } else if (e.key === 'Escape') { e.stopPropagation(); e.target.dataset.done = '1'; picker(e.target.dataset.new); } } });
+    body.addEventListener('focusout', (e) => { if (e.target.dataset && e.target.dataset.new) commitNew(e.target); });
     year(); memos();
     body.addEventListener('change', (e) => {
       if (e.target.id === 'dMonth') set('month', +e.target.value || 0);
@@ -756,7 +773,7 @@ function sceneSheet(s) {
     body.addEventListener('input', (e) => {
       const id = e.target.id;
       if (id === 'dTitle') { s.title = e.target.value.trim(); Store.touchScene(s, { title: true }); Pad.title(headLabel()); paintTop(); }
-      else if (id === 'dSum') { set('summary', e.target.value); grow(e.target); } else if (id === 'dPov') set('pov', e.target.value); else if (id === 'dLoc') set('location', e.target.value); else if (id === 'dDate') set('date', e.target.value);
+      else if (id === 'dSum') { set('summary', e.target.value); grow(e.target); }
       else if (id === 'dLabel' && /,/.test(e.target.value)) { addLabel(e.target.value); e.target.value = ''; }
     });
     body.addEventListener('keydown', (e) => { if (e.target.id === 'dLabel' && e.key === 'Enter') { e.preventDefault(); addLabel(e.target.value); e.target.value = ''; } });
@@ -976,6 +993,7 @@ $('menuBtn').onclick = () => {
     { label: 'New book…', act: async () => { const v = await promptSheet('New book', '', 'Name'); if (v !== null) { const b = Store.addBook(v); Store.setBook(b.id); go('story'); } } },
     { label: 'Rename this book…', act: async () => { const b = Store.book(cur); const v = await promptSheet('Book', b.name, 'Name'); if (v !== null) Store.rename('book', b.id, v); render(); } },
     { label: 'The year…', act: yearSheet },
+    { label: 'Saved lists…', act: () => listsSheet() },
     { hr: true }, { head: 'Google' }, ...gl,
     { hr: true },
     { label: 'Saving…', act: saveSheet },
@@ -987,6 +1005,34 @@ $('menuBtn').onclick = () => {
     empty ? { label: 'Bring in Story Studio…', act: bringStudio } : null,
     { ver: 'iStory · ' + BUILD }]);
 };
+/* ---------- saved lists: the characters, places and dates the scene drop-downs offer ---------- */
+function listsSheet(start, then) {
+  const KINDS = [['pov', 'Characters (POV)'], ['location', 'Locations'], ['date', 'Dates']];
+  let kind = start || 'pov', rows = null, dirty = false;
+  const load = () => { rows = Store.list(kind).map(v => ({ was: v, now: v })); dirty = false; };
+  const keep = () => { if (dirty) Store.setList(kind, rows); dirty = false; };
+  load();
+  sheet('Saved lists', 'center', (body) => {
+    const used = () => { const n = new Map(); for (const s of Store.data.scenes) { const k = (s[kind] || '').trim().toLowerCase(); if (k) n.set(k, (n.get(k) || 0) + 1); } return n; };
+    const draw = (focusLast) => {
+      const u = used();
+      body.innerHTML = `<div class="seg">${KINDS.map(([k, l]) => `<button data-kind="${k}" aria-pressed="${k === kind}">${l}</button>`).join('')}</div>
+        <div class="yedit">${rows.map((r, i) => `<div class="lrow"><input data-i="${i}" value="${esc(r.now)}" placeholder="Name" autocomplete="off"><small>${r.was && u.get(r.was.toLowerCase()) ? u.get(r.was.toLowerCase()) + (u.get(r.was.toLowerCase()) === 1 ? ' scene' : ' scenes') : ''}</small><button class="tb" data-del="${i}" aria-label="Remove">✕</button></div>`).join('') || '<div class="empty-note">Nothing saved yet.</div>'}</div>
+        <div style="display:flex;gap:10px"><button class="btn" id="lAdd">Add</button><span style="flex:1"></span></div>
+        <div class="empty-note" style="text-align:left;padding:0">Changing a name here changes it in every scene that uses it. Removing one only takes it off the list.</div>`;
+      if (focusLast) { const ins = body.querySelectorAll('.lrow input'); ins.length && ins[ins.length - 1].focus(); }
+    };
+    draw();
+    body.addEventListener('input', (e) => { const i = e.target.dataset && e.target.dataset.i; if (i != null && rows[+i]) { rows[+i].now = e.target.value; dirty = true; } });
+    body.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.i != null) { e.preventDefault(); rows.push({ was: '', now: '' }); draw(true); } });
+    body.addEventListener('click', (e) => {
+      const x = e.target.closest('button'); if (!x) return;
+      if (x.dataset.kind) { keep(); kind = x.dataset.kind; load(); draw(); }
+      else if (x.dataset.del != null) { rows.splice(+x.dataset.del, 1); dirty = true; draw(); }
+      else if (x.id === 'lAdd') { rows.push({ was: '', now: '' }); draw(true); }
+    });
+  }, { onClose: () => { keep(); render(); if (then) setTimeout(then, 0); } });
+}
 /* ---------- the story's year: twelve months, their holidays and events, and which ones your scenes have used ---------- */
 function yearSheet() {
   let draft = null;   // while the list is being edited: a working copy, saved or dropped as a whole

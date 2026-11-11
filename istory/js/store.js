@@ -46,9 +46,13 @@ function normCalendar(c) {
 }
 // a voice recording: the sound itself is kept apart (on this iPad, and in Drive); this is the note of it
 const normMemo = (m) => m && /^[\w-]+$/.test(String(m.id || '')) ? { id: String(m.id), mime: str(m.mime), dur: +m.dur || 0, driveId: str(m.driveId), at: +m.at || 0 } : null;
+/* Saved lists: the names you choose from for a scene's POV, location and date, so nothing is typed twice. */
+const LIST_FIELDS = [['pov', 'pov'], ['location', 'location'], ['date', 'date']];
+function uniq(list) { const out = [], seen = new Set(); for (const x of list) { const t = str(x).replace(/\s+/g, ' ').trim().slice(0, 120), k = t.toLowerCase(); if (t && !seen.has(k)) { seen.add(k); out.push(t); } } return out; }
+function normLists(l) { const o = {}; for (const [k] of LIST_FIELDS) o[k] = uniq(l && Array.isArray(l[k]) ? l[k] : []); return o; }
 function blank() {
   const b = { id: uid('bk-'), name: '' }, p = { id: uid('pt-'), bookId: b.id, name: '' }, a = { id: uid('a-'), partId: p.id, name: '' };
-  return { app: 'istory', v: 2, rev: 0, books: [b], parts: [p], acts: [a], seqs: [], scenes: [], loose: [], ms: {}, drive: { folders: {} }, calendar: normCalendar(null) };
+  return { app: 'istory', v: 2, rev: 0, books: [b], parts: [p], acts: [a], seqs: [], scenes: [], loose: [], ms: {}, drive: { folders: {} }, calendar: normCalendar(null), lists: normLists(null) };
 }
 function normBeat(b) {
   b = b || {};
@@ -104,6 +108,9 @@ function normalize(d) {
   }
   o.drive = { folders: d.drive && d.drive.folders && typeof d.drive.folders === 'object' ? { ...d.drive.folders } : {} };
   o.calendar = normCalendar(d.calendar);
+  // the saved lists behind the scene drop-downs; the first time, they start from what your scenes already say
+  o.lists = normLists(d.lists);
+  if (!d.lists) for (const s of o.scenes) for (const [k, f] of LIST_FIELDS) if (s[f].trim()) o.lists[k] = uniq([...o.lists[k], s[f]]);
   const hs = new Set(o.calendar.holidays.map(h => h.id));
   for (const s of o.scenes) if (s.holiday && !hs.has(s.holiday)) s.holiday = '';
   if (!d.calendar) readWhen(o);
@@ -215,6 +222,16 @@ const S = {
   kv: { get: kvGet, put: kvPut, del: kvDel },
   async kept() { try { return (await kvGet(KEEP)) || null; } catch (e) { return null; } },
   normLabels,
+  /* ----- saved lists (pov, location, date) ----- */
+  list(kind) { return S.data.lists[kind] || []; },
+  addToList(kind, v) { const next = uniq([...S.list(kind), v]); if (next.length !== S.list(kind).length) { S.data.lists[kind] = next; S.changed({ quiet: true }); } return uniq([v])[0] || ''; },
+  // a whole list at once: rows are { was, now }. A renamed entry is renamed in every scene that uses it; a removed one stays on the scenes that have it.
+  setList(kind, rows) {
+    const field = (LIST_FIELDS.find(x => x[0] === kind) || [])[1]; if (!field) return;
+    for (const r of rows) { const was = str(r.was).trim(), now = str(r.now).replace(/\s+/g, ' ').trim(); if (was && now && was !== now) for (const s of S.data.scenes) if (s[field].trim().toLowerCase() === was.toLowerCase()) { s[field] = now; s.updated = Date.now(); } }
+    S.data.lists[kind] = uniq(rows.map(r => r.now));
+    S.changed({ structure: true });
+  },
   /* ----- the year ----- */
   holidays() { return S.data.calendar.holidays; },
   holiday(id) { return (id && S.data.calendar.holidays.find(h => h.id === id)) || null; },
