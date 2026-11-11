@@ -209,6 +209,7 @@ const Sync = (() => {
         }
         await Memos.sync();
         setState('idle');
+        Mirror.run(false).catch(() => {});
       });
     } catch (e) {
       if (e.race) { again = true; }
@@ -577,10 +578,36 @@ const Docs = (() => {
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') soon(800); else tick('leave'); });
     soon(5000);
   }
-  return { soon, tick, start, url: (q) => q && q.doc ? `https://docs.google.com/document/d/${q.doc.id}/edit` : null, make: async (q) => { q.noDoc = false; await create(q); }, buildHtml, parseHtml };
+  return { root: () => folder('root', 'iStory', null), soon, tick, start, url: (q) => q && q.doc ? `https://docs.google.com/document/d/${q.doc.id}/edit` : null, make: async (q) => { q.noDoc = false; await create(q); }, buildHtml, parseHtml };
 })();
 G.Docs = Docs;
 G.Sync = Sync;
+/* ---------- a copy you can see: Drive › iStory › "iStory – your story (backup copy).json" ----------
+   iStory's working copy stays in its hidden app folder, where it can't be moved or deleted by accident. This is the same
+   story as an ordinary file in your own Drive, refreshed after a sync when the story has changed (at most every ten minutes).
+   "Restore a backup…" reads it back. */
+const Mirror = (() => {
+  const NAME = 'iStory – your story (backup copy).json', KEY = 'mirror';
+  let busy = false;
+  async function run(force) {
+    if (!cfg().signedIn || busy) return false;
+    const c = cfg(), sig = hash(Store.exportJSON().replace(/"savedAt":"[^"]*"/, '').replace(/"rev":\d+/, ''));
+    if (!force && (c.mirrorSig === sig || Date.now() - (c.mirrorAt || 0) < 10 * 60000)) return false;
+    busy = true;
+    try {
+      const parent = await Docs.root(), F = Store.data.drive.folders, blob = new Blob([Store.exportJSON()], { type: 'application/json' });
+      const send = async (id) => { const m = multipart(id ? { name: NAME } : { name: NAME, parents: [parent] }, blob, 'application/json'); return (await api(id ? `${UP}/files/${id}?uploadType=multipart&fields=id,trashed` : `${UP}/files?uploadType=multipart&fields=id,trashed`, { method: id ? 'PATCH' : 'POST', headers: { 'Content-Type': m.ct }, body: m.body })).json(); };
+      let out = null;
+      if (F[KEY] && F[KEY].id) { try { out = await send(F[KEY].id); if (out.trashed) out = null; } catch (e) { if (e.status !== 404) throw e; } }
+      if (!out) { out = await send(null); F[KEY] = { id: out.id, name: NAME }; Store.changed({ quiet: true, view: true }, 'doc'); Sync.markDirty(); }
+      setCfg({ mirrorSig: sig, mirrorAt: Date.now() });
+      for (const f of listeners) try { f(state); } catch (e) {}
+      return true;
+    } finally { busy = false; }
+  }
+  return { run, name: NAME, get at() { return cfg().mirrorAt || 0; }, url: () => { const r = Store.data.drive.folders.root; return r && r.id ? 'https://drive.google.com/drive/folders/' + r.id : null; } };
+})();
+G.Mirror = Mirror;
 G.buildHtml = buildHtml; G.parseHtml = parseHtml; G.appView = appView; G.docSceneView = docSceneView; G.sceneView = sceneView;
 
 // the app's own changes mark the Drive copy as needing an update

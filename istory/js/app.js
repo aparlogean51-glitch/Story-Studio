@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 10 · r2b';
+const BUILD = 'Nov 10 · r3a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -249,7 +249,7 @@ function promptSheet(title, value, placeholder) {
 }
 function banner(msg) { if (!msg) { $('banner').hidden = true; return; } $('bannerMsg').textContent = msg; $('banner').hidden = false; }
 $('bannerX').onclick = () => banner('');
-Store.onError = banner;
+
 
 /* =====================================================================
    press and drag: a tap opens, a press-and-hold lifts (then drag, or let go for its menu)
@@ -721,7 +721,7 @@ function sceneSheet(s) {
       <div class="field"><label>Where</label><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font:15px var(--serif);color:var(--muted)">${w ? esc(Store.seqLabel(w.seq)) : 'Loose Pages'}</span>
         <button class="btn quiet" id="dMove">${w ? 'Move…' : 'File in…'}</button>${w ? '<button class="btn quiet" id="dLoose">Move to Loose</button>' : ''}</div></div>
       <div class="field" id="dMemos"></div>
-      <button class="btn danger" id="dDel" style="align-self:flex-start">Delete scene</button>`;
+      <div style="display:flex;gap:10px;align-items:center"><button class="btn quiet" id="dHist">History of the pages…</button><span style="flex:1"></span><button class="btn danger" id="dDel">Delete scene</button></div>`;
     body.querySelectorAll('textarea').forEach(grow);
     const set = (k, v) => { s[k] = v; Store.touchScene(s, { details: true }); };
     // a holiday that belongs to one month sets the month; an every-month one (or none) leaves the month to you
@@ -776,6 +776,7 @@ function sceneSheet(s) {
         Pad.settle().then(() => { Store.setStage(s.id, d.sg); stages(); });
       }
       else if (d.ver != null) { const v = Store.ms(s.id).versions[+d.ver]; closeLayer(); if (v) viewVersion(v); }
+      else if (x.id === 'dHist') { closeLayer(); historySheet(s.id); }
       else if (x.id === 'dMove') { closeLayer(); fileIn('scene', s.id).then(paintTop); }
       else if (x.id === 'dLoose') { closeLayer(); Store.moveScene(s.id, null); if (item) item.from = 'loose'; paintTop(); }
       else if (x.id === 'dDel') { if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again to delete'; return; } closeLayer(); deleteScene(s); }
@@ -791,13 +792,14 @@ function looseSheet(l) {
     body.innerHTML = `<div class="field"><label>Title</label><input id="lTitle" value="${esc(l.title)}" placeholder="${l.kind === 'beats' ? 'Untitled beats' : 'Untitled page'}" autocomplete="off"></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="lFile">File in…</button>${l.kind === 'beats' ? '<button class="btn" id="lScene">Make a scene…</button>' : ''}</div>
       <div class="field" id="lMemos">${memoRows(l.memo ? [l.memo] : [])}</div>
-      <button class="btn danger" id="lDel" style="align-self:flex-start">Delete</button>`;
+      <div style="display:flex;gap:10px;align-items:center">${l.kind === 'writing' ? '<button class="btn quiet" id="lHist">History of the page…</button>' : ''}<span style="flex:1"></span><button class="btn danger" id="lDel">Delete</button></div>`;
     body.querySelector('#lTitle').addEventListener('input', (e) => { l.title = e.target.value.trim(); l.updated = Date.now(); Store.changed({ loose: true }, 'title'); Pad.title(headLabel()); paintTop(); });
     body.addEventListener('click', async (e) => {
       const x = e.target.closest('button'); if (!x) return;
       const redraw = () => { body.querySelector('#lMemos').innerHTML = memoRows(l.memo ? [l.memo] : []); };
       if (x.dataset.play) { if (l.memo) Player.toggle(l.memo).then(redraw); }
       else if (x.dataset.unmemo) { if (!x.classList.contains('armed')) { x.classList.add('armed'); x.textContent = 'Tap again'; return; } Player.stop(); delete l.memo; l.updated = Date.now(); Store.changed({ loose: true }); redraw(); paintTop(); }
+      else if (x.id === 'lHist') { closeLayer(); historySheet(l.id); }
       else if (x.id === 'lFile') { closeLayer(); await Pad.settle(); fileIn(l.kind, l.id); }
       else if (x.id === 'lScene') { closeLayer(); makeScene(l.id); }
       else if (x.id === 'lDel') {
@@ -807,14 +809,36 @@ function looseSheet(l) {
     });
   });
 }
-async function viewVersion(v) {
-  if (!item || item.kind !== 'scene') return;
-  if (item.step !== 'pages') setStep('pages');
+// read an earlier text of what's open (the end of a stage, or a moment from its history); it can be put back
+let viewingText = null;
+async function viewText(label, text) {
+  if (!item || item.kind === 'beats') return;
+  if (item.kind === 'scene' && item.step !== 'pages') setStep('pages');
   await Pad.settle();
-  const label = 'End of ' + Store.stageLabel(v.stage) + ' · ' + new Date(v.at).toLocaleDateString([], { month: 'short', day: 'numeric' });
-  Pad.view(label, v.text); $('viewingLbl').textContent = label; $('viewing').hidden = false;
+  viewingText = text; const put = $('viewingPut'); put.classList.remove('armed'); put.textContent = 'Put this back';
+  Pad.view(label, text); $('viewingLbl').textContent = label; $('viewing').hidden = false;
 }
+const viewVersion = (v) => viewText('End of ' + Store.stageLabel(v.stage) + ' · ' + new Date(v.at).toLocaleDateString([], { month: 'short', day: 'numeric' }), v.text);
 $('viewingBack').onclick = leaveView;
+// putting an earlier text back keeps the present one in the history first, so this can itself be undone
+$('viewingPut').onclick = async () => {
+  const put = $('viewingPut'); if (!item || viewingText == null) return;
+  if (!put.classList.contains('armed')) { put.classList.add('armed'); put.textContent = 'Tap again to put it back'; return; }
+  const id = item.id, text = viewingText; viewingText = null;
+  leaveView(); await Pad.settle();
+  Store.setText(id, text, 'restore');
+  await Pad.open(id, headLabel());
+};
+function historySheet(id) {
+  Store.history(id).then((list) => {
+    sheet('History', 'center', (body) => {
+      const day = (t) => new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      if (!list.length) { body.innerHTML = '<div class="empty-note">Nothing yet. Each time you come back to these pages, iStory keeps how they stood before you changed them.</div>'; return; }
+      body.innerHTML = `<div class="vers">${list.map((h, i) => `<button data-h="${i}"><span>${day(h.at)}</span><small>${kfmt(Store.words(h.text))} words</small></button>`).join('')}</div>`;
+      body.onclick = (e) => { const b = e.target.closest('[data-h]'); if (!b) return; const h = list[+b.dataset.h]; closeLayer(); viewText('As it stood ' + day(h.at), h.text); };
+    });
+  });
+}
 
 /* =====================================================================
    Capture, and playing back what was recorded
@@ -954,6 +978,7 @@ $('menuBtn').onclick = () => {
     { label: 'The year…', act: yearSheet },
     { hr: true }, { head: 'Google' }, ...gl,
     { hr: true },
+    { label: 'Saving…', act: saveSheet },
     { label: 'Earlier copies…', act: copiesSheet },
     { label: 'Writing pad…', act: padSheet },
     { label: 'Export this book', act: exportBook },
@@ -1099,7 +1124,56 @@ Store.subscribe((info, src) => {
   }
   render();
 });
+/* ---------- the saved mark: on this iPad, and in Drive ---------- */
+let slowT = 0, slow = false, saveErr = false;
+function saveState() {
+  const m = Google.state.mode, signed = Google.signedIn;
+  const local = saveErr || Store.blocked ? 'bad' : slow ? 'slow' : 'ok';
+  const drive = !signed ? 'off' : m === 'error' ? 'bad' : m === 'offline' ? 'offline' : m === 'reconnect' ? 'reconnect' : m === 'conflict' ? 'conflict' : m === 'idle' && !Google.Sync.dirty ? 'ok' : 'soon';
+  return { local, drive };
+}
+function paintSave() {
+  const el = $('saveMark'), s = saveState();
+  const d = { off: '', ok: ' · Drive', soon: ' · Drive soon', offline: ' · offline', reconnect: ' · reconnect', conflict: ' · choose a copy', bad: ' · Drive problem' }[s.drive];
+  el.textContent = s.local === 'bad' ? 'Not saved' : (s.local === 'slow' ? 'Saving…' : 'Saved') + d;
+  el.className = 'tb' + (s.local === 'bad' || s.drive === 'bad' ? ' bad' : ['reconnect', 'conflict'].includes(s.drive) ? ' warn' : '');
+}
+// "Saving…" only shows if a save is still going after two seconds; an ordinary save is too quick to be worth a flicker
+Store.onSaving = () => { clearTimeout(slowT); if (Store.unsaved) slowT = setTimeout(() => { slow = Store.unsaved; paintSave(); }, 2000); else { if (slow || saveErr) { slow = false; saveErr = false; } paintSave(); } };
+Store.onError = (m) => { saveErr = true; paintSave(); banner(m); };
+$('saveMark').onclick = saveSheet;
+function saveSheet() {
+  sheet('Saving', 'center', (body) => {
+    const at = (t) => t ? new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + (new Date(t).toDateString() === new Date().toDateString() ? '' : ' on ' + new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' })) : '';
+    const draw = () => {
+      const s = saveState(), g = Google.state, M = Google.Mirror, url = M.url();
+      const local = s.local === 'bad' ? ['bad', 'Not saved on this iPad', 'Something is stopping iStory from saving here. Use Download a backup in the menu now.'] : ['', 'Saved on this iPad', (Store.unsaved ? 'Saving now.' : 'Everything you have written is stored here' + (Store.savedAt ? ', last at ' + at(Store.savedAt) : '') + '.') + ' It works with no connection.'];
+      const drive = { off: ['', 'Google Drive: not connected', 'Sign in and your story is also kept in your Google Drive.', 'Sign in to Google', 'in'],
+        ok: ['', 'Saved in Google Drive', 'Matches this iPad' + (g.lastOk ? ', checked at ' + at(g.lastOk) : '') + '.', 'Check again now', 'sync'],
+        soon: ['', 'Google Drive: sending soon', 'Your latest changes go to Drive a few seconds after you stop.', 'Send now', 'sync'],
+        offline: ['', 'Google Drive: offline', 'Your work is safe on this iPad and goes to Drive when you are back online.', 'Try now', 'sync'],
+        reconnect: ['warn', 'Google Drive: reconnect', 'Google needs you to sign in again before anything more can be sent.', 'Reconnect', 'in'],
+        conflict: ['warn', 'Google Drive: choose a copy', 'This iPad and Drive have different copies. Nothing is lost; pick which to keep.', 'Choose now', 'sync'],
+        bad: ['bad', 'Google Drive: a problem', g.msg || 'Drive could not be reached.', 'Try again', 'sync'] }[s.drive];
+      body.innerHTML = `<div class="sv ${local[0]}"><b>${local[1]}</b><span>${esc(local[2])}</span></div>
+        <div class="sv ${drive[0]}"><b>${drive[1]}</b><span>${esc(drive[2])}</span><button class="btn" data-do="${drive[4]}">${drive[3]}</button></div>
+        ${s.drive === 'off' ? '' : `<div class="sv"><b>A copy you can see</b><span>In your Drive, in the folder <i>iStory</i>: “${esc(M.name)}”${M.at ? ', updated at ' + at(M.at) : ', not made yet'}. The sequence Docs are in the same folder. Restore a backup… in the menu reads this file back.</span>
+          <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-do="mirror">Update it now</button>${url ? `<a class="btn quiet" href="${url}" target="_blank" rel="noopener" style="margin-top:8px;display:inline-flex;align-items:center;text-decoration:none">Open the folder</a>` : ''}</div></div>`}
+        <div class="sv"><b>Earlier copies and history</b><span>Whole-story copies are under Earlier copies. Each scene keeps a history of its pages, opened from the scene’s title.</span><button class="btn" data-do="copies">Earlier copies…</button></div>`;
+    };
+    draw();
+    const off = Google.onState(() => { if (body.isConnected) draw(); else off(); });
+    body.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-do]'); if (!b) return; const d = b.dataset.do;
+      if (d === 'in') { try { await Google.signIn(); } catch (err) { banner(err.message); } draw(); }
+      else if (d === 'sync') { Google.gesture(); await Pad.pause(); await Store.flush(); Google.Sync.cycle('now'); Google.Docs.tick('now'); }
+      else if (d === 'mirror') { b.textContent = 'Updating…'; try { await Pad.pause(); await Store.flush(); await Google.Mirror.run(true); } catch (err) { banner(err.needTap ? 'Tap anywhere to reconnect to Google, then try again.' : err.offline ? 'Offline. The copy will update when you are back online.' : err.message); } draw(); }
+      else if (d === 'copies') { closeLayer(); copiesSheet(); }
+    });
+  });
+}
 Google.onState((s) => {
+  paintSave();
   const d = $('syncDot'); d.className = 'dot' + (s.mode === 'error' ? ' bad' : ['reconnect', 'offline', 'conflict'].includes(s.mode) ? ' warn' : '');
   if (s.mode === 'error' && s.msg) banner(s.msg);
 });

@@ -149,7 +149,23 @@ async function kvDel(k, store = 'kv') {
 
 /* ---------- the store ---------- */
 const subs = new Set();
-let saveT = 0, saving = null, dirtyLocal = false, blocked = false;
+let saveT = 0, saving = null, dirtyLocal = false, blocked = false, savedAt = 0;
+/* History: how a scene's (or loose page's) text stood before each sitting, kept on this iPad apart from the story itself.
+   A copy of the old text is taken the first time it changes after a quiet spell, and whenever something outside replaces it
+   (the Google Doc, another device, putting an earlier one back). The newest 24 are kept, then one a day, up to 60. */
+const HIST_GAP = 10 * 60000, histAt = new Map(); let histQ = Promise.resolve();
+function thin(list) {
+  const out = [], days = new Set();
+  list.forEach((h, i) => { if (i < 24) { out.push(h); return; } const d = new Date(h.at).toDateString(); if (!days.has(d)) { days.add(d); out.push(h); } });
+  return out.slice(0, 60);
+}
+function noteHistory(id, old, src) {
+  if (!old || !old.trim()) return;
+  const now = Date.now(), outside = src === 'doc' || src === 'cloud' || src === 'restore' || src === 'import';
+  if (!outside && now - (histAt.get(id) || 0) < HIST_GAP) return;
+  histAt.set(id, now);
+  histQ = histQ.then(async () => { const k = 'h:' + id, list = (await kvGet(k)) || []; if (list.length && list[0].text === old) return; list.unshift({ at: now, text: old }); await kvPut(k, thin(list)); }).catch(() => {});
+}
 const S = {
   data: blank(), STAGES, STATUSES, LINKS, uid, words,
   get blocked() { return blocked; },
@@ -161,7 +177,7 @@ const S = {
       // the first time a rebuilt iStory opens, keep the story exactly as it was (never rotated out, never changed)
       try { if (!(await kvGet(KEEP))) await kvPut(KEEP, { at: Date.now(), data: JSON.parse(JSON.stringify(stored)) }); } catch (e) { console.error(e); }
     }
-    if (stored) { try { S.data = normalize(stored); return { fresh: false }; } catch (e) { blocked = true; throw new Error('the saved story could not be read (' + e.message + ')'); } }
+    if (stored) { try { S.data = normalize(stored); savedAt = Date.now(); return { fresh: false }; } catch (e) { blocked = true; throw new Error('the saved story could not be read (' + e.message + ')'); } }
     // first open: bring in Story Studio from this iPad if it is here
     const studio = await readStudioLocal().catch(() => null);
     if (studio && studio.story && (studio.story.scenes || []).length) {
@@ -186,9 +202,14 @@ const S = {
     if (blocked) return;
     if (saving) { await saving; if (!dirtyLocal) return; }
     dirtyLocal = false;
-    saving = kvPut('data', JSON.parse(JSON.stringify(S.data))).catch((e) => { dirtyLocal = true; S.onError && S.onError('Couldn’t save on this iPad: ' + e.message); }).finally(() => { saving = null; });
+    S.onSaving && S.onSaving();
+    saving = kvPut('data', JSON.parse(JSON.stringify(S.data))).then(() => { savedAt = Date.now(); }).catch((e) => { dirtyLocal = true; S.onError && S.onError('Couldn’t save on this iPad: ' + e.message); }).finally(() => { saving = null; S.onSaving && S.onSaving(); });
     return saving;
   },
+  // is everything written so far stored on this iPad, and when was it last stored
+  get unsaved() { return dirtyLocal || !!saving; },
+  get savedAt() { return savedAt; },
+  async history(id) { await histQ; try { return (await kvGet('h:' + id)) || []; } catch (e) { return []; } },
   flush() { return S.save(); },
   replace(d, src = 'replace') { S.data = normalize(d); S.changed({ all: true }, src); return S.save(); },
   kv: { get: kvGet, put: kvPut, del: kvDel },
@@ -354,6 +375,7 @@ const S = {
   setText(id, t, src = 'app') {
     const m = S.ms(id); t = txt(t);
     if (m.text === t) return;
+    noteHistory(id, m.text, src);
     m.text = t;
     const s = S.scene(id); if (s) s.updated = Date.now(); const l = S.looseItem(id); if (l) l.updated = Date.now();
     S.changed({ text: true, scene: s ? s.id : null, seq: s ? s.seqId : null, loose: !!l }, src);
