@@ -66,11 +66,16 @@ function runFuse(ms, fn) { stopFuse(); fuseT = setTimeout(fn, ms); }
 function startFuse() { stopFuse(); if (!P.strokes.length || !P.set.auto) return; runFuse(P.set.pause * 1000, flushInk); }
 
 /* ---------- Scribble: Apple's reader fills an always-empty text field ---------- */
-function sbSchedule() { if (P.editing) exitEdit(); if (sb.value) wrote(); stopFuse(); if (!sb.value || !P.set.auto) return; runFuse(P.set.spause * 1000, sbFlush); }
+// Manual: what's written stays in the pad until Send (or New ¶). Nothing else moves it: not a scratch-out, not leaving
+// the scene, not closing the app. It is remembered per scene and is back in the pad when the scene is opened again.
+const HELD = 'istory2_held';
+const manual = () => mode() === 'scribble' && !P.set.auto;
+function hold() { if (!P.id) return; const h = LS.get(HELD, {}); if (sb.value) h[P.id] = sb.value; else delete h[P.id]; LS.set(HELD, h); }
+function sbSchedule() { if (P.editing) exitEdit(); if (sb.value) wrote(); stopFuse(); if (!P.set.auto) { hold(); return; } if (!sb.value) return; runFuse(P.set.spause * 1000, sbFlush); }
 function sbFlush() {
   stopFuse();
-  if (composing) { sbSchedule(); return; }
-  const v = sb.value; sb.value = '';
+  if (composing) { runFuse(150, sbFlush); return; }   // the reader is still mid-word: send as soon as it finishes
+  const v = sb.value; sb.value = ''; hold();
   if (!v || !P.id) return;
   if (P.fix) {
     const t = v.replace(/\s+/g, ' ').trim(), f = P.fix;
@@ -257,6 +262,8 @@ function paintFix() {
   sb.setAttribute('autocapitalize', f ? 'none' : 'sentences');
 }
 function setFix(f) {
+  // in Manual the pad may be holding unsent writing, and a tap on the page must not send it
+  if (manual() && sb.value) { status('Send what’s in the pad first'); return; }
   if (sb.value) sbFlush(); if (P.strokes.length) flushInk();
   P.fix = f; paintFix(); render(false);
 }
@@ -291,6 +298,13 @@ async function settle() {
   if (sb.value) sbFlush();
   for (let i = 0; i < 60 && P.queue.some(q => q.status === 'pending'); i++) await new Promise(r => setTimeout(r, 150));
   P.queue = P.queue.filter(q => q.status === 'done'); drain(); save();
+}
+// stepping away (another scene, the board, the app going to the background): Auto puts the pad's writing into the draft;
+// Manual leaves it in the pad, remembered
+async function pause() {
+  if (!manual()) return settle();
+  if (P.editing) exitEdit();
+  hold(); drain(); save();
 }
 /* ---------- typing on the page: with a keyboard the draft is plain text you type into; the pad stays put ---------- */
 function growEd() { const y = docEl.scrollTop; edEl.style.height = 'auto'; edEl.style.height = edEl.scrollHeight + 'px'; docEl.scrollTop = y; }
@@ -379,15 +393,16 @@ const Pad = {
   // open a scene's draft or a loose page
   async open(id, title) {
     if (P.editing) exitEdit();
-    if (P.id && P.id !== id) await settle();
+    if (P.id && P.id !== id) await pause();
     P.id = id; P.title = title || ''; P.readOnly = null; P.fix = null; P.fixHold = null; paintFix();
     const t = Store.text(id);
     P.lines = t ? t.split('\n') : [];
-    P.history = []; P.queue = []; P.dirty = false; P.strokes = []; sb.value = ''; redraw();
+    P.history = []; P.queue = []; P.dirty = false; P.strokes = []; sb.value = manual() ? LS.get(HELD, {})[id] || '' : ''; redraw();
     box.hidden = false;
     layout(); render();
   },
-  close() { exitEdit(); settle(); P.id = null; },
+  close() { exitEdit(); pause(); P.id = null; },
+  pause, held(id) { return !!LS.get(HELD, {})[id]; },
   edit, type, get editing() { return !!P.editing; }, get fixing() { return !!P.fix; }, clearFix,
   view(label, text) { exitEdit(); P.fix = null; P.fixHold = null; paintFix(); P.readOnly = { label, text }; box.hidden = true; layout(); render(); docEl.scrollTop = 0; },
   unview() { P.readOnly = null; box.hidden = false; layout(); render(); },

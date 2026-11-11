@@ -4,7 +4,7 @@
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 10 · r2a';
+const BUILD = 'Nov 10 · r2b';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -36,11 +36,11 @@ function go(v) {
 // leaving what's open: whatever is still in the pad goes into the draft; a loose page left completely empty isn't kept
 function leaveItem() {
   const was = item; setPeek(false); Player.stop();
-  Pad.settle().then(() => { if (was && !(view === 'item' && item && item.id === was.id)) tidy(was); });
+  Pad.pause().then(() => { if (was && !(view === 'item' && item && item.id === was.id)) tidy(was); });
 }
 function tidy(it) {
   if (it.kind === 'scene') return;
-  const l = Store.looseItem(it.id); if (!l || l.title || l.memo) return;
+  const l = Store.looseItem(it.id); if (!l || l.title || l.memo || Pad.held(l.id)) return;
   if (l.beats.some(b => b.text.trim() || b.notes.trim() || b.dialogue.length)) return;
   if ((Store.data.ms[l.id] && Store.data.ms[l.id].text || '').trim()) return;
   Store.deleteLoose(l.id);
@@ -86,7 +86,7 @@ function layoutItem() {
 function leaveView() { if (!$('viewing').hidden) { $('viewing').hidden = true; Pad.unview(); } }
 function setStep(step) {
   if (!item || item.kind !== 'scene' || item.step === step) return;
-  if (item.step === 'pages') { leaveView(); Pad.settle(); }
+  if (item.step === 'pages') { leaveView(); Pad.pause(); }
   item.step = step; peek = false;
   // remembered for this scene (the 300 most recent)
   const st = { ...(Store.ui().steps || {}) }; delete st[item.id]; st[item.id] = step;
@@ -1104,17 +1104,18 @@ Google.onState((s) => {
   if (s.mode === 'error' && s.msg) banner(s.msg);
 });
 document.addEventListener('pointerdown', () => Google.gesture(), true);
-addEventListener('pagehide', () => { Pad.settle(); Store.flush(); });
-document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { Pad.settle(); Store.flush(); } });
+addEventListener('pagehide', () => { Pad.pause(); Store.flush(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { Pad.pause(); Store.flush(); } });
 document.addEventListener('gesturestart', (e) => e.preventDefault());
-// a keyboard: Escape closes what's open; on the page, the first key puts the cursor in the draft and types there
-// (the pad is for the pencil, so keys pressed while it has the focus go to the page too)
+// a keyboard: Escape closes what's open; on the page, the first key puts the cursor in the draft and types there.
+// Keys that arrive in the pad's own field are left alone: Apple's Scribble sends its gestures (scratch out, join,
+// new line) as key presses there, and they must act on the writing in the pad, not send it to the page.
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { if (layer.children.length) closeLayer(); else if (peek) setPeek(false); return; }
   if (view !== 'item' || !item || item.step !== 'pages' || layer.children.length || !$('viewing').hidden) return;
   if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || Pad.editing) return;
   const t = e.target, field = t && t.closest && t.closest('input, textarea, select, [contenteditable]');
-  if (field && field.id !== 'scribble') return;
+  if (field) return;
   const first = e.key.length === 1 ? e.key : e.key === 'Enter' ? '\n' : e.key === 'Backspace' ? '\b' : null;
   if (first == null) return;
   if (t && t.closest && t.closest('button') && (first === ' ' || first === '\n')) return;
@@ -1139,7 +1140,7 @@ document.addEventListener('keydown', (e) => {
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     const had = !!navigator.serviceWorker.controller; let reloading = false;
-    navigator.serviceWorker.addEventListener('controllerchange', async () => { if (had && !reloading) { reloading = true; await Pad.settle(); await Store.flush(); location.reload(); } });
+    navigator.serviceWorker.addEventListener('controllerchange', async () => { if (had && !reloading) { reloading = true; await Pad.pause(); await Store.flush(); location.reload(); } });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => { reg.update().catch(() => {}); document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); }); }).catch(() => {});
   }
   window.__istory = { go, openItem, render, get view() { return view; }, get item() { return item; } };
