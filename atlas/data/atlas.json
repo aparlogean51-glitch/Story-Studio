@@ -1,0 +1,424 @@
+{
+ "maps": {
+  "painted": {
+   "name": "Painted",
+   "src": "assets/map-painted.webp",
+   "w": 2902,
+   "h": 2168,
+   "cities": {
+    "Bountiful": [
+     1188,
+     562
+    ],
+    "Mulek": [
+     1708,
+     600
+    ],
+    "Noah": [
+     1290,
+     732
+    ],
+    "Gid": [
+     1913,
+     745
+    ],
+    "Zarahemla": [
+     1598,
+     925
+    ],
+    "Omner": [
+     1990,
+     892
+    ],
+    "Melek": [
+     1213,
+     952
+    ],
+    "Gideon": [
+     1893,
+     1012
+    ],
+    "Lehi": [
+     2023,
+     1100
+    ],
+    "Judea": [
+     1338,
+     1130
+    ],
+    "Antiparah": [
+     1172,
+     1212
+    ],
+    "Manti": [
+     1765,
+     1200
+    ],
+    "Nephihah": [
+     2010,
+     1230
+    ],
+    "Cumeni": [
+     1492,
+     1255
+    ],
+    "Moroni": [
+     2358,
+     1268
+    ],
+    "Helam": [
+     1688,
+     1535
+    ],
+    "Lemuel": [
+     1962,
+     1618
+    ],
+    "Ishmael": [
+     1410,
+     1708
+    ],
+    "Shilom": [
+     1765,
+     1790
+    ],
+    "Nephi": [
+     1815,
+     1890
+    ]
+   },
+   "routes": {
+    "W33": [
+     [
+      1598,
+      925
+     ],
+     [
+      1298,
+      633
+     ]
+    ]
+   }
+  },
+  "mosaic": {
+   "name": "Mosaic",
+   "src": "assets/map-mosaic.webp",
+   "w": 2896,
+   "h": 2172,
+   "cities": {
+    "Bountiful": [
+     1342,
+     643
+    ],
+    "Mulek": [
+     1785,
+     675
+    ],
+    "Gid": [
+     1955,
+     812
+    ],
+    "Noah": [
+     1355,
+     865
+    ],
+    "Zarahemla": [
+     1707,
+     978
+    ],
+    "Omner": [
+     1995,
+     953
+    ],
+    "Gideon": [
+     1867,
+     1036
+    ],
+    "Melek": [
+     1333,
+     1087
+    ],
+    "Lehi": [
+     2007,
+     1136
+    ],
+    "Judea": [
+     1421,
+     1224
+    ],
+    "Manti": [
+     1788,
+     1273
+    ],
+    "Antiparah": [
+     1285,
+     1300
+    ],
+    "Nephihah": [
+     2045,
+     1290
+    ],
+    "Cumeni": [
+     1578,
+     1354
+    ],
+    "Moroni": [
+     2264,
+     1352
+    ],
+    "Helam": [
+     1673,
+     1660
+    ],
+    "Lemuel": [
+     1915,
+     1715
+    ],
+    "Ishmael": [
+     1618,
+     1785
+    ],
+    "Shilom": [
+     1749,
+     1866
+    ],
+    "Nephi": [
+     1800,
+     1930
+    ]
+   },
+   "routes": {
+    "W33": [
+     [
+      1707,
+      978
+     ],
+     [
+      1419,
+      727
+     ]
+    ]
+   }
+  },
+  "promise": {
+   "name": "Land of Promise",
+   "src": "assets/map-promise.webp",
+   "w": 2856,
+   "h": 2202,
+   "cities": {
+    "Bountiful": [
+     1170,
+     604
+    ],
+    "Mulek": [
+     1660,
+     634
+    ],
+    "Noah": [
+     1270,
+     750
+    ],
+    "Gid": [
+     1844,
+     764
+    ],
+    "Omner": [
+     1914,
+     904
+    ],
+    "Zarahemla": [
+     1554,
+     934
+    ],
+    "Melek": [
+     1194,
+     964
+    ],
+    "Gideon": [
+     1830,
+     1020
+    ],
+    "Lehi": [
+     1960,
+     1102
+    ],
+    "Judea": [
+     1314,
+     1124
+    ],
+    "Manti": [
+     1710,
+     1190
+    ],
+    "Antiparah": [
+     1150,
+     1200
+    ],
+    "Nephihah": [
+     1940,
+     1220
+    ],
+    "Cumeni": [
+     1454,
+     1240
+    ],
+    "Moroni": [
+     2280,
+     1250
+    ],
+    "Helam": [
+     1640,
+     1500
+    ],
+    "Lemuel": [
+     1894,
+     1574
+    ],
+    "Ishmael": [
+     1380,
+     1650
+    ],
+    "Shilom": [
+     1720,
+     1730
+    ],
+    "Nephi": [
+     1754,
+     1820
+    ]
+   },
+   "routes": {
+    "W33": [
+     [
+      1554,
+      934
+     ],
+     [
+      1280,
+      640
+     ]
+    ]
+   }
+  }
+ },
+ "changes": [
+  {
+   "event": "W11",
+   "cities": [
+    "Moroni",
+    "Lehi",
+    "Omner",
+    "Gid",
+    "Mulek"
+   ],
+   "side": "Lamanite",
+   "note": "Eastern cities captured in Alma 51:22–28."
+  },
+  {
+   "event": "W11",
+   "cities": [
+    "Nephihah"
+   ],
+   "side": "Uncertain",
+   "note": "Alma 51:25 avoids Nephihah; 51:26 includes it in a capture list. Alma 59 narrates its later fall. The sequence is unresolved."
+  },
+  {
+   "event": "W16",
+   "cities": [
+    "Mulek"
+   ],
+   "side": "Nephite",
+   "note": "Recovered in Alma 52:19–40."
+  },
+  {
+   "event": "W18",
+   "cities": [
+    "Antiparah"
+   ],
+   "side": "Nephite",
+   "note": "Occupying force withdraws, Alma 57:1–5."
+  },
+  {
+   "event": "W20",
+   "cities": [
+    "Gid"
+   ],
+   "side": "Nephite",
+   "note": "Garrison surrenders, Alma 55:16–26."
+  },
+  {
+   "event": "W21",
+   "cities": [
+    "Cumeni"
+   ],
+   "side": "Nephite",
+   "note": "Garrison surrenders and counterattack is repelled, Alma 57:6–36."
+  },
+  {
+   "event": "W22",
+   "cities": [
+    "Manti"
+   ],
+   "side": "Nephite",
+   "note": "City recovered by stratagem, Alma 58:13–31."
+  },
+  {
+   "event": "W23",
+   "cities": [
+    "Nephihah"
+   ],
+   "side": "Lamanite",
+   "note": "Fall explicitly narrated, Alma 59:5–8."
+  },
+  {
+   "event": "W24",
+   "cities": [
+    "Zarahemla"
+   ],
+   "side": "Rebel",
+   "note": "Pahoran reports expulsion and a rebel king, Alma 61:3–8. The revolt began before the letter."
+  },
+  {
+   "event": "W25",
+   "cities": [
+    "Zarahemla"
+   ],
+   "side": "Nephite",
+   "note": "Pahoran restored, Alma 62:6–9."
+  },
+  {
+   "event": "W26",
+   "cities": [
+    "Nephihah"
+   ],
+   "side": "Nephite",
+   "note": "City recovered, Alma 62:20–26."
+  },
+  {
+   "event": "W27",
+   "cities": [
+    "Lehi",
+    "Moroni",
+    "Omner"
+   ],
+   "side": "Nephite",
+   "note": "Lamanites driven from their eastern cities and from the land, Alma 62:30–38."
+  },
+  {
+   "event": "W33",
+   "cities": [
+    "Zarahemla"
+   ],
+   "side": "Lamanite",
+   "note": "Coriantumr captures the city, Helaman 1:18–22."
+  },
+  {
+   "event": "W34",
+   "cities": [
+    "Zarahemla"
+   ],
+   "side": "Nephite",
+   "note": "Moronihah recovers the city, Helaman 1:27–33."
+  }
+ ]
+}

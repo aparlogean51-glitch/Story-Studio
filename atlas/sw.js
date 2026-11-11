@@ -1,9 +1,10 @@
-// The Nephite Annals: keeps the app on the device so it opens without a connection.
-const SHELL = 'annals-shell-e9a403027e', ART = 'annals-scenes';
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png", "./assets/map-painted.webp", "./assets/map-mosaic.webp", "./assets/map-promise.webp", "./assets/fonts/cormorant-500.woff2", "./assets/fonts/cormorant-600.woff2", "./assets/fonts/dmsans-400.woff2", "./assets/fonts/dmsans-500.woff2", "./assets/fonts/dmsans-600.woff2"];
+// Keeper's Codex: keeps the timeline on the device so it opens without a connection.
+const SHELL = 'codex-shell-c1a', ART = 'annals-scenes';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './data/register.json?v=c1a'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => (k.startsWith('annals-shell-') && k !== SHELL) || k === 'annals-art').map((k) => caches.delete(k)))).then(() => self.clients.claim()));
+  // older copies of the app itself are cleared; illustrations already seen are kept
+  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => (k.startsWith('annals-shell-') || k.startsWith('codex-shell-')) && k !== SHELL).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
   const u = new URL(e.request.url);
@@ -17,5 +18,5 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(fetch(e.request, { cache: 'no-cache' }).then((r) => {
     if (r.ok) { const copy = r.clone(); caches.open(SHELL).then((c) => c.put(e.request, copy)); }
     return r;
-  }).catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html'))));
+  }).catch(() => caches.match(e.request).then((r) => r || (e.request.mode === 'navigate' ? caches.match('./index.html') : Response.error()))));
 });

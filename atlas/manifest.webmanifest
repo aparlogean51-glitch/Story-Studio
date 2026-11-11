@@ -1,13 +1,13 @@
 {
- "name": "The Nephite Annals",
- "short_name": "Annals",
- "description": "An illustrated atlas of the Book of Mormon, from Mosiah's judges to Coriantumr's attack on Zarahemla.",
+ "name": "Keeper's Codex",
+ "short_name": "Codex",
+ "description": "An illustrated timeline of the Book of Mormon, from the first year of the judges to Coriantumr's attack on Zarahemla.",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
  "orientation": "any",
- "background_color": "#0d1513",
- "theme_color": "#0d1513",
+ "background_color": "#03060d",
+ "theme_color": "#03060d",
  "icons": [
   {
    "src": "icon-192.png",
