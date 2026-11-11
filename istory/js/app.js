@@ -1,10 +1,10 @@
 /* =====================================================================
-   iStory screens: the timeline (Story), Loose Pages, and an open scene, loose page or beat chain.
+   Just Write screens: the timeline (Story), Loose Pages, and an open scene, loose page or beat chain.
    ===================================================================== */
 (() => {
 'use strict';
 const Store = window.Store, Google = window.Google, Pad = window.Pad;
-const BUILD = 'Nov 10 · r3b';
+const BUILD = 'Nov 11 · r4a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n);
@@ -152,7 +152,7 @@ addEventListener('resize', () => { if (view !== 'item') return; layoutItem(); if
 
 function paintTop() {
   const inItem = view === 'item';
-  $('tabs').hidden = inItem; $('back').hidden = !inItem; $('titleBtn').hidden = !inItem;
+  $('tabs').hidden = inItem; $('brand').hidden = inItem; $('back').hidden = !inItem; $('titleBtn').hidden = !inItem;
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-current', String(t.dataset.go === view)));
   $('gapsBtn').hidden = view !== 'story';
   const k = inItem && item.kind;
@@ -850,7 +850,7 @@ function historySheet(id) {
   Store.history(id).then((list) => {
     sheet('History', 'center', (body) => {
       const day = (t) => new Date(t).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-      if (!list.length) { body.innerHTML = '<div class="empty-note">Nothing yet. Each time you come back to these pages, iStory keeps how they stood before you changed them.</div>'; return; }
+      if (!list.length) { body.innerHTML = '<div class="empty-note">Nothing yet. Each time you come back to these pages, Just Write keeps how they stood before you changed them.</div>'; return; }
       body.innerHTML = `<div class="vers">${list.map((h, i) => `<button data-h="${i}"><span>${day(h.at)}</span><small>${kfmt(Store.words(h.text))} words</small></button>`).join('')}</div>`;
       body.onclick = (e) => { const b = e.target.closest('[data-h]'); if (!b) return; const h = list[+b.dataset.h]; closeLayer(); viewText('As it stood ' + day(h.at), h.text); };
     });
@@ -1003,7 +1003,7 @@ $('menuBtn').onclick = () => {
     { label: 'Download a backup', act: () => saveFile(`istory-backup-${stamp()}.json`, Store.exportJSON(), 'application/json') },
     { label: 'Restore a backup…', act: () => $('restoreIn').click() },
     empty ? { label: 'Bring in Story Studio…', act: bringStudio } : null,
-    { ver: 'iStory · ' + BUILD }]);
+    { ver: 'Just Write · ' + BUILD }]);
 };
 /* ---------- saved lists: the characters, places and dates the scene drop-downs offer ---------- */
 function listsSheet(start, then) {
@@ -1133,7 +1133,7 @@ restoreIn.onchange = async () => {
     if (raw.app === 'istory') data = raw;
     else if (raw.app === 'kotw-studio-backup' && raw.story) data = Store.fromStudio(raw.story, raw.meta, raw.pages || {});
     else if (raw.app === 'kotw-story') data = Store.fromStudio(raw, null, {});
-    else throw new Error('this isn’t an iStory or Story Studio backup');
+    else throw new Error('this isn’t a Just Write (or iStory, or Story Studio) backup');
     const pickI = await ask('Restore', `Replace what’s here with “${f.name}”? What’s here now is kept under Earlier copies.`, ['Replace', 'Cancel']);
     if (pickI !== 0) return;
     await Google.Copies.keep('before restoring a backup');
@@ -1193,7 +1193,7 @@ function saveSheet() {
     const at = (t) => t ? new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + (new Date(t).toDateString() === new Date().toDateString() ? '' : ' on ' + new Date(t).toLocaleDateString([], { month: 'short', day: 'numeric' })) : '';
     const draw = () => {
       const s = saveState(), g = Google.state, M = Google.Mirror, url = M.url();
-      const local = s.local === 'bad' ? ['bad', 'Not saved on this iPad', 'Something is stopping iStory from saving here. Use Download a backup in the menu now.'] : ['', 'Saved on this iPad', (Store.unsaved ? 'Saving now.' : 'Everything you have written is stored here' + (Store.savedAt ? ', last at ' + at(Store.savedAt) : '') + '.') + ' It works with no connection.'];
+      const local = s.local === 'bad' ? ['bad', 'Not saved on this iPad', 'Something is stopping Just Write from saving here. Use Download a backup in the menu now.'] : ['', 'Saved on this iPad', (Store.unsaved ? 'Saving now.' : 'Everything you have written is stored here' + (Store.savedAt ? ', last at ' + at(Store.savedAt) : '') + '.') + ' It works with no connection.'];
       const drive = { off: ['', 'Google Drive: not connected', 'Sign in and your story is also kept in your Google Drive.', 'Sign in to Google', 'in'],
         ok: ['', 'Saved in Google Drive', 'Matches this iPad' + (g.lastOk ? ', checked at ' + at(g.lastOk) : '') + '.', 'Check again now', 'sync'],
         soon: ['', 'Google Drive: sending soon', 'Your latest changes go to Drive a few seconds after you stop.', 'Send now', 'sync'],
@@ -1203,7 +1203,7 @@ function saveSheet() {
         bad: ['bad', 'Google Drive: a problem', g.msg || 'Drive could not be reached.', 'Try again', 'sync'] }[s.drive];
       body.innerHTML = `<div class="sv ${local[0]}"><b>${local[1]}</b><span>${esc(local[2])}</span></div>
         <div class="sv ${drive[0]}"><b>${drive[1]}</b><span>${esc(drive[2])}</span><button class="btn" data-do="${drive[4]}">${drive[3]}</button></div>
-        ${s.drive === 'off' ? '' : `<div class="sv"><b>A copy you can see</b><span>In your Drive, in the folder <i>iStory</i>: “${esc(M.name)}”${M.at ? ', updated at ' + at(M.at) : ', not made yet'}. The sequence Docs are in the same folder. Restore a backup… in the menu reads this file back.</span>
+        ${s.drive === 'off' ? '' : `<div class="sv"><b>A copy you can see</b><span>In your Drive, in the folder <i>Just Write</i>: “${esc(M.name)}”${M.at ? ', updated at ' + at(M.at) : ', not made yet'}. The sequence Docs are in the same folder. Restore a backup… in the menu reads this file back.</span>
           <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-do="mirror">Update it now</button>${url ? `<a class="btn quiet" href="${url}" target="_blank" rel="noopener" style="margin-top:8px;display:inline-flex;align-items:center;text-decoration:none">Open the folder</a>` : ''}</div></div>`}
         <div class="sv"><b>Earlier copies and history</b><span>Whole-story copies are under Earlier copies. Each scene keeps a history of its pages, opened from the scene’s title.</span><button class="btn" data-do="copies">Earlier copies…</button></div>`;
     };

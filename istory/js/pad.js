@@ -54,7 +54,7 @@ function sizeCanvas() {
   cv.width = Math.max(1, Math.round(r.width * dpr)); cv.height = Math.max(1, Math.round(r.height * dpr));
   redraw();
 }
-const strokeColor = () => getComputedStyle(document.documentElement).getPropertyValue('--stroke').trim() || '#c9d6f7';
+const strokeColor = () => getComputedStyle(document.documentElement).getPropertyValue('--stroke').trim() || '#f6e6c0';
 function seg(c, a, b, scale, base) { c.lineWidth = base * (0.55 + 0.9 * (b[3] ?? .5)) * scale; c.beginPath(); c.moveTo(a[0] * scale, a[1] * scale); c.lineTo(b[0] * scale, b[1] * scale); c.stroke(); }
 function drawStroke(c, st, scale, base) { const p = st.pts; if (p.length === 1) { c.beginPath(); c.arc(p[0][0] * scale, p[0][1] * scale, base * .7 * scale, 0, 7); c.fill(); return; } for (let i = 1; i < p.length; i++) seg(c, p[i - 1], p[i], scale, base); }
 function prep(c, color) { c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = color; c.fillStyle = color; }

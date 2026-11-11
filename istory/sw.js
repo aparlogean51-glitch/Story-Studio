@@ -1,7 +1,7 @@
-// iStory: keeps the app itself on the iPad so it opens without a connection.
+// Just Write (the app formerly called iStory): keeps the app itself on the iPad so it opens without a connection.
 // Your story is not stored here (it lives in the app's own storage and syncs to Google Drive).
-const CACHE = 'istory-r3b';
-const FILES = ['./', './index.html', './js/typewriter.js?v=r3b', './js/store.js?v=r3b', './js/google.js?v=r3b', './js/pad.js?v=r3b', './js/app.js?v=r3b', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
+const CACHE = 'istory-r4a';
+const FILES = ['./', './index.html', './js/typewriter.js?v=r4a', './js/store.js?v=r4a', './js/google.js?v=r4a', './js/pad.js?v=r4a', './js/app.js?v=r4a', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable.png', './logo.jpg'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
   // only iStory's own older copies are cleared; the Scene Board and Scribe Pad keep theirs

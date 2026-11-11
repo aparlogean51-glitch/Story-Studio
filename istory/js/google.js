@@ -181,7 +181,7 @@ const Sync = (() => {
           // a first sign-in with nothing of iStory's in Drive yet: offer the Story Studio copy if this iPad has nothing
           if (!hasContent() && files.get(STUDIO) && !asking) {
             asking = true;
-            const pick = await G.ask('Bring in Story Studio?', 'Your Story Studio story is in your Google Drive. iStory can start from a copy of it. Story Studio itself is left as it is.', ['Bring it in', 'Start empty']);
+            const pick = await G.ask('Bring in Story Studio?', 'Your Story Studio story is in your Google Drive. Just Write can start from a copy of it. Story Studio itself is left as it is.', ['Bring it in', 'Start empty']);
             asking = false;
             if (pick === 0) await importStudio(files.get(STUDIO));
           }
@@ -192,7 +192,7 @@ const Sync = (() => {
           // this iPad has never synced: if it has its own work, ask which copy to keep
           if (hasContent() && !asking) {
             asking = true;
-            const pick = await G.ask('Two copies of your story', 'This iPad has work on it, and your Google Drive has an iStory copy from another device.', ['Use the Drive copy', 'Use this iPad’s', 'Decide later']);
+            const pick = await G.ask('Two copies of your story', 'This iPad has work on it, and your Google Drive has a Just Write copy from another device.', ['Use the Drive copy', 'Use this iPad’s', 'Decide later']);
             asking = false;
             if (pick === 0) await take(remote, 'before using the Drive copy');
             else if (pick === 1) await upload(remote);
@@ -407,7 +407,7 @@ const Docs = (() => {
     if (ids.size) soon(info.text ? 20000 : 8000);
   });
   function soon(ms = 8000) { clearTimeout(timer); timer = setTimeout(() => tick('soon'), ms); }
-  // folders in Drive: iStory / Book / Part / Act
+  // folders in Drive: Just Write / Book / Part / Act (the folder made as “iStory” is renamed in place)
   async function folder(key, name, parent) {
     const F = Store.data.drive.folders, rec = F[key];
     if (rec && rec.id) {
@@ -422,7 +422,7 @@ const Docs = (() => {
   }
   async function actFolder(q) {
     const w = Store.where(q.id);
-    const root = await folder('root', 'iStory', null);
+    const root = await folder('root', 'Just Write', null);
     const b = await folder('b:' + w.book.id, Store.bookLabel(w.book).replace(/:/, ' ·'), root);
     const p = await folder('p:' + w.part.id, Store.partLabel(w.part).replace(/:/, ' ·'), b);
     return folder('a:' + w.act.id, Store.actLabel(w.act).replace(/:/, ' ·'), p);
@@ -510,7 +510,7 @@ const Docs = (() => {
       let keepApp = false;
       if (conflicts.length) {
         const names = conflicts.map(c => '“' + (Store.scene(c.id).title || 'Untitled') + '”').join(', ');
-        const pick = await G.ask('Changed in both places', `${names} changed in iStory and in the Google Doc for “${q.name || 'this sequence'}”. The version you don’t keep is saved under Earlier copies.`, ['Keep the Doc', 'Keep iStory', 'Decide later']);
+        const pick = await G.ask('Changed in both places', `${names} changed in Just Write and in the Google Doc for “${q.name || 'this sequence'}”. The version you don’t keep is saved under Earlier copies.`, ['Keep the Doc', 'Keep Just Write', 'Decide later']);
         if (pick === 2) return;
         keepApp = pick === 1;
         if (!keepApp) take.push(...conflicts);
@@ -578,16 +578,16 @@ const Docs = (() => {
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') soon(800); else tick('leave'); });
     soon(5000);
   }
-  return { root: () => folder('root', 'iStory', null), soon, tick, start, url: (q) => q && q.doc ? `https://docs.google.com/document/d/${q.doc.id}/edit` : null, make: async (q) => { q.noDoc = false; await create(q); }, buildHtml, parseHtml };
+  return { root: () => folder('root', 'Just Write', null), soon, tick, start, url: (q) => q && q.doc ? `https://docs.google.com/document/d/${q.doc.id}/edit` : null, make: async (q) => { q.noDoc = false; await create(q); }, buildHtml, parseHtml };
 })();
 G.Docs = Docs;
 G.Sync = Sync;
-/* ---------- a copy you can see: Drive › iStory › "iStory – your story (backup copy).json" ----------
+/* ---------- a copy you can see: Drive › Just Write › "Just Write – your story (backup copy).json" ----------
    iStory's working copy stays in its hidden app folder, where it can't be moved or deleted by accident. This is the same
    story as an ordinary file in your own Drive, refreshed after a sync when the story has changed (at most every ten minutes).
    "Restore a backup…" reads it back. */
 const Mirror = (() => {
-  const NAME = 'iStory – your story (backup copy).json', KEY = 'mirror';
+  const NAME = 'Just Write – your story (backup copy).json', KEY = 'mirror';
   let busy = false;
   async function run(force) {
     if (!cfg().signedIn || busy) return false;
