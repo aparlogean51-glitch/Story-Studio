@@ -13,6 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Keeper’s Codex">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="preload" href="data/register.json?v=c3a" as="fetch" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
@@ -53,23 +54,40 @@ a { color: inherit; }
 .tb svg, .ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ---------- the two panes: the timeline, and one event ---------- */
-#timeline, #event { position: fixed; top: var(--top); bottom: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-#timeline { left: 0; width: 100%; padding: 0 0 calc(40px + env(safe-area-inset-bottom)); }
-#event { left: 0; right: 0; background: var(--bg); z-index: 10; }
+#side, #event, #mapview { position: fixed; top: var(--top); bottom: 0; }
+#side { left: 0; width: 100%; display: flex; flex-direction: column; }
+#timeline { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 0 0 calc(40px + env(safe-area-inset-bottom)); }
+#event { left: 0; right: 0; background: var(--bg); z-index: 10; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+#mapview { left: 0; right: 0; background: #050a12; overflow: hidden; z-index: 9; }
+body[data-view="timeline"] #mapview { display: none; }
 @media (min-width: 900px) {
-  #timeline { width: var(--list-w); border-right: 1px solid var(--line); }
-  #event { left: var(--list-w); }
+  #side { width: var(--list-w); border-right: 1px solid var(--line); }
+  #event, #mapview { left: var(--list-w); }
+  body[data-view="map"] #event { display: none; }
 }
-@media (max-width: 899px) { body:not(.reading) #event { display: none; } body.reading #timeline { visibility: hidden; } }
+@media (max-width: 899px) {
+  body[data-view="timeline"]:not(.reading) #event { display: none; }
+  body[data-view="timeline"].reading #side { display: none; }
+  body[data-view="map"] #side, body[data-view="map"] #event { display: none; }
+}
+
+/* search and the kinds of event */
+#tools { flex: none; padding: 10px 14px 10px 16px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+#find { position: relative; }
+#find svg { position: absolute; left: 12px; top: 50%; width: 17px; height: 17px; margin-top: -8.5px; color: var(--faint); pointer-events: none; }
+#q { width: 100%; height: 42px; padding: 0 14px 0 38px; border: 0; border-radius: 11px; background: var(--raise); color: var(--ink); font: 16px var(--ui); -webkit-appearance: none; appearance: none; }
+#q::placeholder { color: var(--faint); } #q::-webkit-search-cancel-button { -webkit-appearance: none; }
+#q:focus { outline: none; box-shadow: 0 0 0 1.5px var(--gold-line); }
+#kinds { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -14px 0 -16px; padding: 0 14px 0 16px; } #kinds::-webkit-scrollbar { display: none; }
+.kind { flex: none; height: 34px; padding: 0 13px; border-radius: 999px; background: var(--raise); color: var(--muted); font-size: 13.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.kind[aria-pressed="true"] { background: var(--gold-soft); color: var(--accent); box-shadow: 0 0 0 1px var(--gold-line) inset; }
+.kind.person { background: var(--card-hi); color: var(--ink); font-family: var(--serif); font-size: 14.5px; } .kind.person i { font-style: normal; color: var(--faint); }
+.none { padding: 40px 22px; text-align: center; color: var(--faint); font: italic 16px var(--serif); }
 
 /* the timeline */
-.who { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--raise); border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--muted); }
-.who b { color: var(--accent); font: 500 16px var(--serif); }
-.who button { margin-left: auto; height: 32px; padding: 0 12px; border-radius: 999px; background: var(--card-hi); color: var(--ink); font-size: 13px; }
 .yh { position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; gap: 10px; padding: 14px 18px 8px; background: linear-gradient(var(--bg) 72%, transparent); font: 600 11.5px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
-.who + .yh, .who ~ .yh { top: 53px; }
 .yh span { font-weight: 400; letter-spacing: .04em; text-transform: none; color: var(--faint); font-size: 12.5px; }
-.ev { display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; width: 100%; text-align: left; padding: 8px 16px 8px 18px; position: relative; }
+.ev { content-visibility: auto; contain-intrinsic-size: auto 82px; display: grid; grid-template-columns: 96px 1fr; gap: 14px; align-items: center; width: 100%; text-align: left; padding: 8px 16px 8px 18px; position: relative; }
 .ev::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; background: transparent; }
 .ev.on { background: var(--raise); } .ev.on::before { background: var(--accent); }
 .ev:active { background: var(--raise); }
@@ -95,6 +113,8 @@ h2 { font: 600 11.5px var(--ui); letter-spacing: .14em; text-transform: uppercas
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { min-height: 36px; padding: 6px 14px; border-radius: 999px; background: var(--card); font: 15px var(--serif); display: inline-flex; align-items: center; }
 button.chip:active { background: var(--card-hi); }
+button.chip.place { box-shadow: 0 0 0 1px var(--line-hi) inset; background: none; gap: 7px; } button.chip.place::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.offmap { margin-top: 10px; font-size: 12.5px; color: var(--faint); }
 button.chip.on { background: var(--gold-soft); box-shadow: 0 0 0 1px var(--gold-line) inset; color: var(--accent); }
 .refs { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .refs a { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 16px; background: var(--card); text-decoration: none; font: 500 16px var(--serif); color: var(--accent); --step: 5px; }
@@ -105,7 +125,7 @@ button.chip.on { background: var(--gold-soft); box-shadow: 0 0 0 1px var(--gold-
 #bar { position: fixed; z-index: 12; bottom: 0; right: 0; left: 0; padding: 10px max(14px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 8px; background: linear-gradient(transparent, var(--bg) 38%); pointer-events: none; }
 #bar > * { pointer-events: auto; }
 @media (min-width: 900px) { #bar { left: var(--list-w); } }
-body:not(.reading) #bar { display: none; }
+body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
 .nav { flex: 1 1 0; min-width: 0; height: 52px; padding: 0 14px; background: var(--card); display: flex; align-items: center; gap: 10px; --step: 5px; }
 .nav:disabled { opacity: .3; }
 .nav:active { background: var(--card-hi); }
@@ -115,8 +135,48 @@ body:not(.reading) #bar { display: none; }
 .rnd { width: 52px; height: 52px; flex: none; border-radius: 50%; background: var(--card); color: var(--muted); display: grid; place-items: center; }
 .rnd.on { background: var(--gold-soft); color: var(--accent); box-shadow: 0 0 0 1px var(--gold-line) inset; }
 #back { height: 40px; padding: 0 10px 0 4px; border-radius: 10px; color: var(--muted); display: none; align-items: center; gap: 2px; font-size: 15px; }
-@media (max-width: 899px) { body.reading #back { display: inline-flex; } body.reading #brand span { display: none; } }
+@media (max-width: 899px) { body[data-view="timeline"].reading #back { display: inline-flex; } body[data-view="timeline"].reading #brand span { display: none; } }
 @media (max-width: 520px) { .nav span { display: none; } .nav { flex: 0 0 64px; justify-content: center !important; } #bar { justify-content: space-between; } .seg > * { padding: 0 12px; } #brand { font-size: 17px; } }
+
+/* ---------- the map ---------- */
+#map { position: absolute; inset: 0; touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; }
+#map:active { cursor: grabbing; }
+#land { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+#land.anim { transition: transform .45s cubic-bezier(.2,.7,.2,1); }
+#land img { display: block; width: 100%; height: 100%; -webkit-user-drag: none; pointer-events: none; opacity: 0; transition: opacity .4s; } #land img.in { opacity: 1; }
+#routes { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#routes polyline { fill: none; stroke: #ffd869; stroke-linecap: round; stroke-linejoin: round; paint-order: stroke; filter: drop-shadow(0 0 2px #000) drop-shadow(0 0 2px #000); }
+.pin { position: absolute; width: 44px; height: 44px; margin: -22px 0 0 -22px; display: grid; place-items: center; transform: scale(var(--inv, 1)); }
+.pin i { width: 9px; height: 9px; border-radius: 50%; background: rgba(242,234,217,.75); box-shadow: 0 0 0 2px rgba(3,6,13,.75); transition: transform .25s, background .25s; }
+.pin[data-side] i { background: var(--side); width: 11px; height: 11px; }
+.pin[data-side="Nephite"] { --side: #7fbf9a; } .pin[data-side="Lamanite"] { --side: #e8876a; } .pin[data-side="Rebel"] { --side: #b49be0; } .pin[data-side="Uncertain"] { --side: #8d8a7c; }
+.pin.on i { background: var(--accent); transform: scale(1.5); box-shadow: 0 0 0 2.5px rgba(3,6,13,.9), 0 0 18px 6px rgba(243,183,47,.55); }
+.pin.on::after { content: ""; position: absolute; width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--accent); animation: ripple 2.4s ease-out infinite; pointer-events: none; }
+.pin.sel i { box-shadow: 0 0 0 2.5px var(--accent), 0 0 0 5px rgba(3,6,13,.8); }
+@keyframes ripple { from { transform: scale(.5); opacity: .9; } to { transform: scale(2.2); opacity: 0; } }
+#mapbar { position: absolute; right: max(12px, env(safe-area-inset-right)); top: 12px; display: flex; gap: 8px; z-index: 2; }
+.mb { height: 40px; padding: 0 14px; border-radius: 999px; background: rgba(9,14,24,.88); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--ink); font-size: 13.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 0 0 1px var(--line-hi) inset; }
+.mb[aria-pressed="true"] { color: var(--accent); box-shadow: 0 0 0 1px var(--gold-line) inset; }
+.mb svg { width: 17px; height: 17px; }
+#key { position: absolute; left: max(12px, env(safe-area-inset-left)); top: 12px; z-index: 2; padding: 9px 13px; border-radius: 12px; background: rgba(9,14,24,.88); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
+#key b { font: 600 10px var(--ui); letter-spacing: .12em; color: var(--faint); }
+#key span { display: flex; align-items: center; gap: 8px; } #key i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+#sheet { position: absolute; z-index: 3; left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); bottom: calc(10px + env(safe-area-inset-bottom)); max-height: 62%; overflow-y: auto; background: rgba(9,14,24,.96); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); padding: 14px; --step: 7px; }
+@media (min-width: 900px) { #sheet { right: auto; width: 400px; left: 16px; bottom: 16px; } }
+.sh-top { display: grid; grid-template-columns: 108px 1fr; gap: 14px; align-items: start; }
+.sh-top img { width: 108px; height: 72px; object-fit: cover; --step: 3px; background: var(--card); }
+.sh-top .meta { font-size: 10.5px; }
+.sh-top h3 { font: 500 19px/1.22 var(--serif); margin-top: 5px; }
+.sh-sum { margin-top: 10px; font: 14.5px/1.5 var(--serif); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sh-act { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+.sh-act .go { flex: 1; height: 44px; background: var(--gold-soft); color: var(--accent); font-weight: 600; font-size: 14.5px; box-shadow: 0 0 0 1px var(--gold-line) inset; --step: 4px; clip-path: none; border-radius: 10px; }
+.sh-act .sq { width: 44px; height: 44px; border-radius: 10px; background: var(--card); color: var(--accent); display: grid; place-items: center; } .sh-act .sq:disabled { opacity: .3; }
+.sh-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sh-h h3 { font: 500 22px var(--serif); } .sh-h small { display: block; font: 12.5px var(--ui); color: var(--muted); margin-top: 2px; }
+.rows { margin-top: 8px; display: flex; flex-direction: column; }
+.rows button { text-align: left; padding: 10px 2px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: baseline; font: 15.5px/1.3 var(--serif); }
+.rows button small { flex: none; width: 62px; font: 600 10.5px var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.rows button:active { background: var(--card); }
 
 /* about, and the small message */
 #scrim { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 40; }
@@ -131,7 +191,7 @@ body:not(.reading) #bar { display: none; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 </style>
 </head>
-<body>
+<body data-view="timeline">
 <header id="top">
   <button id="back" aria-label="Back to the timeline"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>Timeline</button>
   <a id="brand" href="./" aria-label="Keeper’s Codex">
@@ -139,12 +199,28 @@ body:not(.reading) #bar { display: none; }
     <span>Keeper’s <b>Codex</b></span>
   </a>
   <span class="spacer"></span>
-  <nav class="seg" aria-label="View"><a href="./" aria-current="true">Timeline</a><a href="annals-v1.html">Map</a></nav>
+  <nav class="seg" aria-label="View"><button data-view="timeline" aria-current="true">Timeline</button><button data-view="map" aria-current="false">Map</button></nav>
   <button class="tb" id="aboutBtn" aria-label="About and sources"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
 </header>
 
-<main id="timeline" aria-label="Timeline"></main>
+<aside id="side">
+  <div id="tools">
+    <label id="find"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="q" type="search" placeholder="Search" aria-label="Search people, places, events and scripture" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search"></label>
+    <div id="kinds" role="group" aria-label="Kind of event"></div>
+  </div>
+  <main id="timeline" aria-label="Timeline"></main>
+</aside>
 <article id="event" aria-live="polite"></article>
+<section id="mapview" aria-label="Map">
+  <div id="map"><div id="land"><img id="mapimg" alt="" draggable="false"><svg id="routes"></svg><div id="pins"></div></div></div>
+  <div id="key" hidden></div>
+  <div id="mapbar">
+    <button class="mb" id="ctrlBtn" aria-pressed="true">Control</button>
+    <button class="mb" id="styleBtn" aria-label="Change the map style"><svg class="ic" viewBox="0 0 24 24"><path d="M9 4L3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg><span></span></button>
+    <button class="mb" id="fitBtn" aria-label="Show the whole map"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+  <div id="sheet" class="stone" hidden></div>
+</section>
 <div id="bar">
   <button class="nav prev stone" id="prev" aria-label="Previous event"><svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg><span></span></button>
   <button class="rnd" id="play" aria-label="Play through the events" aria-pressed="false"></button>
@@ -159,38 +235,50 @@ body:not(.reading) #bar { display: none; }
 <script>
 'use strict';
 /* =====================================================================
-   Keeper's Codex: the timeline of events, and one event at a time.
-   Everything shown comes from data/register.json (the events) — add eras there and they appear here.
-   An event's address is its id after the #, e.g. …/atlas/#W03, so any event can be linked to.
+   Keeper's Codex: the timeline of events, one event at a time, and the map.
+   Everything shown comes from two files: data/register.json (the events) and data/atlas.json (the maps: where each
+   city sits on each map, routes, and which side the text last reports holding a city). Add eras there and they appear here.
+   The address after the # says what is open: #W03 an event, #map the map, #map/W03 that event on the map.
    ===================================================================== */
-const VERSION = 'Nov 11 · c1a';
+const VERSION = 'Nov 11 · c3a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const CAT = { Warfare: ['War', 'var(--war)'], Faith: ['Faith', 'var(--faith)'], Government: ['Rule', 'var(--rule)'], Migration: ['Journeys', 'var(--journey)'] };
+const CATS = [['Warfare', 'War', 'var(--war)'], ['Faith', 'Faith', 'var(--faith)'], ['Government', 'Rule', 'var(--rule)'], ['Migration', 'Journeys', 'var(--journey)']];
+const CAT = Object.fromEntries(CATS.map(([k, l, c]) => [k, [l, c]]));
 const cat = (e) => CAT[e.category] || [e.category, 'var(--muted)'];
 const art = (e, size) => `assets/scenes/${size ? size + '/' : ''}${e.id}.webp`;
 const wide = () => matchMedia('(min-width: 900px)').matches;
+const keep = { get(k, d) { try { const v = localStorage.getItem('codex_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('codex_' + k, JSON.stringify(v)); } catch (e) {} } };
 const PLAY = '<svg class="ic" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z" fill="currentColor" stroke="none"/></svg>', PAUSE = '<svg class="ic" viewBox="0 0 24 24"><path d="M8.5 6v12M15.5 6v12" stroke-width="2.2"/></svg>';
+const LEFT = '<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>', RIGHT = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>', CLOSE = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-let EVENTS = [], byId = new Map(), cur = null, who = '', playT = 0;
-const shown = () => (who ? EVENTS.filter((e) => e.people.includes(who)) : EVENTS);
+let EVENTS = [], ATLAS = { maps: {}, changes: [] }, byId = new Map(), hay = new Map();
+let view = 'timeline', cur = null, who = '', kind = '', query = '', playT = 0, city = '';
 
-/* ---------- the timeline ---------- */
-// the heading an event sits under: its year of the judges, with the approximate BC date beside it
+/* ---------- what the timeline is showing: a kind of event, a person, a search ---------- */
+function shown() {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return EVENTS.filter((e) => (!kind || e.category === kind) && (!who || e.people.includes(who)) && words.every((w) => hay.get(e).includes(w)));
+}
+const narrowed = () => !!(kind || who || query.trim());
 function group(e) {
   if (e.year === null && !e.sortYear) return ['Before the years', 'the transition to judges'];
   if (e.year === null) return [`About year ${e.sortYear}`, 'mission account, undated'];
   return [e.yearEnd && e.yearEnd !== e.year ? `Years ${e.year}–${e.yearEnd}` : `Year ${e.year}`, (e.dateLabel.match(/about [^·]*/i) || [''])[0]];
 }
+function renderKinds() {
+  $('kinds').innerHTML = (who ? `<button class="kind person" data-who="">${esc(who)}<i>✕</i></button>` : '')
+    + `<button class="kind" data-kind="" aria-pressed="${!kind}">All</button>`
+    + CATS.map(([k, l, c]) => `<button class="kind" data-kind="${k}" aria-pressed="${kind === k}"><i class="dot" style="--c:${c}"></i>${l}</button>`).join('');
+}
 function renderTimeline() {
   const list = shown(); let h = '', last = '';
-  if (who) h += `<div class="who"><span><b>${esc(who)}</b> · ${list.length} event${list.length === 1 ? '' : 's'}</span><button id="whoX">Show all</button></div>`;
   for (const e of list) {
     const [g, sub] = group(e);
     if (g !== last) { h += `<div class="yh">${esc(g)}<span>${esc(sub)}</span></div>`; last = g; }
     h += `<button class="ev${e === cur ? ' on' : ''}" data-id="${e.id}" style="--c:${cat(e)[1]}"><img class="stone" loading="lazy" decoding="async" width="96" height="64" src="${art(e, 'sm')}" alt=""><span><span class="t">${esc(e.title)}</span><span class="m"><i class="dot"></i>${esc(cat(e)[0])}</span></span></button>`;
   }
-  h += `<p class="count">${who ? '' : `${EVENTS.length} events · Mosiah 29 to Helaman 1`}</p>`;
+  h += list.length ? `<p class="count">${narrowed() ? `${list.length} of ${EVENTS.length} events` : `${EVENTS.length} events · Mosiah 29 to Helaman 1`}</p>` : '<p class="none">Nothing matches.</p>';
   $('timeline').innerHTML = h;
 }
 function markTimeline(scroll) {
@@ -199,15 +287,35 @@ function markTimeline(scroll) {
   el.classList.add('on');
   if (scroll) { const r = el.getBoundingClientRect(), t = $('timeline').getBoundingClientRect(); if (r.top < t.top + 60 || r.bottom > t.bottom - 20) $('timeline').scrollTop += r.top - t.top - t.height / 3; }
 }
-$('timeline').addEventListener('click', (ev) => {
-  if (ev.target.closest('#whoX')) { setWho(''); return; }
-  const b = ev.target.closest('.ev'); if (b) go(b.dataset.id);
+// the list changed: redraw it, and on a wide screen keep an event from the list open beside it
+function narrow() {
+  stop(); renderKinds(); renderTimeline(); $('timeline').scrollTop = 0;
+  const list = shown();
+  if (wide() && view === 'timeline' && list.length && !list.includes(cur)) { go(list[0].id, true); return; }
+  if (cur) { if (view === 'timeline') paintNav(); else renderSheet(); markTimeline(true); }
+}
+$('timeline').addEventListener('click', (ev) => { const b = ev.target.closest('.ev'); if (b) go(b.dataset.id); });
+$('kinds').addEventListener('click', (ev) => {
+  const b = ev.target.closest('.kind'); if (!b) return;
+  if (b.dataset.who != null) who = ''; else kind = b.dataset.kind;
+  narrow();
 });
+let qT = 0;
+$('q').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(() => { query = $('q').value; narrow(); }, 140); });
+$('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { $('q').blur(); } else if (e.key === 'Escape' && $('q').value) { e.stopPropagation(); $('q').value = ''; query = ''; narrow(); } });
+function setWho(name) {
+  who = name || '';
+  // on a phone, choosing a person goes back to the timeline to show their events
+  if (who && !wide() && view === 'timeline' && document.body.classList.contains('reading')) { renderKinds(); renderTimeline(); $('timeline').scrollTop = 0; nav('timeline', null, true); return; }
+  narrow(); if (cur && view === 'timeline') renderEvent();
+}
 
 /* ---------- one event ---------- */
+const cities = () => (ATLAS.maps[mapKey] || { cities: {} }).cities;
+const pinned = (e) => e.places.filter((p) => cities()[p]);
 function renderEvent() {
   const e = cur, el = $('event'); if (!e) { el.innerHTML = ''; return; }
-  const [label, color] = cat(e);
+  const [label, color] = cat(e), on = pinned(e);
   el.innerHTML = `<div class="page" style="--c:${color}">
     <div class="hero stone"><img class="lo" src="${art(e, 'sm')}" alt=""><img class="hi" alt="${esc(e.scene || e.title)}" src="${art(e, 'md')}" srcset="${art(e, 'md')} 900w, ${art(e)} 1536w" sizes="(min-width: 900px) min(820px, calc(100vw - 440px)), 100vw"></div>
     <div class="body">
@@ -217,31 +325,41 @@ function renderEvent() {
       ${e.chronologyNote ? `<p class="note">${esc(e.chronologyNote)}</p>` : ''}
       ${e.refs.length ? `<h2>Scripture</h2><div class="refs">${e.refs.map((r) => `<a class="stone" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.label)}<small>Read ↗</small></a>`).join('')}</div>` : ''}
       ${e.people.length ? `<h2>People</h2><div class="chips">${e.people.map((p) => `<button class="chip${p === who ? ' on' : ''}" data-who="${esc(p)}">${esc(p)}</button>`).join('')}</div>` : ''}
-      ${e.places.length ? `<h2>Places</h2><div class="chips">${e.places.map((p) => `<span class="chip">${esc(p)}</span>`).join('')}</div>` : ''}
+      ${e.places.length ? `<h2>Places</h2><div class="chips">${e.places.map((p) => cities()[p] ? `<button class="chip place" data-city="${esc(p)}" aria-label="${esc(p)}: show on the map">${esc(p)}</button>` : `<span class="chip">${esc(p)}</span>`).join('')}</div>` : ''}
+      ${on.length ? '' : '<p class="offmap">Not on the map</p>'}
     </div></div>`;
   const hi = el.querySelector('.hi'); const done = () => hi.classList.add('in'); if (hi.complete && hi.naturalWidth) done(); else hi.addEventListener('load', done, { once: true });
   el.scrollTop = 0;
-  const list = shown(), i = list.indexOf(e), p = list[i - 1], n = list[i + 1];
+  paintNav();
+  document.title = e.title + ' · Keeper’s Codex';
+}
+// previous and next follow the timeline as it is showing; an event outside it steps through every event
+function around(e) { const s = shown(), list = s.includes(e) ? s : EVENTS, i = list.indexOf(e); return [list[i - 1], list[i + 1]]; }
+function paintNav() {
+  if (!cur) return; const [p, n] = around(cur);
   $('prev').disabled = !p; $('next').disabled = !n;
   $('prev').querySelector('span').textContent = p ? p.title : ''; $('next').querySelector('span').textContent = n ? n.title : '';
-  document.title = e.title + ' · Keeper’s Codex';
-  // the next illustration is fetched ahead, so stepping forward doesn't wait on it
-  if (n) { const im = new Image(); im.src = art(n, 'md'); }
+  if (n) { const im = new Image(); im.src = art(n, view === 'map' ? 'sm' : 'md'); }   // fetched ahead, so stepping forward doesn't wait
 }
-function step(d) { const list = shown(), t = list[list.indexOf(cur) + d]; if (t) go(t.id); return !!t; }
-$('event').addEventListener('click', (ev) => { const c = ev.target.closest('[data-who]'); if (c) setWho(c.dataset.who === who ? '' : c.dataset.who); });
+function step(d) { if (!cur) return false; const t = around(cur)[d < 0 ? 0 : 1]; if (t) go(t.id, true); return !!t; }
+$('event').addEventListener('click', (ev) => {
+  const c = ev.target.closest('[data-who]'); if (c) { setWho(c.dataset.who === who ? '' : c.dataset.who); return; }
+  const p = ev.target.closest('[data-city]'); if (p && cur) { city = ''; nav('map', cur.id); focusOn([p.dataset.city]); }
+});
 $('prev').onclick = () => { stop(); step(-1); };
 $('next').onclick = () => { stop(); step(1); };
-$('back').onclick = () => { stop(); if (history.state && history.state.inApp) history.back(); else { history.replaceState(null, '', location.pathname + location.search); route(); } };
-// a sideways swipe on the event moves to the next or the previous one
-(() => { let x = 0, y = 0, on = false;
+$('back').onclick = () => { stop(); if (history.state && history.state.inApp) history.back(); else nav('timeline', null, true); };
+(() => { let x = 0, y = 0, on = false;   // a sideways swipe on the event moves to the next or the previous one
   $('event').addEventListener('touchstart', (e) => { on = e.touches.length === 1; if (on) { x = e.touches[0].clientX; y = e.touches[0].clientY; } }, { passive: true });
   $('event').addEventListener('touchend', (e) => { if (!on) return; on = false; const t = e.changedTouches[0], dx = t.clientX - x, dy = t.clientY - y; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) { stop(); step(dx < 0 ? 1 : -1); } }, { passive: true });
 })();
 addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
-  if (e.key === 'Escape') { if (!$('about').hidden) closeAbout(); else if (!wide() && document.body.classList.contains('reading')) $('back').click(); return; }
-  if (!$('about').hidden || !cur) return;
+  if (e.key === 'Escape') { if (!$('about').hidden) closeAbout(); else if (view === 'map' && city) { city = ''; renderSheet(); drawPins(); } else if (!wide() && document.body.classList.contains('reading')) $('back').click(); return; }
+  if (!$('about').hidden) return;
+  const typing = e.target && e.target.closest && e.target.closest('input, textarea');
+  if (e.key === '/' && !typing) { e.preventDefault(); if (!wide() && view !== 'timeline') nav('timeline', null); $('q').focus(); return; }
+  if (typing || !cur) return;
   if (e.key === 'ArrowRight') { stop(); step(1); } else if (e.key === 'ArrowLeft') { stop(); step(-1); }
 });
 
@@ -251,33 +369,177 @@ function stop() { if (!playT) return; clearInterval(playT); playT = 0; paintPlay
 $('play').onclick = () => { if (playT) { stop(); return; } playT = setInterval(() => { if (document.hidden) return; if (!step(1)) stop(); }, 9000); paintPlay(); };
 $('event').addEventListener('pointerdown', stop);
 
-/* ---------- a person's events ---------- */
-function setWho(name) {
-  stop(); who = name || '';
-  renderTimeline(); $('timeline').scrollTop = 0;
-  if (who && cur && !cur.people.includes(who)) { if (wide()) go(shown()[0].id, true); else { cur = null; } }
-  if (who && !wide() && document.body.classList.contains('reading')) { history.replaceState(null, '', location.pathname + location.search); route(); return; }
-  if (cur) { renderEvent(); markTimeline(true); }
+/* =====================================================================
+   the map
+   ===================================================================== */
+let mapKey = keep.get('map', 'painted'), showCtrl = keep.get('control', true), W = 1, H = 1, mapShown = false;
+const mv = { s: 1, x: 0, y: 0 };
+const mapBox = () => $('map').getBoundingClientRect();
+const fitS = () => { const b = mapBox(); return Math.max(b.width / W, b.height / H); };       // fills the pane
+const minS = () => { const b = mapBox(); return Math.min(b.width / W, b.height / H) * .98; };  // the whole map
+function clamp() {
+  const b = mapBox();
+  mv.s = Math.min(fitS() * 5, Math.max(minS(), mv.s));
+  const w = W * mv.s, h = H * mv.s;
+  mv.x = w <= b.width ? (b.width - w) / 2 : Math.min(0, Math.max(b.width - w, mv.x));
+  mv.y = h <= b.height ? (b.height - h) / 2 : Math.min(0, Math.max(b.height - h, mv.y));
 }
+function apply(anim) {
+  const land = $('land'); land.classList.toggle('anim', !!anim);
+  land.style.transform = `translate(${mv.x}px, ${mv.y}px) scale(${mv.s})`; land.style.setProperty('--inv', 1 / mv.s);
+  const line = $('routes').querySelector('polyline'); if (line) { line.setAttribute('stroke-width', 5 / mv.s); line.setAttribute('stroke-dasharray', `${.1 / mv.s} ${12 / mv.s}`); }
+}
+function zoomAt(cx, cy, k, anim) { const s0 = mv.s; mv.s *= k; clamp(); const r = mv.s / s0; mv.x = cx - (cx - mv.x) * r; mv.y = cy - (cy - mv.y) * r; clamp(); apply(anim); }
+function wholeMap(anim) { const b = mapBox(); mv.s = fitS(); mv.x = (b.width - W * mv.s) / 2; mv.y = (b.height - H * mv.s) / 2; clamp(); apply(anim); }
+// bring some cities into view, clear of the card at the bottom
+function focusOn(names, force) {
+  const c = cities(), pts = names.map((n) => c[n]).filter(Boolean); if (!pts.length || !mapShown) return;
+  const b = mapBox(), sh = $('sheet'), under = sh.hidden ? 0 : wide() ? 0 : sh.getBoundingClientRect().height + 16, left = !sh.hidden && wide() ? Math.min(420, b.width * .45) : 0, pad = Math.min(120, b.width * .16);   // room for the painted name beside each city
+  const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]), x1 = Math.min(...xs), x2 = Math.max(...xs), y1 = Math.min(...ys), y2 = Math.max(...ys);
+  const aw = b.width - left, ah = b.height - under;
+  const inView = mv.x + x1 * mv.s > left + pad && mv.x + x2 * mv.s < b.width - pad && mv.y + y1 * mv.s > pad && mv.y + y2 * mv.s < ah - pad;
+  if (inView && !force) return;
+  const want = Math.min((aw - pad * 2) / Math.max(1, x2 - x1), (ah - pad * 2) / Math.max(1, y2 - y1));
+  mv.s = Math.min(fitS() * 2, Math.max(fitS() * 1.15, want));
+  mv.x = left + aw / 2 - ((x1 + x2) / 2) * mv.s; mv.y = ah / 2 - ((y1 + y2) / 2) * mv.s;
+  clamp(); apply(true);
+}
+function loadMap() {
+  const m = ATLAS.maps[mapKey] || ATLAS.maps[mapKey = Object.keys(ATLAS.maps)[0]]; if (!m) return;
+  W = m.w; H = m.h; const land = $('land'); land.style.width = W + 'px'; land.style.height = H + 'px';
+  $('routes').setAttribute('viewBox', `0 0 ${W} ${H}`);
+  // a small copy of the map shows first (about a sixth of the size), and the full one takes its place once it has arrived
+  const img = $('mapimg'), want = mapKey; img.classList.remove('in'); img.onload = () => img.classList.add('in');
+  img.src = m.src.replace(/\.webp$/, '-sm.webp'); if (img.complete && img.naturalWidth) img.classList.add('in');
+  const full = new Image(); full.onload = () => { if (mapKey === want) img.src = m.src; }; full.src = m.src;
+  $('styleBtn').querySelector('span').textContent = m.name;
+}
+// which side the text last reports holding each city, as of the open event
+function control() {
+  const st = {}; if (!showCtrl || !cur) return st; const at = EVENTS.indexOf(cur);
+  for (const c of ATLAS.changes) if (EVENTS.indexOf(byId.get(c.event)) <= at) for (const n of c.cities) st[n] = c;
+  return st;
+}
+function drawPins() {
+  const on = cur ? pinned(cur) : [], st = control(); let h = '';
+  for (const [n, [x, y]] of Object.entries(cities())) { const side = st[n] ? st[n].side : ''; h += `<button class="pin${on.includes(n) ? ' on' : ''}${n === city ? ' sel' : ''}" style="left:${x}px;top:${y}px" data-city="${esc(n)}" ${side ? `data-side="${side}"` : ''} aria-label="${esc(n)}${side ? ', last reported ' + side : ''}"><i></i></button>`; }
+  $('pins').innerHTML = h;
+  const used = new Set(Object.values(st).map((c) => c.side));
+  $('key').hidden = !used.size;
+  if (used.size) $('key').innerHTML = '<b>LAST REPORTED CONTROL</b>' + [['Nephite', '#7fbf9a'], ['Lamanite', '#e8876a'], ['Rebel', '#b49be0'], ['Uncertain', '#8d8a7c']].filter(([k]) => used.has(k)).map(([k, c]) => `<span style="--c:${c}"><i></i>${k}</span>`).join('');
+  $('ctrlBtn').setAttribute('aria-pressed', String(showCtrl));
+  // a route is drawn only between places the map shows; it is a line between named places, not a road
+  const m = ATLAS.maps[mapKey] || {}, c = cities(), over = cur && m.routes && m.routes[cur.id];
+  const pts = over || (cur && cur.route && cur.route.every((p) => c[p]) ? cur.route.map((p) => c[p]) : []);
+  $('routes').innerHTML = pts.length > 1 ? `<polyline points="${pts.map((p) => p.join(',')).join(' ')}"/>` : '';
+  apply(false);
+}
+const when = (e) => (e.year != null ? 'Year ' + e.year : e.sortYear ? 'About ' + e.sortYear : 'Before');
+function renderSheet() {
+  const sh = $('sheet');
+  if (city) {
+    const evs = EVENTS.filter((e) => e.places.includes(city)), c = control()[city];
+    sh.innerHTML = `<div class="sh-h"><div><h3>${esc(city)}</h3><small>${evs.length} event${evs.length === 1 ? '' : 's'}${c ? ` · last reported ${esc(c.side)}` : ''}</small></div><button class="tb" id="cityX" aria-label="Close">${CLOSE}</button></div>
+      <div class="rows">${evs.map((e) => `<button data-id="${e.id}"><small>${esc(when(e))}</small><span>${esc(e.title)}</span></button>`).join('')}</div>`;
+    sh.hidden = false; sh.scrollTop = 0; return;
+  }
+  const e = cur; if (!e) { sh.hidden = true; return; }
+  const [label, color] = cat(e), [p, n] = around(e);
+  sh.innerHTML = `<div class="sh-top" style="--c:${color}"><img class="stone" src="${art(e, 'sm')}" alt="" width="108" height="72"><div><div class="meta"><span class="cat"><i class="dot"></i>${esc(label)}</span><span>${esc(group(e)[0])}</span></div><h3>${esc(e.title)}</h3></div></div>
+    <p class="sh-sum">${esc(e.summary)}</p>${pinned(e).length ? '' : '<p class="offmap">Not on the map</p>'}
+    <div class="sh-act"><button class="sq" id="shPrev" aria-label="Previous event" ${p ? '' : 'disabled'}>${LEFT}</button><button class="go" id="shRead">Read</button><button class="sq" id="shNext" aria-label="Next event" ${n ? '' : 'disabled'}>${RIGHT}</button></div>`;
+  sh.hidden = false; sh.scrollTop = 0;
+}
+$('sheet').addEventListener('click', (ev) => {
+  const b = ev.target.closest('button'); if (!b) return;
+  if (b.id === 'cityX') { city = ''; renderSheet(); drawPins(); }
+  else if (b.dataset.id) { city = ''; go(b.dataset.id, true); }
+  else if (b.id === 'shPrev') step(-1); else if (b.id === 'shNext') step(1);
+  else if (b.id === 'shRead' && cur) nav('timeline', cur.id);
+});
+function showMap() {
+  if (!mapShown) { mapShown = true; loadMap(); wholeMap(false); }
+  renderSheet(); drawPins();
+  if (cur && !city) focusOn(pinned(cur));
+}
+$('styleBtn').onclick = () => {
+  const keys = Object.keys(ATLAS.maps), b = mapBox(), fx = (b.width / 2 - mv.x) / mv.s / W, fy = (b.height / 2 - mv.y) / mv.s / H, k = mv.s / fitS();
+  mapKey = keys[(keys.indexOf(mapKey) + 1) % keys.length]; keep.set('map', mapKey);
+  loadMap(); mv.s = fitS() * k; mv.x = b.width / 2 - fx * W * mv.s; mv.y = b.height / 2 - fy * H * mv.s; clamp();   // the same part of the land stays in the middle
+  drawPins();
+};
+$('ctrlBtn').onclick = () => { showCtrl = !showCtrl; keep.set('control', showCtrl); drawPins(); if (city) renderSheet(); };
+$('fitBtn').onclick = () => wholeMap(true);
+// dragging, pinching, the wheel and a double tap
+(() => {
+  const el = $('map'), pts = new Map(); let pan = null, pinch = null, lastTap = 0, downAt = null;
+  const rel = (e) => { const b = mapBox(); return [e.clientX - b.left, e.clientY - b.top]; };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const [x, y] = rel(e); pts.set(e.pointerId, { x, y }); try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    $('land').classList.remove('anim');
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: mv.s, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2, x: mv.x, y: mv.y }; pan = null; downAt = null; return; }
+    pan = { x, y, vx: mv.x, vy: mv.y }; downAt = { x, y, t: Date.now(), target: e.target };
+  });
+  el.addEventListener('pointermove', (e) => {
+    const t = pts.get(e.pointerId); if (!t) return; [t.x, t.y] = rel(e);
+    if (pinch && pts.size >= 2) { const [a, b] = [...pts.values()], k = (Math.hypot(a.x - b.x, a.y - b.y) || 1) / pinch.d, cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+      mv.s = pinch.s * k; clamp(); const r = mv.s / pinch.s; mv.x = cx - (pinch.cx - pinch.x) * r; mv.y = cy - (pinch.cy - pinch.y) * r; clamp(); apply(false); return; }
+    if (pan) { if (downAt && Math.hypot(t.x - downAt.x, t.y - downAt.y) > 8) downAt = null; mv.x = pan.vx + (t.x - pan.x); mv.y = pan.vy + (t.y - pan.y); clamp(); apply(false); }
+  });
+  const up = (e) => {
+    if (!pts.has(e.pointerId)) return; const [x, y] = rel(e); pts.delete(e.pointerId);
+    if (pinch) { pinch = null; pan = null; if (pts.size === 1) { const [p] = [...pts.values()]; pan = { x: p.x, y: p.y, vx: mv.x, vy: mv.y }; } return; }
+    pan = null;
+    if (!downAt || e.type === 'pointercancel') return;   // it was a drag
+    const pin = downAt.target.closest && downAt.target.closest('.pin'); downAt = null;
+    if (pin) { stop(); city = pin.dataset.city; renderSheet(); drawPins(); focusOn([city]); lastTap = 0; return; }
+    const now = Date.now(); if (now - lastTap < 320) { zoomAt(x, y, 1.8, true); lastTap = 0; } else lastTap = now;
+  };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  el.addEventListener('wheel', (e) => { e.preventDefault(); const [x, y] = rel(e); zoomAt(x, y, Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0018)), false); }, { passive: false });
+})();
 
-/* ---------- which event is open is the address after the # ---------- */
-function go(id, replace) {
-  if (cur && cur.id === id && document.body.classList.contains('reading')) return;
-  const url = '#' + id;
-  if (replace || (wide() ? false : document.body.classList.contains('reading'))) history.replaceState(history.state, '', url); else history.pushState({ inApp: true }, '', url);
+/* ---------- what is open is the address after the # ---------- */
+function parse() { const h = decodeURIComponent(location.hash.slice(1)), m = /^map(?:\/(.*))?$/.exec(h); return m ? { view: 'map', id: m[1] || '' } : { view: 'timeline', id: h }; }
+const addr = (v, id) => (v === 'map' ? '#map' + (id ? '/' + id : '') : id ? '#' + id : location.pathname + location.search);
+function nav(v, id, replace) {
+  const url = addr(v, id);
+  if (replace) history.replaceState(history.state, '', url); else history.pushState({ inApp: true }, '', url);
   route();
 }
-function route() {
-  const id = decodeURIComponent(location.hash.slice(1)), e = byId.get(id);
-  if (e) { if (who && !e.people.includes(who)) { who = ''; renderTimeline(); } cur = e; document.body.classList.add('reading'); }
-  else if (wide()) { cur = cur || shown()[0]; document.body.classList.add('reading'); }
-  else { cur = null; document.body.classList.remove('reading'); document.title = 'Keeper’s Codex'; }
-  renderEvent(); markTimeline(true);
+// open an event in whichever view is showing; stepping from one event to the next doesn't pile up history
+function go(id, replace) {
+  const reading = view === 'map' ? !!cur : document.body.classList.contains('reading') && !wide();
+  nav(view, id, replace || reading || wide());
 }
+function route() {
+  const r = parse(), e = byId.get(r.id);
+  const changed = view !== r.view; view = r.view; document.body.dataset.view = view;
+  document.querySelectorAll('.seg [data-view]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.view === view)));
+  if (e) cur = e;
+  if (view === 'timeline') {
+    if (!e && wide()) cur = cur || shown()[0] || EVENTS[0];
+    const reading = !!(wide() ? cur : e);
+    document.body.classList.toggle('reading', reading);
+    if (!wide() && !e) { document.title = 'Keeper’s Codex'; $('event').innerHTML = ''; } else renderEvent();
+  } else {
+    document.body.classList.remove('reading');
+    if (changed || e) city = changed ? city : '';
+    document.title = (cur ? cur.title + ' · ' : '') + 'Map · Keeper’s Codex';
+    showMap(); paintNav();
+  }
+  markTimeline(true);
+}
+document.querySelector('.seg').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-view]'); if (!b || b.dataset.view === view) return; stop();
+  // the open event comes along to the other view; on a phone the timeline opens as the list
+  nav(b.dataset.view, b.dataset.view === 'map' ? (cur ? cur.id : '') : wide() && cur ? cur.id : '');
+});
 addEventListener('popstate', () => { stop(); route(); });
 addEventListener('hashchange', route);
 let wasWide = wide();
-addEventListener('resize', () => { if (wide() !== wasWide) { wasWide = wide(); route(); } });
+addEventListener('resize', () => { if (wide() !== wasWide) { wasWide = wide(); route(); } if (view === 'map' && mapShown) { clamp(); apply(false); } });
 
 /* ---------- sharing an event ---------- */
 let toastT = 0;
@@ -291,12 +553,12 @@ $('share').onclick = async () => {
 
 /* ---------- about and sources ---------- */
 function openAbout() {
-  $('about').innerHTML = `<button class="tb x" id="aboutX" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  $('about').innerHTML = `<button class="tb x" id="aboutX" aria-label="Close">${CLOSE}</button>
     <h3>About &amp; sources</h3>
     <p>Keeper’s Codex follows <b>Mosiah 29, Alma 1–63 and Helaman 1:1–34</b>: from the change to judges through Coriantumr’s capture of Zarahemla and its recovery. It holds ${EVENTS.length} major events, each written from, and linked to, its scripture passage.</p>
     <h4>Dates</h4><p>Years of the reign of the judges come first; BC dates are approximate (year 1 is about 91 BC). The mission accounts in Alma 17–27 overlap earlier chapters and have no exact year, so they sit by their nearest year and are marked “about”.</p>
+    <h4>The map</h4><p>An interpretive model, not an archaeological reconstruction. Places the map doesn’t show stay off it rather than being guessed. Dotted lines join named places; they are not roads. City colours show only the changes of control the text reports.</p>
     <h4>Illustrations</h4><p>Generated, interpretive images. Faces, clothing and buildings are artistic choices, not claims about Nephite life.</p>
-    <h4>The map</h4><p>An interpretive model, not an archaeological reconstruction.</p>
     <h4>The data</h4><p><a href="data/register.json" download>Events with scripture references</a> · <a href="data/source-notes.md" download>Source and date notes</a></p>
     <p style="margin-top:22px;font:12px var(--ui);color:var(--faint)">${esc(VERSION)}</p>`;
   $('about').hidden = false; $('scrim').hidden = false; $('aboutX').onclick = closeAbout; $('aboutX').focus();
@@ -307,10 +569,14 @@ $('aboutBtn').onclick = openAbout; $('scrim').onclick = closeAbout;
 /* ---------- start ---------- */
 (async () => {
   try {
-    const r = await fetch('data/register.json?v=c1a'); if (!r.ok) throw new Error(r.status);
-    EVENTS = await r.json(); byId = new Map(EVENTS.map((e) => [e.id, e]));
+    const [r, a] = await Promise.all([fetch('data/register.json?v=c3a'), fetch('data/atlas.json?v=c3a')]);
+    if (!r.ok) throw new Error(r.status);
+    EVENTS = await r.json(); if (a.ok) ATLAS = await a.json();
+    byId = new Map(EVENTS.map((e) => [e.id, e]));
+    for (const e of EVENTS) hay.set(e, [e.title, e.summary, e.dateLabel, cat(e)[0], ...e.people, ...e.places, ...e.refs.map((x) => x.label)].join(' ').toLowerCase());
+    if (!ATLAS.maps[mapKey]) mapKey = Object.keys(ATLAS.maps)[0] || '';
   } catch (e) { $('load').textContent = 'The codex couldn’t load. Check the connection and open it again.'; return; }
-  renderTimeline(); paintPlay(); route(); $('load').remove();
+  renderKinds(); renderTimeline(); paintPlay(); route(); $('load').remove();
 })();
 if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}); });
 </script>
