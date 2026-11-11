@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Keeper’s Codex</title>
-<meta name="description" content="An illustrated timeline of the Book of Mormon, from the first year of the judges to Coriantumr’s attack on Zarahemla.">
+<meta name="description" content="An illustrated timeline of the Book of Mormon, from the reign of Mosiah to the war of the judges.">
 <meta name="theme-color" content="#03060d">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Keeper’s Codex">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="preload" href="data/register.json?v=c3a" as="fetch" crossorigin>
+<link rel="preload" href="data/register.json?v=c4a" as="fetch" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
@@ -23,7 +23,7 @@
 :root {
   --bg: #03060d; --raise: #090e18; --card: #0e1421; --card-hi: #172031; --line: #182131; --line-hi: #283346;
   --ink: #f2ead9; --muted: #a49b88; --faint: #686251; --accent: #f3b72f; --gold-soft: rgba(243,183,47,.14); --gold-line: rgba(243,183,47,.5);
-  --war: #e8876a; --faith: #7fbf9a; --rule: #e2ad3b; --journey: #7fa6d9;
+  --judges: #f0705a; --wars: #c9917f; --church: #7fbf9a; --mission: #b49be0; --political: #e2ad3b; --migration: #7fa6d9;
   --serif: 'Literata', 'Iowan Old Style', Palatino, Georgia, serif; --ui: 'Inter', -apple-system, 'Helvetica Neue', system-ui, sans-serif;
   --top: calc(54px + env(safe-area-inset-top)); --step: 7px; --list-w: 400px;
   color-scheme: dark;
@@ -83,6 +83,20 @@ body[data-view="timeline"] #mapview { display: none; }
 .kind[aria-pressed="true"] { background: var(--gold-soft); color: var(--accent); box-shadow: 0 0 0 1px var(--gold-line) inset; }
 .kind.person { background: var(--card-hi); color: var(--ink); font-family: var(--serif); font-size: 14.5px; } .kind.person i { font-style: normal; color: var(--faint); }
 .none { padding: 40px 22px; text-align: center; color: var(--faint); font: italic 16px var(--serif); }
+
+#lens { align-self: stretch; } #lens > * { flex: 1; justify-content: center; padding: 0 8px; }
+.ph { display: grid; place-items: center; background: var(--card); color: var(--faint); }
+.ph svg { width: 22px; height: 22px; opacity: .7; }
+.ev .ph { width: 96px; height: 64px; --step: 3px; }
+.hero .ph { position: absolute; inset: 0; gap: 10px; align-content: center; font: italic 15px var(--serif); } .hero .ph svg { width: 40px; height: 40px; }
+.sh-top .ph { width: 108px; height: 72px; --step: 3px; }
+.tag { color: var(--accent); }
+.hero.zoomable { cursor: zoom-in; touch-action: manipulation; }
+#zoom { position: fixed; inset: 0; z-index: 70; background: #000; overflow: auto; touch-action: pan-x pan-y pinch-zoom; display: grid; place-items: center; cursor: zoom-out; }
+#zoom img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; display: block; }
+#zoom button { position: fixed; right: max(12px, env(safe-area-inset-right)); top: calc(12px + env(safe-area-inset-top)); width: 44px; height: 44px; border-radius: 50%; background: rgba(9,14,24,.8); color: var(--ink); display: grid; place-items: center; }
+#onlyBtn { display: none; }
+@media (min-width: 900px) { #onlyBtn { display: inline-flex; } body.maponly[data-view="map"] #side { display: none; } body.maponly[data-view="map"] #mapview { left: 0; } }
 
 /* the timeline */
 .yh { position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; gap: 10px; padding: 14px 18px 8px; background: linear-gradient(var(--bg) 72%, transparent); font: 600 11.5px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
@@ -205,6 +219,7 @@ body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
 
 <aside id="side">
   <div id="tools">
+    <nav class="seg" id="lens" aria-label="Which events"></nav>
     <label id="find"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg><input id="q" type="search" placeholder="Search" aria-label="Search people, places, events and scripture" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search"></label>
     <div id="kinds" role="group" aria-label="Kind of event"></div>
   </div>
@@ -215,6 +230,7 @@ body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
   <div id="map"><div id="land"><img id="mapimg" alt="" draggable="false"><svg id="routes"></svg><div id="pins"></div></div></div>
   <div id="key" hidden></div>
   <div id="mapbar">
+    <button class="mb" id="onlyBtn" aria-pressed="false">Map only</button>
     <button class="mb" id="ctrlBtn" aria-pressed="true">Control</button>
     <button class="mb" id="styleBtn" aria-label="Change the map style"><svg class="ic" viewBox="0 0 24 24"><path d="M9 4L3 6.5v13.5L9 17.5l6 2.5 6-2.5V4l-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/></svg><span></span></button>
     <button class="mb" id="fitBtn" aria-label="Show the whole map"><svg class="ic" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
@@ -229,6 +245,7 @@ body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
 </div>
 <div id="scrim" hidden></div>
 <section id="about" class="stone" hidden role="dialog" aria-label="About and sources"></section>
+<div id="zoom" hidden role="dialog" aria-label="Illustration, full screen"></div>
 <div id="toast" hidden role="status"></div>
 <div id="load">Keeper’s Codex</div>
 
@@ -240,19 +257,26 @@ body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
    city sits on each map, routes, and which side the text last reports holding a city). Add eras there and they appear here.
    The address after the # says what is open: #W03 an event, #map the map, #map/W03 that event on the map.
    ===================================================================== */
-const VERSION = 'Nov 11 · c3a';
+const VERSION = 'Nov 11 · c4a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const CATS = [['Warfare', 'War', 'var(--war)'], ['Faith', 'Faith', 'var(--faith)'], ['Government', 'Rule', 'var(--rule)'], ['Migration', 'Journeys', 'var(--journey)']];
+const CATS = [['War of the Judges', 'War of the Judges', 'var(--judges)'], ['Earlier wars', 'Earlier wars', 'var(--wars)'], ['Church', 'Church', 'var(--church)'], ['Mission', 'Sons of Mosiah', 'var(--mission)'], ['Political', 'Political', 'var(--political)'], ['Migration', 'Migration', 'var(--migration)']];
+// the three ways to look at the timeline: scripture only, the novel only, or both together
+const STORY = 'Story', LENSES = [['canon', 'Canon'], ['story', STORY], ['mixed', 'Mixed']];
 const CAT = Object.fromEntries(CATS.map(([k, l, c]) => [k, [l, c]]));
 const cat = (e) => CAT[e.category] || [e.category, 'var(--muted)'];
 const art = (e, size) => `assets/scenes/${size ? size + '/' : ''}${e.id}.webp`;
+const GLYPH = '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 2h4v4h4v4h4v4h2v4h-2v4h-4v4h-4v4h-8v-4H8v-4H4v-4H2v-4h2v-4h4V6h4V2z" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+const hasArt = (e) => e.art !== false;
+const isStory = (e) => e.source === 'story';
+// a small picture of the event, or the empty frame that holds its place until an illustration exists
+const thumb = (e, w, h, lazy) => (hasArt(e) ? `<img class="stone" ${lazy ? 'loading="lazy" decoding="async" ' : ''}width="${w}" height="${h}" src="${art(e, 'sm')}" alt="">` : `<span class="ph stone">${GLYPH}</span>`);
 const wide = () => matchMedia('(min-width: 900px)').matches;
 const keep = { get(k, d) { try { const v = localStorage.getItem('codex_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('codex_' + k, JSON.stringify(v)); } catch (e) {} } };
 const PLAY = '<svg class="ic" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z" fill="currentColor" stroke="none"/></svg>', PAUSE = '<svg class="ic" viewBox="0 0 24 24"><path d="M8.5 6v12M15.5 6v12" stroke-width="2.2"/></svg>';
 const LEFT = '<svg class="ic" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>', RIGHT = '<svg class="ic" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>', CLOSE = '<svg class="ic" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
-let EVENTS = [], ATLAS = { maps: {}, changes: [] }, byId = new Map(), hay = new Map();
+let ALL = [], lens = keep.get('lens', 'canon'), EVENTS = [], ATLAS = { maps: {}, changes: [] }, byId = new Map(), hay = new Map();
 let view = 'timeline', cur = null, who = '', kind = '', query = '', playT = 0, city = '';
 
 /* ---------- what the timeline is showing: a kind of event, a person, a search ---------- */
@@ -261,8 +285,17 @@ function shown() {
   return EVENTS.filter((e) => (!kind || e.category === kind) && (!who || e.people.includes(who)) && words.every((w) => hay.get(e).includes(w)));
 }
 const narrowed = () => !!(kind || who || query.trim());
+// the events the chosen view holds; events past the end of the timeline stay in the file and are never shown
+function pick() { EVENTS = ALL.filter((e) => !e.hidden && (lens === 'mixed' || (isStory(e) ? 'story' : 'canon') === lens)); }
+function renderLens() { $('lens').innerHTML = LENSES.map(([k, l]) => `<button data-lens="${k}" aria-current="${lens === k}">${l}</button>`).join(''); }
+$('lens').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-lens]'); if (!b || b.dataset.lens === lens) return;
+  lens = b.dataset.lens; keep.set('lens', lens); pick(); renderLens();
+  if (cur && !EVENTS.includes(cur)) { cur = null; city = ''; history.replaceState(history.state, '', addr(view, '')); }   // the open event isn't in this view
+  narrow(); if (!cur) route();
+});
 function group(e) {
-  if (e.year === null && !e.sortYear) return ['Before the years', 'the transition to judges'];
+  if (e.year === null && !(e.sortYear > 0)) return ['Reign of Mosiah', 'about 124–91 BC'];
   if (e.year === null) return [`About year ${e.sortYear}`, 'mission account, undated'];
   return [e.yearEnd && e.yearEnd !== e.year ? `Years ${e.year}–${e.yearEnd}` : `Year ${e.year}`, (e.dateLabel.match(/about [^·]*/i) || [''])[0]];
 }
@@ -276,9 +309,9 @@ function renderTimeline() {
   for (const e of list) {
     const [g, sub] = group(e);
     if (g !== last) { h += `<div class="yh">${esc(g)}<span>${esc(sub)}</span></div>`; last = g; }
-    h += `<button class="ev${e === cur ? ' on' : ''}" data-id="${e.id}" style="--c:${cat(e)[1]}"><img class="stone" loading="lazy" decoding="async" width="96" height="64" src="${art(e, 'sm')}" alt=""><span><span class="t">${esc(e.title)}</span><span class="m"><i class="dot"></i>${esc(cat(e)[0])}</span></span></button>`;
+    h += `<button class="ev${e === cur ? ' on' : ''}" data-id="${e.id}" style="--c:${cat(e)[1]}">${thumb(e, 96, 64, true)}<span><span class="t">${esc(e.title)}</span><span class="m"><i class="dot"></i>${esc(cat(e)[0])}${isStory(e) && lens === 'mixed' ? `<span class="tag">· ${STORY}</span>` : ''}</span></span></button>`;
   }
-  h += list.length ? `<p class="count">${narrowed() ? `${list.length} of ${EVENTS.length} events` : `${EVENTS.length} events · Mosiah 29 to Helaman 1`}</p>` : '<p class="none">Nothing matches.</p>';
+  h += list.length ? `<p class="count">${narrowed() ? `${list.length} of ${EVENTS.length} events` : `${EVENTS.length} events`}</p>` : `<p class="none">${EVENTS.length ? 'Nothing matches.' : 'No events yet.'}</p>`;
   $('timeline').innerHTML = h;
 }
 function markTimeline(scroll) {
@@ -317,9 +350,9 @@ function renderEvent() {
   const e = cur, el = $('event'); if (!e) { el.innerHTML = ''; return; }
   const [label, color] = cat(e), on = pinned(e);
   el.innerHTML = `<div class="page" style="--c:${color}">
-    <div class="hero stone"><img class="lo" src="${art(e, 'sm')}" alt=""><img class="hi" alt="${esc(e.scene || e.title)}" src="${art(e, 'md')}" srcset="${art(e, 'md')} 900w, ${art(e)} 1536w" sizes="(min-width: 900px) min(820px, calc(100vw - 440px)), 100vw"></div>
+    ${hasArt(e) ? `<div class="hero stone zoomable"><img class="lo" src="${art(e, 'sm')}" alt=""><img class="hi" alt="${esc(e.scene || e.title)}" src="${art(e, 'md')}" srcset="${art(e, 'md')} 900w, ${art(e)} 1536w" sizes="(min-width: 900px) min(820px, calc(100vw - 440px)), 100vw"></div>` : `<div class="hero stone"><div class="ph">${GLYPH}<span>Illustration to come</span></div></div>`}
     <div class="body">
-      <div class="meta"><span class="cat"><i class="dot"></i>${esc(label)}</span><span>${esc(e.dateLabel)}</span></div>
+      <div class="meta"><span class="cat"><i class="dot"></i>${esc(label)}</span><span>${esc(e.dateLabel)}</span>${isStory(e) ? `<span class="tag">${STORY} · not scripture</span>` : ''}</div>
       <h1>${esc(e.title)}</h1>
       <p class="sum">${esc(e.summary)}</p>
       ${e.chronologyNote ? `<p class="note">${esc(e.chronologyNote)}</p>` : ''}
@@ -328,7 +361,7 @@ function renderEvent() {
       ${e.places.length ? `<h2>Places</h2><div class="chips">${e.places.map((p) => cities()[p] ? `<button class="chip place" data-city="${esc(p)}" aria-label="${esc(p)}: show on the map">${esc(p)}</button>` : `<span class="chip">${esc(p)}</span>`).join('')}</div>` : ''}
       ${on.length ? '' : '<p class="offmap">Not on the map</p>'}
     </div></div>`;
-  const hi = el.querySelector('.hi'); const done = () => hi.classList.add('in'); if (hi.complete && hi.naturalWidth) done(); else hi.addEventListener('load', done, { once: true });
+  const hi = el.querySelector('.hi'); if (hi) { const done = () => hi.classList.add('in'); if (hi.complete && hi.naturalWidth) done(); else hi.addEventListener('load', done, { once: true }); }
   el.scrollTop = 0;
   paintNav();
   document.title = e.title + ' · Keeper’s Codex';
@@ -339,7 +372,7 @@ function paintNav() {
   if (!cur) return; const [p, n] = around(cur);
   $('prev').disabled = !p; $('next').disabled = !n;
   $('prev').querySelector('span').textContent = p ? p.title : ''; $('next').querySelector('span').textContent = n ? n.title : '';
-  if (n) { const im = new Image(); im.src = art(n, view === 'map' ? 'sm' : 'md'); }   // fetched ahead, so stepping forward doesn't wait
+  if (n && hasArt(n)) { const im = new Image(); im.src = art(n, view === 'map' ? 'sm' : 'md'); }   // fetched ahead, so stepping forward doesn't wait
 }
 function step(d) { if (!cur) return false; const t = around(cur)[d < 0 ? 0 : 1]; if (t) go(t.id, true); return !!t; }
 $('event').addEventListener('click', (ev) => {
@@ -355,8 +388,8 @@ $('back').onclick = () => { stop(); if (history.state && history.state.inApp) hi
 })();
 addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
-  if (e.key === 'Escape') { if (!$('about').hidden) closeAbout(); else if (view === 'map' && city) { city = ''; renderSheet(); drawPins(); } else if (!wide() && document.body.classList.contains('reading')) $('back').click(); return; }
-  if (!$('about').hidden) return;
+  if (e.key === 'Escape') { if (!$('zoom').hidden) closeZoom(); else if (!$('about').hidden) closeAbout(); else if (view === 'map' && city) { city = ''; renderSheet(); drawPins(); } else if (!wide() && document.body.classList.contains('reading')) $('back').click(); return; }
+  if (!$('about').hidden || !$('zoom').hidden) return;
   const typing = e.target && e.target.closest && e.target.closest('input, textarea');
   if (e.key === '/' && !typing) { e.preventDefault(); if (!wide() && view !== 'timeline') nav('timeline', null); $('q').focus(); return; }
   if (typing || !cur) return;
@@ -417,7 +450,7 @@ function loadMap() {
 // which side the text last reports holding each city, as of the open event
 function control() {
   const st = {}; if (!showCtrl || !cur) return st; const at = EVENTS.indexOf(cur);
-  for (const c of ATLAS.changes) if (EVENTS.indexOf(byId.get(c.event)) <= at) for (const n of c.cities) st[n] = c;
+  for (const c of ATLAS.changes) { const i = EVENTS.indexOf(byId.get(c.event)); if (i >= 0 && i <= at) for (const n of c.cities) st[n] = c; }
   return st;
 }
 function drawPins() {
@@ -434,7 +467,7 @@ function drawPins() {
   $('routes').innerHTML = pts.length > 1 ? `<polyline points="${pts.map((p) => p.join(',')).join(' ')}"/>` : '';
   apply(false);
 }
-const when = (e) => (e.year != null ? 'Year ' + e.year : e.sortYear ? 'About ' + e.sortYear : 'Before');
+const when = (e) => (e.year != null ? 'Year ' + e.year : e.sortYear > 0 ? 'About ' + e.sortYear : 'Before');
 function renderSheet() {
   const sh = $('sheet');
   if (city) {
@@ -445,7 +478,7 @@ function renderSheet() {
   }
   const e = cur; if (!e) { sh.hidden = true; return; }
   const [label, color] = cat(e), [p, n] = around(e);
-  sh.innerHTML = `<div class="sh-top" style="--c:${color}"><img class="stone" src="${art(e, 'sm')}" alt="" width="108" height="72"><div><div class="meta"><span class="cat"><i class="dot"></i>${esc(label)}</span><span>${esc(group(e)[0])}</span></div><h3>${esc(e.title)}</h3></div></div>
+  sh.innerHTML = `<div class="sh-top" style="--c:${color}">${thumb(e, 108, 72)}<div><div class="meta"><span class="cat"><i class="dot"></i>${esc(label)}</span><span>${esc(group(e)[0])}</span></div><h3>${esc(e.title)}</h3></div></div>
     <p class="sh-sum">${esc(e.summary)}</p>${pinned(e).length ? '' : '<p class="offmap">Not on the map</p>'}
     <div class="sh-act"><button class="sq" id="shPrev" aria-label="Previous event" ${p ? '' : 'disabled'}>${LEFT}</button><button class="go" id="shRead">Read</button><button class="sq" id="shNext" aria-label="Next event" ${n ? '' : 'disabled'}>${RIGHT}</button></div>`;
   sh.hidden = false; sh.scrollTop = 0;
@@ -470,6 +503,24 @@ $('styleBtn').onclick = () => {
 };
 $('ctrlBtn').onclick = () => { showCtrl = !showCtrl; keep.set('control', showCtrl); drawPins(); if (city) renderSheet(); };
 $('fitBtn').onclick = () => wholeMap(true);
+// map only: the timeline beside the map is put away, and the map takes the whole screen
+function paintOnly() { const on = keep.get('maponly', false); document.body.classList.toggle('maponly', on); $('onlyBtn').setAttribute('aria-pressed', String(on)); }
+$('onlyBtn').onclick = () => { keep.set('maponly', !keep.get('maponly', false)); paintOnly(); if (mapShown) { if (mv.s < fitS()) wholeMap(false); clamp(); apply(false); if (cur && !city) focusOn(pinned(cur)); } };
+paintOnly();
+
+/* ---------- an illustration, full screen: double-tap or double-click it; tap, or Esc, to close ---------- */
+function openZoom() {
+  if (!cur || !hasArt(cur)) return; stop();
+  $('zoom').innerHTML = `<img src="${art(cur)}" alt="${esc(cur.scene || cur.title)}"><button aria-label="Close">${CLOSE}</button>`; $('zoom').hidden = false;
+}
+function closeZoom() { $('zoom').hidden = true; $('zoom').innerHTML = ''; }
+$('zoom').addEventListener('click', closeZoom);
+(() => { let last = 0, lx = 0, ly = 0;
+  $('event').addEventListener('pointerup', (e) => {
+    if (!e.target.closest('.hero.zoomable')) { last = 0; return; }
+    const now = Date.now(); if (now - last < 350 && Math.hypot(e.clientX - lx, e.clientY - ly) < 40) { last = 0; openZoom(); } else { last = now; lx = e.clientX; ly = e.clientY; }
+  });
+})();
 // dragging, pinching, the wheel and a double tap
 (() => {
   const el = $('map'), pts = new Map(); let pan = null, pinch = null, lastTap = 0, downAt = null;
@@ -515,6 +566,7 @@ function go(id, replace) {
 }
 function route() {
   const r = parse(), e = byId.get(r.id);
+  if (e && !EVENTS.includes(e)) { lens = 'mixed'; keep.set('lens', lens); pick(); renderLens(); renderKinds(); renderTimeline(); }   // a link to an event the chosen view leaves out
   const changed = view !== r.view; view = r.view; document.body.dataset.view = view;
   document.querySelectorAll('.seg [data-view]').forEach((b) => b.setAttribute('aria-current', String(b.dataset.view === view)));
   if (e) cur = e;
@@ -555,7 +607,7 @@ $('share').onclick = async () => {
 function openAbout() {
   $('about').innerHTML = `<button class="tb x" id="aboutX" aria-label="Close">${CLOSE}</button>
     <h3>About &amp; sources</h3>
-    <p>Keeper’s Codex follows <b>Mosiah 29, Alma 1–63 and Helaman 1:1–34</b>: from the change to judges through Coriantumr’s capture of Zarahemla and its recovery. It holds ${EVENTS.length} major events, each written from, and linked to, its scripture passage.</p>
+    <p>Keeper’s Codex follows the Book of Mormon from <b>Mosiah 6 to Alma 57</b>: the reign of Mosiah, the mission of his sons, the change to judges and the war that follows, up to the eve of the battle for Cumeni. <b>Canon</b> shows only events from scripture, each written from, and linked to, its passage. <b>${STORY}</b> shows events from the novel, which are invented and marked as such. <b>Mixed</b> shows both.</p>
     <h4>Dates</h4><p>Years of the reign of the judges come first; BC dates are approximate (year 1 is about 91 BC). The mission accounts in Alma 17–27 overlap earlier chapters and have no exact year, so they sit by their nearest year and are marked “about”.</p>
     <h4>The map</h4><p>An interpretive model, not an archaeological reconstruction. Places the map doesn’t show stay off it rather than being guessed. Dotted lines join named places; they are not roads. City colours show only the changes of control the text reports.</p>
     <h4>Illustrations</h4><p>Generated, interpretive images. Faces, clothing and buildings are artistic choices, not claims about Nephite life.</p>
@@ -569,14 +621,15 @@ $('aboutBtn').onclick = openAbout; $('scrim').onclick = closeAbout;
 /* ---------- start ---------- */
 (async () => {
   try {
-    const [r, a] = await Promise.all([fetch('data/register.json?v=c3a'), fetch('data/atlas.json?v=c3a')]);
+    const [r, a] = await Promise.all([fetch('data/register.json?v=c4a'), fetch('data/atlas.json?v=c4a')]);
     if (!r.ok) throw new Error(r.status);
-    EVENTS = await r.json(); if (a.ok) ATLAS = await a.json();
-    byId = new Map(EVENTS.map((e) => [e.id, e]));
-    for (const e of EVENTS) hay.set(e, [e.title, e.summary, e.dateLabel, cat(e)[0], ...e.people, ...e.places, ...e.refs.map((x) => x.label)].join(' ').toLowerCase());
+    ALL = await r.json(); if (a.ok) ATLAS = await a.json();
+    if (!LENSES.some(([k]) => k === lens)) lens = 'canon';
+    pick(); byId = new Map(ALL.filter((e) => !e.hidden).map((e) => [e.id, e]));
+    for (const e of ALL) hay.set(e, [e.title, e.summary, e.dateLabel, cat(e)[0], ...e.people, ...e.places, ...e.refs.map((x) => x.label)].join(' ').toLowerCase());
     if (!ATLAS.maps[mapKey]) mapKey = Object.keys(ATLAS.maps)[0] || '';
   } catch (e) { $('load').textContent = 'The codex couldn’t load. Check the connection and open it again.'; return; }
-  renderKinds(); renderTimeline(); paintPlay(); route(); $('load').remove();
+  renderLens(); renderKinds(); renderTimeline(); paintPlay(); route(); $('load').remove();
 })();
 if ('serviceWorker' in navigator && location.protocol === 'https:') addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).catch(() => {}); });
 </script>
