@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Keeper’s Codex">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="preload" href="data/register.json?v=c5a" as="fetch" crossorigin>
+<link rel="preload" href="data/register.json?v=c5b" as="fetch" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
@@ -274,7 +274,7 @@ body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
    city sits on each map, routes, and which side the text last reports holding a city). Add eras there and they appear here.
    The address after the # says what is open: #W03 an event, #map the map, #map/W03 that event on the map.
    ===================================================================== */
-const VERSION = 'Nov 11 · c5a';
+const VERSION = 'Nov 11 · c5b';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CATS = [['War of the Judges', 'War of the Judges', 'var(--judges)'], ['Earlier wars', 'Earlier wars', 'var(--wars)'], ['Church', 'Church', 'var(--church)'], ['Mission', 'Sons of Mosiah', 'var(--mission)'], ['Political', 'Political', 'var(--political)'], ['Migration', 'Migration', 'var(--migration)']];
@@ -637,8 +637,9 @@ function openAbout() {
     <h4>The map</h4><p>An interpretive model, not an archaeological reconstruction. Places the map doesn’t show stay off it rather than being guessed. Dotted lines join named places; they are not roads. City colours show only the changes of control the text reports.</p>
     <h4>Illustrations</h4><p>Generated, interpretive images. Faces, clothing and buildings are artistic choices, not claims about Nephite life.</p>
     <h4>The data</h4><p><a href="data/register.json" download>Events with scripture references</a> · <a href="data/source-notes.md" download>Source and date notes</a></p>
-    <p style="margin-top:22px;font:12px var(--ui);color:var(--faint)">${esc(VERSION)}</p>`;
+    <p style="margin-top:22px;font:12px var(--ui);color:var(--faint)"><button id="authorBtn" style="font:inherit;color:inherit;padding:10px 10px 10px 0">${esc(VERSION)}${author ? ' · editing is on' : ''}</button></p>`;
   $('about').hidden = false; $('scrim').hidden = false; $('aboutX').onclick = closeAbout; $('aboutX').focus();
+  $('authorBtn').onclick = () => { if (!author) openKey(); };   // the author's way in: tap the version line
 }
 function closeAbout() { $('about').hidden = true; $('scrim').hidden = true; }
 $('aboutBtn').onclick = openAbout; $('scrim').onclick = closeAbout;
@@ -765,7 +766,7 @@ addEventListener('beforeunload', (ev) => { if (busy) ev.preventDefault(); });
 /* ---------- start ---------- */
 (async () => {
   try {
-    const [r, a] = await Promise.all([fetch('data/register.json?v=c5a'), fetch('data/atlas.json?v=c5a')]);
+    const [r, a] = await Promise.all([fetch('data/register.json?v=c5b'), fetch('data/atlas.json?v=c5b')]);
     if (!r.ok) throw new Error(r.status);
     ALL = await r.json(); if (a.ok) ATLAS = await a.json();
     if (!LENSES.some(([k]) => k === lens)) lens = 'canon';
