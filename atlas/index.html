@@ -13,7 +13,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Keeper’s Codex">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<link rel="preload" href="data/register.json?v=c6a" as="fetch" crossorigin>
+<link rel="preload" href="data/register.json?v=c7a" as="fetch" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
@@ -277,7 +277,7 @@ body:not(.reading) #bar, body[data-view="map"] #bar { display: none; }
    city sits on each map, routes, and which side the text last reports holding a city). Add eras there and they appear here.
    The address after the # says what is open: #W03 an event, #map the map, #map/W03 that event on the map.
    ===================================================================== */
-const VERSION = 'Nov 11 · c6a';
+const VERSION = 'Nov 13 · c7a';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const CATS = [['War of the Judges', 'War of the Judges', 'var(--judges)'], ['Earlier wars', 'Earlier wars', 'var(--wars)'], ['Church', 'Church', 'var(--church)'], ['Mission', 'Sons of Mosiah', 'var(--mission)'], ['Political', 'Political', 'var(--political)'], ['Migration', 'Migration', 'var(--migration)']];
@@ -757,7 +757,7 @@ $('event').addEventListener('change', (ev) => {
   if (f === 'visible') { if (t.checked) delete e.draft; else e.draft = true; }
   else if (f === 'year') {
     e.year = t.value.trim() === '' ? null : +t.value; delete e.yearEnd;
-    if (e.year !== null) { if (!e.dateLabel || /^(about year|years? )\d/i.test(e.dateLabel) || /^about \d+ BC/i.test(e.dateLabel)) e.dateLabel = `Year ${e.year} of the judges · about ${92 - e.year} BC`; relocate(e); }
+    if (e.year !== null) { if (!e.dateLabel || /^(about year|years? )\d/i.test(e.dateLabel) || /^about \d+ BC/i.test(e.dateLabel)) e.dateLabel = `Year ${e.year} · about ${92 - e.year} BC`; relocate(e); }
   } else e[f] = t.value;
   touch(); if (painting || e !== cur) return;
   if (!EVENTS.includes(e)) { lens = 'mixed'; keep.set('lens', lens); pick(); renderLens(); renderTimeline(); }
@@ -806,7 +806,7 @@ async function restore(file) {
 /* ---------- start ---------- */
 (async () => {
   try {
-    const [r, a] = await Promise.all([fetch('data/register.json?v=c6a'), fetch('data/atlas.json?v=c6a')]);
+    const [r, a] = await Promise.all([fetch('data/register.json?v=c7a'), fetch('data/atlas.json?v=c7a')]);
     if (!r.ok) throw new Error(r.status);
     ALL = await r.json(); if (a.ok) ATLAS = await a.json();
     if (!LENSES.some(([k]) => k === lens)) lens = 'canon';

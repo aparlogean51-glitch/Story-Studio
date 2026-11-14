@@ -1,6 +1,6 @@
 // Keeper's Codex: keeps the timeline on the device so it opens without a connection.
-const SHELL = 'codex-shell-c6a', ART = 'annals-scenes';
-const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './data/register.json?v=c6a', './data/atlas.json?v=c6a'];
+const SHELL = 'codex-shell-c7a', ART = 'annals-scenes';
+const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png', './data/register.json?v=c7a', './data/atlas.json?v=c7a'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(SHELL).then((c) => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
   // older copies of the app itself are cleared; illustrations already seen are kept
